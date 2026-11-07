@@ -1,5 +1,4 @@
 # Traceform
-# Traceform
 
 **A research-first AI design tool.** Traceform makes every design decision traceable to user research, so AI-generated designs come out specific to the people they're for instead of generic.
 
