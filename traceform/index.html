@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traceform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Nunito+Sans:wght@400;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0..1,0&display=swap">
+<link rel="stylesheet" href="src/styles/app.css">
+</head>
+<body>
+<div class="appbar" id="appbar">
+  <button class="icon-btn" id="homeBtn" aria-label="All projects" title="All projects"><span class="ms" style="font-size:26px;color:var(--primary)">timeline</span></button>
+  <span class="ttl" id="homeTtl" role="button" tabindex="0" style="cursor:pointer">Traceform</span>
+  <span class="chip sm assist" id="projChip"><span class="ms" style="font-size:16px">restaurant</span>Mali's Table</span>
+  <span class="spacer"></span>
+  <span class="row body-s osv" id="aiState"><span class="ai-dot"></span>AI connecting…</span>
+  <div style="position:relative"><button class="icon-btn" id="exportBtn" aria-label="Export" aria-haspopup="menu"><span class="ms">ios_share</span></button>
+    <div class="menu" id="exportMenu" hidden role="menu">
+      <button data-x="figma"><span class="ms">deployed_code</span>Push to Figma (variables + frames)</button>
+      <button data-x="tokens-json"><span class="ms">data_object</span>Tokens → JSON</button>
+      <button data-x="tokens-css"><span class="ms">css</span>Tokens → CSS variables</button>
+      <button data-x="gaps"><span class="ms">help_center</span>Gaps → interview guide</button>
+      <button data-x="receipts"><span class="ms">receipt_long</span>Receipts → Markdown</button>
+      <button data-x="reset"><span class="ms">restart_alt</span>Reset prototype data</button>
+    </div></div>
+  <button class="icon-btn" id="themeBtn" aria-label="Toggle theme"><span class="ms">dark_mode</span></button>
+</div>
+<section id="landing" hidden>
+  <div class="land-wrap">
+    <div class="land-hd"><div><h1 class="display-s">Your projects</h1><p class="body-l osv">Every project starts from research, so the design that comes out is traceable to it.</p></div><button class="btn filled" id="newProj"><span class="ms">add</span>New project</button></div>
+    <div class="row" id="landFilters" style="margin:4px 0 14px"></div>
+    <div class="pgrid2" id="projGrid"></div>
+  </div>
+</section>
+<div class="shell">
+  <nav class="navrail" aria-label="Pages">
+    <button class="dest on" data-v="research"><span class="ind"><span class="ms">science</span></span><span class="l">Research</span></button>
+    <button class="dest" data-v="inspiration"><span class="ind"><span class="ms">photo_library</span></span><span class="l">Inspiration</span></button>
+    <button class="dest" data-v="system"><span class="ind"><span class="ms">palette</span></span><span class="l">System</span></button>
+    <button class="dest" data-v="review"><span class="ind"><span class="ms">fact_check</span></span><span class="l">Review</span></button>
+  </nav>
+  <main>
+    <!-- RESEARCH -->
+    <section class="view g3 on" id="v-research">
+      <aside class="pane left">
+        <div class="pane-hd"><span class="title-m">Artifacts</span><span class="spacer"></span><button class="icon-btn" id="pickSrc" title="Upload" aria-label="Upload"><span class="ms">upload_file</span></button></div>
+        <input type="file" id="srcFile" multiple accept=".txt,.md,.csv,.json,text/*" hidden>
+        <button class="btn tonal sm" id="figjamBtn"><span class="ms">dashboard</span>Import from FigJam</button>
+        <div class="drop" id="dropSrc">Drop interview notes, transcripts, surveys<br><button class="btn text sm" id="pasteSrc">Paste text</button></div>
+        <div class="row body-s osv"><span>Sort:</span><button class="chip sm on" data-sort="star">Starred first</button><button class="chip sm" data-sort="name">Name</button></div>
+        <div class="col" id="srcList"></div>
+        <div class="note" id="srcCount"></div>
+        <div class="spacer"></div>
+      </aside>
+      <div class="pane center">
+        <div class="pane-hd"><span class="title-l">Insight cards</span><span class="body-s osv">grouped by theme · click a card to see and edit its quotes</span><span class="spacer"></span><button class="btn text sm" id="addTheme"><span class="ms">add</span>Theme</button><button class="btn filled sm" id="lockBtn"><span class="ms">arrow_forward</span>Continue to Inspiration</button></div>
+        <div class="themes" id="themes"></div>
+      </div>
+      <aside class="pane side" id="rail-research">
+        <div class="pane-hd"><span class="title-m">Assumptions</span><span class="spacer"></span><button class="btn text sm" id="addAssume"><span class="ms">add</span>Add</button></div>
+        <div class="note">What the AI would assume on its own for this kind of project. Reject what isn't true for your client; rejected items become the avoid-list on every later screen.</div>
+        <div class="col" id="assume"></div>
+        <div class="card outlined" id="researchAsk" style="margin-top:auto">
+          <span class="title-s">Add more context to your research</span>
+          <div class="note" style="margin:4px 0 6px" id="rNote"></div>
+          <div id="rOut" class="col" style="max-height:220px;overflow:auto"></div>
+          <form id="rForm" class="col" style="gap:6px;margin-top:6px"><textarea class="inl" id="rIn" rows="3" style="border:1px solid var(--outline);border-radius:12px;padding:10px 12px" placeholder="Anything you've learned or decided: a client call, a constraint, who it's for, what to avoid…" aria-label="Add context to your research"></textarea><div class="row"><span class="body-s osv">Saved to your artifacts as context notes</span><span class="spacer"></span><button class="btn filled sm"><span class="ms">add</span>Add context</button></div></form>
+        </div>
+      </aside>
+    </section>
+
+    <!-- INSPIRATION -->
+    <section class="view g1" id="v-inspiration"><div class="pane center" id="inspBody" style="max-width:1280px;margin:0 auto;width:100%"></div></section>
+
+    <!-- SYSTEM -->
+    <section class="view g3" id="v-system">
+      <aside class="pane left">
+        <div class="pane-hd"><span class="title-m">Sections</span></div>
+        <div class="secnav" id="secnav">
+          <button class="on" data-s="base"><span class="ms">library_books</span>Base system</button>
+          <button data-s="color"><span class="ms">colors</span>Color</button>
+          <button data-s="type"><span class="ms">text_fields</span>Text styles</button>
+          <button data-s="space"><span class="ms">space_dashboard</span>Spacing &amp; shape</button>
+          <button data-s="imagery"><span class="ms">image</span>Imagery &amp; motif</button>
+          <button data-s="components"><span class="ms">widgets</span>Components</button>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn tonal" id="redraftBtn"><span class="ms">auto_awesome</span>Regenerate with AI</button>
+        <button class="btn text" id="redraftLocal">Reset to draft</button>
+      </aside>
+      <div class="pane center" id="sysCenter"></div>
+      <aside class="pane side" id="rail-system"></aside>
+    </section>
+
+    <!-- REVIEW -->
+    <section class="view g2" id="v-review">
+      <div class="pane center">
+        <div class="pane-hd" id="pagetabs">
+          <button class="chip sm on" data-p="home">Home</button><button class="chip sm" data-p="menu">Menu</button><button class="chip sm" data-p="order">Order</button><button class="chip sm" data-p="story">Story</button>
+          <span class="spacer"></span>
+          <div class="row" id="ovl"><button class="chip sm on" data-o="receipts"><span class="ms">checklist</span>decision markers</button></div>
+          <select id="device" class="chip sm"><option value="desk">Desktop</option><option value="phone">Phone</option></select>
+        </div>
+        <div class="stage" id="stage"></div>
+      </div>
+      <aside class="pane side" id="rail-review" style="padding:0"></aside>
+    </section>
+  </main>
+</div>
+<footer><span>Prototype · imagery is procedurally rendered for the demo · typicality scores are seeded estimates standing in for a scored corpus of AI-generated restaurant sites (n≈1,200) · saved in this browser only</span><span class="spacer"></span><span id="aiNote"></span></footer>
+<div hidden aria-hidden="true" id="legacyStubs"><button id="pickRef"></button><input type="file" id="refFile"><div id="dropRef"></div><form id="palForm"><input id="palInput"></form><form id="quoteForm"><textarea id="quoteInput"></textarea></form><form id="findForm"><input id="findInput"><button id="findBtn"></button></form><button id="buildSysBtn"></button><div id="tiles"></div><div id="shelfSum"></div><div id="shelfBal"></div><div id="refFilters"></div><div id="trendSeg"></div><button id="baselinePill"></button><div id="trendBody"></div><div id="rail-trending"></div><div id="rail-reference"></div><div id="trendFilters"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<!-- app.js is built from src/js/*.js (see scripts/build.mjs). The dev server builds it on every request. -->
+<script src="app.js"></script>
+</body>
+</html>

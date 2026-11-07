@@ -1,0 +1,21 @@
+{
+  "name": "traceform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A research-first AI design tool: every design decision traces back to user research.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server/server.mjs",
+    "dev": "node --watch-path=server server/server.mjs",
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node scripts/check.mjs && node tests/smoke.mjs && node tests/pipeline.mjs",
+    "mock-ai": "node tests/mock-ai.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0"
+  }
+}
