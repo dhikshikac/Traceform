@@ -44,28 +44,27 @@
     <!-- RESEARCH -->
     <section class="view g3 on" id="v-research">
       <aside class="pane left">
-        <div class="pane-hd"><span class="title-m">Artifacts</span><span class="spacer"></span><button class="icon-btn" id="pickSrc" title="Upload" aria-label="Upload"><span class="ms">upload_file</span></button></div>
+        <div class="pane-hd"><span class="title-m">Artifacts</span><span class="spacer"></span><button class="icon-btn" id="pickSrc" title="Upload files" aria-label="Upload files"><span class="ms">upload_file</span></button></div>
         <input type="file" id="srcFile" multiple accept=".txt,.md,.csv,.json,text/*" hidden>
-        <button class="btn tonal sm" id="figjamBtn"><span class="ms">dashboard</span>Import from FigJam</button>
-        <div class="drop" id="dropSrc">Drop interview notes, transcripts, surveys<br><button class="btn text sm" id="pasteSrc">Paste text</button></div>
-        <div class="row body-s osv"><span>Sort:</span><button class="chip sm on" data-sort="star">Starred first</button><button class="chip sm" data-sort="name">Name</button></div>
-        <div class="col" id="srcList"></div>
+        <div class="drop" id="dropSrc"><div>Drop interview notes, transcripts or survey exports</div><div class="body-s osv">.txt, .md or .csv</div><div class="row" style="justify-content:center;gap:0"><button class="btn text sm" id="pickSrc2">Choose files</button><button class="btn text sm" id="pasteSrc">Paste text</button></div></div>
+        <div class="col" id="srcList" style="gap:2px"></div>
         <div class="note" id="srcCount"></div>
-        <div class="spacer"></div>
       </aside>
       <div class="pane center">
-        <div class="pane-hd"><span class="title-l">Insight cards</span><span class="body-s osv">grouped by theme · click a card to see and edit its quotes</span><span class="spacer"></span><button class="btn text sm" id="addTheme"><span class="ms">add</span>Theme</button><button class="btn filled sm" id="lockBtn"><span class="ms">arrow_forward</span>Continue to Inspiration</button></div>
+        <div class="pane-hd"><div style="flex:1;min-width:220px"><div class="title-l">Insights</div><div class="body-s osv">Grouped by theme. Open a card to edit it or check its quotes against the source.</div></div><button class="btn text sm" id="addTheme"><span class="ms">add</span>Theme</button><button class="btn filled sm" id="lockBtn">Continue to Inspiration<span class="ms">arrow_forward</span></button></div>
+        <div class="rsum" id="rSum"></div>
         <div class="themes" id="themes"></div>
       </div>
       <aside class="pane side" id="rail-research">
         <div class="pane-hd"><span class="title-m">Assumptions</span><span class="spacer"></span><button class="btn text sm" id="addAssume"><span class="ms">add</span>Add</button></div>
-        <div class="note">What the AI would assume on its own for this kind of project. Reject what isn't true for your client; rejected items become the avoid-list on every later screen.</div>
-        <div class="col" id="assume"></div>
+        <div class="note">What an AI tool would assume about this kind of project if it had no research. Reject the ones your research doesn't back up.</div>
+        <div class="col" id="assume" style="gap:6px"></div>
+        <div class="note" id="assumeSum"></div>
         <div class="card outlined" id="researchAsk" style="margin-top:auto">
-          <span class="title-s">Add more context to your research</span>
+          <span class="title-s">Add something you learned</span>
           <div class="note" style="margin:4px 0 6px" id="rNote"></div>
-          <div id="rOut" class="col" style="max-height:220px;overflow:auto"></div>
-          <form id="rForm" class="col" style="gap:6px;margin-top:6px"><textarea class="inl" id="rIn" rows="3" style="border:1px solid var(--outline);border-radius:12px;padding:10px 12px" placeholder="Anything you've learned or decided: a client call, a constraint, who it's for, what to avoid…" aria-label="Add context to your research"></textarea><div class="row"><span class="body-s osv">Saved to your artifacts as context notes</span><span class="spacer"></span><button class="btn filled sm"><span class="ms">add</span>Add context</button></div></form>
+          <div id="rOut" class="col" style="max-height:220px;overflow:auto" hidden></div>
+          <form id="rForm" class="col" style="gap:6px;margin-top:6px"><textarea class="inl" id="rIn" rows="3" style="border:1px solid var(--outline);border-radius:12px;padding:10px 12px" placeholder="A client call, a constraint, who it's for, something to avoid…" aria-label="Add context to your research"></textarea><div class="row"><span class="body-s osv">Ctrl+Enter to send</span><span class="spacer"></span><button class="btn filled sm"><span class="ms">add</span>Add</button></div></form>
         </div>
       </aside>
     </section>

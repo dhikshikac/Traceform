@@ -48,7 +48,7 @@ function migrateAssumptions(){if(!STORE||STORE.assumeV===2)return;PTYPES=PTYPES|
   Object.values(STORE.states).forEach(st=>{if(!st||!Array.isArray(st.assume))return;const old=st.assume.filter(a=>oldAssumeRe().test(a.label));if(!old.length)return;const kept=st.assume.filter(a=>!oldAssumeRe().test(a.label));
     const fresh=st.pid==="p-mali"?seed:(PTYPES[st.type]||PTYPES.other).assume.map((a,i)=>({id:"g"+i+Math.random().toString(36).slice(2,5),label:a[0],from:a[1],rej:false}));st.assume=[...fresh,...kept]});
   STORE.assumeV=2;storeWrite()}
-function load(){STORE=storeRead()||makeSeedStore();migrateAssumptions();const id=STORE.states[STORE.current]?STORE.current:STORE.list[0].id;STORE.current=id;return JSON.parse(JSON.stringify(STORE.states[id]))}
+function load(){PTYPES=PTYPES||_ptypes();STORE=storeRead()||makeSeedStore();migrateAssumptions();const id=STORE.states[STORE.current]?STORE.current:STORE.list[0].id;STORE.current=id;return JSON.parse(JSON.stringify(STORE.states[id]))}
 function save(){if(!STORE||!S)return;const c={...S,tiles:S.tiles.map(t=>({...t,img:undefined})),history:(S.history||[]).slice(-30)};STORE.states[S.pid]=c;const m=STORE.list.find(x=>x.id===S.pid);if(m){m.name=S.project;m.updated=Date.now()}storeWrite()}
 function ago(t){const d=(Date.now()-t)/1000;if(d<60)return"just now";if(d<3600)return Math.round(d/60)+" min ago";if(d<86400)return Math.round(d/3600)+" h ago";return Math.round(d/86400)+" d ago"}
 
