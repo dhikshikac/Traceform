@@ -45,15 +45,17 @@
     <!-- RESEARCH -->
     <section class="view g3 on" id="v-research">
       <aside class="pane left">
-        <div class="pane-hd"><span class="title-m">Artifacts</span></div>
+        <div class="pane-hd"><span class="title-m" style="flex:1">Artifacts</span><button class="btn text sm" id="projDetails"><span class="ms">tune</span>Project details</button></div>
         <input type="file" id="srcFile" multiple accept=".txt,.md,.csv,.json,.pdf,text/*,application/pdf" hidden>
         <div class="drop" id="dropSrc"><div>Drop interview notes, transcripts or survey exports</div><div class="body-s osv">.txt, .md or .csv</div><div class="row" style="justify-content:center;gap:0"><button class="btn text sm" id="pickSrc2">Choose files</button><button class="btn text sm" id="pasteSrc">Paste text</button></div></div>
         <div class="col" id="srcList" style="gap:2px"></div>
       </aside>
       <div class="pane center">
-        <div class="pane-hd"><div style="flex:1;min-width:220px"><div class="title-l">Insights</div></div><button class="btn text sm" id="addTheme"><span class="ms">add</span>Theme</button><button class="btn filled sm" id="lockBtn">Continue to Inspiration<span class="ms">arrow_forward</span></button></div>
+        <div class="pane-hd"><div style="flex:1;min-width:220px"><div class="title-l">Insights</div></div></div>
         <div class="rsum" id="rSum"></div>
+        <div id="genslot-research" data-genslot="research"></div>
         <div class="themes" id="themes"></div>
+        <div class="row stagefoot"><span class="body-s osv">Only insights backed by your research carry through to the next stages.</span><button class="btn filled" id="lockBtn"><span class="ms">arrow_forward</span>Continue to Inspiration</button></div>
       </div>
       <aside class="pane side" id="rail-research">
         <div class="pane-hd"><span class="title-m">Assumptions</span></div>

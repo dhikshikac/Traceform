@@ -165,8 +165,11 @@ main{flex:1;min-width:0;display:flex;min-height:0}
 .list-item .t .s{font-size:12px;color:var(--on-surface-variant);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .star{color:var(--on-surface-variant)}.star.on{color:var(--warn);font-variation-settings:"FILL" 1}
 /* research */
-.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
-.theme{background:var(--surface-container);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
+/* Masonry flow. A grid makes every row as tall as its tallest theme, which left
+   a short theme sitting above a large hole; columns let each theme take only the
+   height it needs and the next one close up under it. */
+.themes{column-width:250px;column-gap:12px}
+.theme{background:var(--surface-container);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;margin:0 0 12px}
 .theme .hd{display:flex;align-items:center;gap:6px}
 .theme .hd input{font-weight:500}
 .ic{background:var(--surface-container-lowest);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:4px;cursor:pointer;border:1px solid transparent}
@@ -178,8 +181,9 @@ main{flex:1;min-width:0;display:flex;min-height:0}
 .ic.hard{border-color:var(--error)}
 .ic.low{border-style:dashed;border-color:var(--outline-variant)}
 /* research page: evidence checks, artifact viewer */
-#v-research .pane.center>.rsum{order:2}#v-research .pane.center>.themes{order:3}
-#v-research .themes{align-items:start}
+/* Explicit order: header, AI banner, theme tools, the insight/check summary, then the themes. These children are flex items, so without this the source order and the order property disagree. */
+#v-research .pane.center>.pane-hd{order:0}#v-research .pane.center>#genslot-research{order:1}#v-research .pane.center>.rsum{order:3}#v-research .pane.center>.themes{order:4}#v-research .pane.center>.stagefoot{order:5}
+
 .rsum{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--on-surface-variant);min-height:24px}
 .rsum:empty{display:none}.rsum b{color:var(--on-surface);font-weight:500}.rsum .dot{width:3px;height:3px;border-radius:50%;background:var(--outline)}
 .theme .hd .inl{flex:1;min-width:0}
@@ -322,7 +326,7 @@ main{flex:1;min-width:0;display:flex;min-height:0}
   .view.on{display:flex;flex-direction:column}.pane{flex:none;overflow:visible}.pane.side,.pane.left{max-height:none}
   .stage{min-height:0}.stage .site{max-width:100%}
   footer{display:none}
-  .tiles{grid-template-columns:repeat(2,1fr)}.themes{grid-template-columns:1fr}.gal{grid-template-columns:1fr}
+  .tiles{grid-template-columns:repeat(2,1fr)}.themes{column-width:auto;column-count:1}.gal{grid-template-columns:1fr}
   .igrid{grid-template-columns:repeat(2,1fr)}.mgrid{grid-template-columns:repeat(2,1fr)}.mcard.wide{grid-column:span 2}
   .cgrid{grid-template-columns:1fr!important}.cgrid>div.label-m:empty{display:none}
   .vtab{grid-template-columns:1fr}.surf{grid-template-columns:repeat(3,1fr)}
@@ -480,7 +484,12 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:6px;padding-
 .annonote{display:flex;gap:8px;align-items:flex-start;font-size:13px;background:var(--surface-container);border-radius:8px;padding:6px 8px}.annonote b{width:18px;height:18px;border-radius:50%;background:var(--primary);color:var(--on-primary);font-size:11px;display:grid;place-items:center;flex:none}
 .arect{position:absolute;border:2px solid var(--primary);background:color-mix(in srgb,var(--primary) 14%,transparent);border-radius:4px;pointer-events:none;z-index:3}.arect b{position:absolute;left:-2px;top:-2px;transform:translate(-40%,-40%);width:18px;height:18px;border-radius:50%;background:var(--primary);color:var(--on-primary);font-size:11px;display:grid;place-items:center}
 .arect.old{border-style:dashed;opacity:.6}
-.selarea{position:relative;aspect-ratio:16/10;border-radius:12px;overflow:hidden;cursor:crosshair;user-select:none;touch-action:none;background:var(--surface-container-highest)}.selarea>img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}.selarea .mock{pointer-events:none}
+/* The annotate preview scrolls, so a tall reference can be seen in full and any
+   part of it selected, instead of being cropped to a 16:10 box. */
+.selscroll{max-height:56vh;overflow:auto;border-radius:12px;background:var(--surface-container-highest);overscroll-behavior:contain}
+.selarea{position:relative;width:100%;cursor:crosshair;user-select:none;touch-action:pan-y;background:var(--surface-container-highest)}
+.selarea>img{width:100%;height:auto;display:block;pointer-events:none}
+.selarea .mock{pointer-events:none}
 .selrect{position:absolute;display:none;border:2px solid var(--primary);background:color-mix(in srgb,var(--primary) 18%,transparent);border-radius:4px;z-index:4;pointer-events:none}
 
 
@@ -572,3 +581,47 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:6px;padding-
 #tkErr:empty{display:none}
 #tkErr{margin:0}
 .sys-apply{position:sticky;bottom:-16px;padding:10px 0;border-top:1px solid var(--outline-variant);background:var(--surface-container-low)}
+
+/* Sidebar: one card per reference, each annotated part cropped to its region. */
+.insp-anno-head{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--outline-variant);background:var(--surface-container-low)}
+.insp-part-list{display:flex;flex-direction:column}
+.insp-part{display:flex;gap:10px;padding:8px 10px;align-items:flex-start}
+.insp-part+.insp-part{border-top:1px solid var(--outline-variant)}
+.insp-part-crop{position:relative;width:84px;flex:none;aspect-ratio:16/10;overflow:hidden;border-radius:6px;background:var(--surface-container-highest)}
+.insp-part-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.insp-zoom{position:absolute}
+.insp-zoom>img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Real-site screenshot with the generated mock kept underneath as a fallback. */
+.shotwrap{position:absolute;inset:0}
+.selarea .shotwrap{position:relative;inset:auto}
+.shotwrap>.shot{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+.selarea .shotwrap>.shot{height:auto;object-fit:contain}
+.shotwrap>.shotfb{display:none;position:absolute;inset:0}
+.selarea .shotwrap>.shotfb{position:relative;inset:auto}
+.shotwrap.failed>.shot{display:none}
+.shotwrap.failed>.shotfb{display:block}
+
+/* Shown instead of a screenshot when a real site cannot be captured. */
+.nopreview{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:100%;padding:14px;text-align:center;background:var(--surface-container-high);color:var(--on-surface-variant)}
+.nopreview .ms{font-size:28px;opacity:.7}
+.nopreview b{color:var(--on-surface)}
+.mocktag{position:absolute;left:8px;bottom:8px;z-index:3;background:color-mix(in srgb,var(--surface) 86%,transparent);color:var(--on-surface-variant);border:1px solid var(--outline-variant);border-radius:999px;padding:2px 8px;font-size:11px}
+
+.chip.sm.ok{background:transparent;border:1px solid var(--outline-variant);color:var(--on-surface-variant);cursor:default}
+
+/* Count, quote-check state and "+ Theme" share one row. */
+#rSum #addTheme{margin-left:4px}
+
+/* Stage footer: a hint on the left, the forward action on the right, as the
+   Inspiration page already does at the end of its page. */
+.stagefoot{justify-content:space-between;align-items:center;gap:12px;margin:8px 0 24px}
+
+/* Pinned themes survive a regenerate, so they are marked on the theme itself.
+   Note: ".pin" is already the Review page's absolutely-positioned marker badge,
+   hence the distinct name here. */
+.theme .x.pinbtn{opacity:.6;color:var(--on-surface-variant)}
+.theme .x.pinbtn:hover{opacity:1;color:var(--on-surface)}
+.theme .x.pinbtn.on{opacity:1;color:var(--primary)}
+.theme .x.pinbtn.on .ms{font-variation-settings:"FILL" 1}
+.theme.pinned{box-shadow:inset 2px 0 0 var(--primary)}
