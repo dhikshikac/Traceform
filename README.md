@@ -42,11 +42,12 @@ Without an AI connected, each stage fills in a clearly marked template instead, 
 
 ## Quick start
 
-You need [Node.js 18 or newer](https://nodejs.org/). There are no runtime dependencies.
+You need [Node.js 18 or newer](https://nodejs.org/). Run `npm install` once after cloning: the app depends on `pdfjs-dist` for reading PDF research uploads.
 
 ```bash
 git clone https://github.com/<your-org>/traceform.git
 cd traceform
+npm install
 npm start
 ```
 
@@ -70,7 +71,6 @@ To turn the AI on, see [Connecting an AI](#connecting-an-ai).
 ## Project structure
 
 ```
-traceform/
 ├── index.html                  App markup (all pages; JS shows and hides them)
 ├── src/
 │   ├── styles/app.css          Material 3 tokens (light and dark) and all component styles
@@ -121,7 +121,7 @@ Tools (for example `add_insight_card`, `add_assumption`, `set_token`) **run in t
 
 ### Free option: Google Gemini (what the team uses for the MVP)
 
-Get a free key at https://aistudio.google.com/apikey, copy `traceform/.env.example` to `traceform/.env`, paste the key in, and restart `npm start`. Step-by-step instructions and troubleshooting are in [GEMINI_SETUP.md](GEMINI_SETUP.md).
+Get a free key at https://aistudio.google.com/apikey, copy `.env.example` to `.env`, paste the key in, and restart `npm start`. Step-by-step instructions and troubleshooting are in [GEMINI_SETUP.md](GEMINI_SETUP.md).
 
 ### Option A: Claude (Anthropic)
 

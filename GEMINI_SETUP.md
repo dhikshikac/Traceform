@@ -12,9 +12,9 @@ Traceform runs without an AI. Every page loads, and the app bar says **AI offlin
 
 ## 2. Put the key in `.env`
 
-The app reads the key from a file called `.env` in the `traceform/` folder. Git ignores this file, so it never gets committed.
+The app reads the key from a file called `.env` in the project root. Git ignores this file, so it never gets committed.
 
-1. Open a terminal in the `traceform/` folder.
+1. Open a terminal in the project folder.
 2. Copy the example file:
    - Windows (PowerShell): `copy .env.example .env`
    - Mac or Linux: `cp .env.example .env`
@@ -34,7 +34,7 @@ On Windows, make sure the file is named `.env` and not `.env.txt`. In File Explo
 ## 3. Start the app
 
 ```bash
-cd traceform
+npm install
 npm start
 ```
 
@@ -51,7 +51,7 @@ The app bar in the browser should show a green dot and **AI live**. If you edit 
 
 1. On the projects page, click **New project**.
 2. Describe the project (for example, "A website for Paw Park, a dog daycare in Ithaca, with booking and pricing") and set the type to **Something else**.
-3. Under **Add research**, choose `traceform/samples/research/study_pawpark_daycare.md`.
+3. Under **Add research**, choose `samples/research/study_pawpark_daycare.md`.
 4. Click **Create project**. Themes and insight cards appear in a few seconds. Each quote is checked against the file and marked **Quote found**, **Paraphrased** or **not in sources**.
 
 There is a second sample set in the same folder (a bakery: `interview_owner_dana.txt`, `customer_interviews_notes.md`, `preorder_survey.csv`). All sample research is made up.
@@ -70,4 +70,4 @@ There is a second sample set in the same folder (a bakery: `interview_owner_dana
 
 - The key stays on your computer. The browser talks to our local server (`server/server.mjs`), and the server adds the key when it calls Google. The key is never sent to the browser.
 - Google may use free-tier requests to improve its products. Only upload made-up or anonymized research, never real participants' names or personal details.
-- Other providers (Anthropic, OpenAI, Groq…) also work. See `traceform/.env.example` and the README's "Connecting an AI" section.
+- Other providers (Anthropic, OpenAI, Groq…) also work. See `.env.example` and the README's "Connecting an AI" section.
