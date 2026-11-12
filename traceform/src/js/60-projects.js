@@ -3,12 +3,12 @@
 var STORE;
 var PTYPES;
 function _ptypes(){return {
-  restaurant:{name:"Restaurant website",icon:"restaurant",desc:"Menu, ordering, story",assume:[["Brand name and tagline follow category clichés","common in AI-generated sites"],["Cultural identity shown through national symbols and stereotypes","common default"],["Hero features the cuisine's best-known dish, not the owners' own","category default"],["Decorative patterns borrowed from a generic “homey” style","stock cue"],["Primary action pushes ordering over browsing the menu","most AI layouts"]]},
-  ecommerce:{name:"Online store",icon:"storefront",desc:"Products, cart, checkout",assume:[["Hero relies on rotating lifestyle imagery","common in AI-generated stores"],["Primary action is a generic “Shop now”","category default"],["Uniform product grid that ignores how customers actually choose","layout default"],["Marketing interruptions (pop-ups, banners) on first visit","common default"],["Minimal monochrome look regardless of the brand","template trope"],["Upbeat direct-to-consumer tone regardless of audience","copy default"]]},
-  webapp:{name:"Web app / portal",icon:"dashboard",desc:"Logged-in tools, data",assume:[["Navigation copied from generic dashboards","common in AI-generated apps"],["Summary metrics lead, whatever users actually come to do","layout default"],["Framework default colors and type","template default"],["Charts used by default for any data","common default"],["Extra features added by default (themes, widgets)","AI add-on"]]},
-  portfolio:{name:"Portfolio / studio",icon:"brush",desc:"Work, process, contact",assume:[["Dark, dramatic look by default","common in AI-generated portfolios"],["The maker's name dominates over the work","layout default"],["Uniform grid regardless of the work's shape","template default"],["Generic call to collaborate","copy trope"],["Decorative motion over content","AI flourish"]]},
-  mobile:{name:"Mobile app",icon:"smartphone",desc:"iOS / Android screens",assume:[["Standard tab-bar navigation regardless of the tasks","common default"],["Onboarding tour before the app shows any value","common default"],["Decorative splash and branding screens","trope"],["Default platform components left unchanged","template default"]]},
-  nonprofit:{name:"Nonprofit / campaign",icon:"volunteer_activism",desc:"Mission, impact, donate",assume:[["Urgency-driven donation prompts everywhere","common default"],["Imagery that relies on pity rather than dignity","trope"],["Large impact numbers without context","common default"],["Soft, generic “caring” palette and icons","trope"]]},
+  restaurant:{legacy:true,name:"Restaurant website",icon:"restaurant",desc:"Menu, ordering, story",assume:[["Brand name and tagline follow category clichés","common in AI-generated sites"],["Cultural identity shown through national symbols and stereotypes","common default"],["Hero features the cuisine's best-known dish, not the owners' own","category default"],["Decorative patterns borrowed from a generic “homey” style","stock cue"],["Primary action pushes ordering over browsing the menu","most AI layouts"]]},
+  ecommerce:{legacy:true,name:"Online store",icon:"storefront",desc:"Products, cart, checkout",assume:[["Hero relies on rotating lifestyle imagery","common in AI-generated stores"],["Primary action is a generic “Shop now”","category default"],["Uniform product grid that ignores how customers actually choose","layout default"],["Marketing interruptions (pop-ups, banners) on first visit","common default"],["Minimal monochrome look regardless of the brand","template trope"],["Upbeat direct-to-consumer tone regardless of audience","copy default"]]},
+  webapp:{name:"Web or desktop application",icon:"desktop_windows",desc:"Runs in a browser or on a computer",assume:[["Navigation copied from generic dashboards","common in AI-generated apps"],["Summary metrics lead, whatever users actually come to do","layout default"],["Framework default colors and type","template default"],["Charts used by default for any data","common default"],["Extra features added by default (themes, widgets)","AI add-on"]]},
+  portfolio:{legacy:true,name:"Portfolio / studio",icon:"brush",desc:"Work, process, contact",assume:[["Dark, dramatic look by default","common in AI-generated portfolios"],["The maker's name dominates over the work","layout default"],["Uniform grid regardless of the work's shape","template default"],["Generic call to collaborate","copy trope"],["Decorative motion over content","AI flourish"]]},
+  mobile:{name:"Native mobile app",icon:"smartphone",desc:"iOS or Android",assume:[["Standard tab-bar navigation regardless of the tasks","common default"],["Onboarding tour before the app shows any value","common default"],["Decorative splash and branding screens","trope"],["Default platform components left unchanged","template default"]]},
+  nonprofit:{legacy:true,name:"Nonprofit / campaign",icon:"volunteer_activism",desc:"Mission, impact, donate",assume:[["Urgency-driven donation prompts everywhere","common default"],["Imagery that relies on pity rather than dignity","trope"],["Large impact numbers without context","common default"],["Soft, generic “caring” palette and icons","trope"]]},
   other:{name:"Something else",icon:"category",desc:"Describe it in the brief",assume:[["Generic centered hero on a gradient","common default"],["Feature cards with icons","common default"],["Social proof added by default","common default"]]}
 }}
 PTYPES=PTYPES||_ptypes();
@@ -41,6 +41,50 @@ function makeSeedStore(){let mali=null;try{const j=localStorage.getItem("tracefo
     {id:"p-studio",name:studio.project,type:"portfolio",client:"Hollis & Wren",updated:now-864e5*3,thumb:"celadon"},
     {id:"p-clinic",name:clinic.project,type:"webapp",client:"Parkside Clinic",updated:now-864e5*6,thumb:null}],
    states:{"p-mali":mali,"p-coop":coop,"p-studio":studio,"p-clinic":clinic}}}
+/* ---- recently deleted ----
+   A deleted project keeps its full state in STORE.trash so it can be put back
+   exactly as it was. Entries expire after TRASH_DAYS, and the list is capped so
+   localStorage can't fill up with abandoned projects. */
+const TRASH_DAYS=30, TRASH_MAX=20;
+function trashList(){if(!STORE.trash)STORE.trash=[];
+  const cut=Date.now()-TRASH_DAYS*864e5;
+  const before=STORE.trash.length;
+  STORE.trash=STORE.trash.filter(e=>e&&e.at>cut).slice(0,TRASH_MAX);
+  if(STORE.trash.length!==before)storeWrite();
+  return STORE.trash}
+function trashProject(id){const meta=STORE.list.find(p=>p.id===id);if(!meta)return null;
+  const entry={at:Date.now(),meta:JSON.parse(JSON.stringify(meta)),state:JSON.parse(JSON.stringify(STORE.states[id]||{}))};
+  trashList().unshift(entry);
+  STORE.list=STORE.list.filter(p=>p.id!==id);delete STORE.states[id];
+  if(STORE.current===id){STORE.current=STORE.list[0]?STORE.list[0].id:null;
+    if(STORE.current)S=JSON.parse(JSON.stringify(STORE.states[STORE.current]))}
+  storeWrite();return entry}
+function restoreProject(id){const t=trashList();const i=t.findIndex(e=>e.meta.id===id);if(i<0)return false;
+  const e=t.splice(i,1)[0];
+  // A project created since the delete could have taken the id; give the restore a fresh one.
+  let nid=e.meta.id;if(STORE.states[nid]){nid="p-"+Math.random().toString(36).slice(2,8);e.meta.id=nid;e.state.pid=nid}
+  STORE.states[nid]=e.state;e.meta.updated=Date.now();STORE.list.push(e.meta);
+  if(!STORE.current){STORE.current=nid;S=JSON.parse(JSON.stringify(e.state))}
+  storeWrite();toast(`“${e.meta.name}” restored`);return true}
+function purgeProject(id){const t=trashList();const i=t.findIndex(e=>e.meta.id===id);if(i<0)return false;
+  t.splice(i,1);storeWrite();return true}
+/* Seeded demo projects are defined in code, so one deleted long ago (or wiped with
+   browser data) can always be rebuilt even when it is no longer in the trash. */
+function missingSeeds(){const have=new Set(STORE.list.map(p=>p.id));
+  // Something sitting in the trash is already offered there; don't list it twice.
+  trashList().forEach(e=>have.add(e.meta.id));
+  return makeSeedStore().list.filter(m=>!have.has(m.id))}
+function rebuildSeed(id){const seed=makeSeedStore();const meta=seed.list.find(m=>m.id===id);if(!meta||STORE.states[id])return false;
+  STORE.states[id]=seed.states[id];meta.updated=Date.now();STORE.list.push(meta);
+  if(!STORE.current){STORE.current=id;S=JSON.parse(JSON.stringify(seed.states[id]))}
+  storeWrite();toast(`“${meta.name}” rebuilt from the sample data`);return true}
+/* A toast with one action. Deleting should be undoable without hunting for a menu. */
+function toastUndo(msg,fn){const t=$("#toast");t.innerHTML="";
+  t.append(msg+" ");
+  const b=document.createElement("button");b.textContent="Undo";b.className="toast-act";
+  b.onclick=()=>{t.classList.remove("on");fn()};
+  t.append(b);t.classList.add("on");clearTimeout(toast.t);
+  toast.t=setTimeout(()=>{t.classList.remove("on");t.textContent=""},8000)}
 function storeRead(){try{const j=localStorage.getItem("traceform-projects");return j?JSON.parse(j):null}catch{return null}}
 function storeWrite(){try{localStorage.setItem("traceform-projects",JSON.stringify(STORE))}catch{}}
 function oldAssumeRe(){return /Mama's|Mom makes|Pad Thai|gingham|lotus|elephant|turmeric|Tone: warm|lifestyle carousel|“Shop now”|4-column|Newsletter pop-up|black, white, one accent|emoji in headlines|Left sidebar|four KPI|#3B82F6|Inter everywhere|donut|Dark-mode toggle|Dark background|Huge name|Masonry|work together|Cursor-follow|five tabs|Three-screen onboarding|Gradient splash|Floating action|Donate now|close-up of a child|10k\+|hand icon|gradient$|Three feature cards|Testimonials carousel/i}
@@ -53,10 +97,11 @@ function save(){if(!STORE||!S)return;const c={...S,tiles:S.tiles.map(t=>({...t,i
 function ago(t){const d=(Date.now()-t)/1000;if(d<60)return"just now";if(d<3600)return Math.round(d/60)+" min ago";if(d<86400)return Math.round(d/3600)+" h ago";return Math.round(d/86400)+" d ago"}
 
 /* ---- landing ---- */
-function showLanding(){save();document.body.classList.add("on-landing");$("#landing").hidden=false;$(".shell").hidden=true;$("footer").hidden=true;$("#projChip").hidden=true;$("#exportBtn").parentElement.hidden=true;try{history.replaceState(null,"","#projects")}catch{}renderLanding()}
-function showApp(){document.body.classList.remove("on-landing");$("#landing").hidden=true;$(".shell").hidden=false;$("footer").hidden=false;$("#projChip").hidden=false;$("#exportBtn").parentElement.hidden=false}
+function showLanding(){save();document.body.classList.add("on-landing");$("#landing").hidden=false;$(".shell").hidden=true;$("#projChip").hidden=true;$("#exportBtn").parentElement.hidden=true;try{history.replaceState(null,"","#projects")}catch{}renderLanding()}
+function showApp(){document.body.classList.remove("on-landing");$("#landing").hidden=true;$(".shell").hidden=false;$("#projChip").hidden=false;$("#exportBtn").parentElement.hidden=false}
 function renderLanding(){const list=[...STORE.list].sort((a,b)=>b.updated-a.updated);
   $("#landFilters").innerHTML=`<span class="body-s osv">${list.length} projects · sorted by last edited</span>`;
+  renderTrash();
   $("#projGrid").innerHTML=`<button class="pcard new" id="newProj2"><span class="ms" style="font-size:36px">add_circle</span><span class="title-m">New project</span><span class="body-s">Tell us what you're building</span></button>`+list.map(m=>{const st=STORE.states[m.id]||{};const t=PTYPES[m.type]||PTYPES.other;const vv=["trending","reference"].includes(st.view)?"inspiration":(st.view||"research");const si=STEP_ORDER.indexOf(vv);const cards=(st.themes||[]).reduce((n,x)=>n+x.cards.length,0);
     return`<div class="pcard" data-open="${m.id}" tabindex="0" role="button" aria-label="Open ${esc(m.name)}"><div class="pth">${m.thumb&&IMG[m.thumb]?`<img src="${IMG[m.thumb]}" alt="">`:`<div class="ptile" style="background:linear-gradient(135deg,var(--primary-container),var(--tertiary-container));color:var(--on-primary-container)"><span class="ms" style="font-size:52px">${t.icon}</span></div>`}<span class="badge p ty"><span class="ms" style="font-size:14px;margin-right:4px">${t.icon}</span>${esc(t.name)}</span></div>
       <div class="pb"><div class="row" style="flex-wrap:nowrap"><span class="title-m" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</span><div style="position:relative"><button class="icon-btn" data-pmenu="${m.id}" aria-label="Project options" style="width:32px;height:32px"><span class="ms">more_vert</span></button></div></div>
@@ -65,15 +110,36 @@ function renderLanding(){const list=[...STORE.list].sort((a,b)=>b.updated-a.upda
       <div class="row body-s"><span><b>${STEP_NAME[vv]}</b></span><span class="spacer"></span><span class="osv">${(st.sources||[]).length} artifact${(st.sources||[]).length===1?"":"s"} · ${cards} card${cards===1?"":"s"}</span></div></div></div>`}).join("");
   $("#newProj2").onclick=openWizard;
   $$("[data-open]").forEach(el=>{el.onclick=e=>{if(e.target.closest("[data-pmenu],.menu"))return;openProject(el.dataset.open)};el.onkeydown=e=>{if(e.key==="Enter"&&e.target===el)openProject(el.dataset.open)}});
-  $$("[data-pmenu]").forEach(b=>b.onclick=e=>{e.stopPropagation();$$(".pmenu").forEach(m=>m.remove());const id=b.dataset.pmenu;const m=document.createElement("div");m.className="menu pmenu";m.style.top="36px";m.innerHTML=`<button data-pa="open"><span class="ms">open_in_new</span>Open</button><button data-pa="details"><span class="ms">tune</span>Edit details</button><button data-pa="rename"><span class="ms">edit</span>Rename</button><button data-pa="dup"><span class="ms">content_copy</span>Duplicate</button><button data-pa="del"><span class="ms">delete</span>Delete</button>`;b.parentElement.appendChild(m);
+  $$("[data-pmenu]").forEach(b=>b.onclick=e=>{e.stopPropagation();$$(".pmenu").forEach(m=>m.remove());const id=b.dataset.pmenu;const m=document.createElement("div");m.className="menu pmenu";m.innerHTML=`<button data-pa="open"><span class="ms">open_in_new</span>Open</button><button data-pa="details"><span class="ms">tune</span>Edit details</button><button data-pa="rename"><span class="ms">edit</span>Rename</button><button data-pa="dup"><span class="ms">content_copy</span>Duplicate</button><button data-pa="del"><span class="ms">delete</span>Delete</button>`;document.body.appendChild(m);placeMenu(m,b);
     $$("[data-pa]",m).forEach(x=>x.onclick=ev=>{ev.stopPropagation();m.remove();const a=x.dataset.pa;const meta=STORE.list.find(p=>p.id===id);
       if(a==="open")openProject(id);
       else if(a==="details")openWizard(id);
       else if(a==="rename")dialog(`<span class="headline-s">Rename project</span><div class="field"><label for="rnIn">Name</label><input id="rnIn" value="${esc(meta.name)}"></div>`,[["Cancel","text",()=>{}],["Rename","filled",()=>{const v=$("#rnIn").value.trim();if(!v)return;meta.name=v;STORE.states[id].project=v;if(S.pid===id)S.project=v;storeWrite();renderLanding()}]]);
       else if(a==="dup"){const nid="p-"+Math.random().toString(36).slice(2,8);const copy=JSON.parse(JSON.stringify(STORE.states[id]));copy.pid=nid;copy.project=meta.name+" (copy)";STORE.states[nid]=copy;STORE.list.push({...meta,id:nid,name:copy.project,updated:Date.now()});storeWrite();renderLanding();toast("Duplicated")}
-      else if(a==="del")dialog(`<span class="headline-s">Delete “${esc(meta.name)}”?</span><div class="body-m">Its research, references and design system are removed from this browser. This can't be undone.</div>`,[["Cancel","text",()=>{}],["Delete","filled",()=>{if(STORE.list.length<2){toast("Keep at least one project");return}STORE.list=STORE.list.filter(p=>p.id!==id);delete STORE.states[id];if(STORE.current===id){STORE.current=STORE.list[0].id;S=JSON.parse(JSON.stringify(STORE.states[STORE.current]))}storeWrite();renderLanding();toast("Project deleted")}]])})});
+      else if(a==="del")dialog(`<span class="headline-s">Delete “${esc(meta.name)}”?</span><div class="body-m">It moves to Recently deleted, where you can put it back for the next ${TRASH_DAYS} days.</div>`,[["Cancel","text",()=>{}],["Delete","filled",()=>{trashProject(id);renderLanding();toastUndo(`“${meta.name}” deleted`,()=>{restoreProject(id);renderLanding()})}]])})});
 }
+/* Position a card menu under its button, flipping up or clamping so it stays on screen. */
+function placeMenu(m,btn){const b=btn.getBoundingClientRect();const mh=m.offsetHeight,mw=m.offsetWidth;const vh=innerHeight,vw=innerWidth;
+  let top=b.bottom+4;if(top+mh>vh-8)top=Math.max(8,b.top-4-mh);
+  let left=b.right-mw;left=Math.max(8,Math.min(left,vw-mw-8));
+  m.style.top=top+"px";m.style.left=left+"px"}
 document.addEventListener("click",()=>$$(".pmenu").forEach(m=>m.remove()));
+/* Recently deleted + any sample project that is missing entirely. */
+function renderTrash(){const t=trashList();const miss=missingSeeds();
+  let host=$("#trashBar");
+  if(!t.length&&!miss.length){if(host)host.remove();return}
+  if(!host){host=document.createElement("div");host.id="trashBar";host.className="trashbar";
+    $("#projGrid").parentElement.appendChild(host)}
+  host.innerHTML=`${t.length?`<div class="row" style="flex-wrap:nowrap;gap:8px"><span class="ms">delete_outline</span><span class="title-s" style="flex:1">Recently deleted (${t.length})</span></div>
+    <div class="col" style="gap:0">${t.map(e=>`<div class="shelfrow"><span class="ms osv">folder</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.meta.name)}</span><span class="body-s osv" style="margin-right:8px">deleted ${ago(e.at)}</span><button class="btn text sm" data-undel="${esc(e.meta.id)}"><span class="ms">restore_from_trash</span>Put back</button><button class="x" data-purge="${esc(e.meta.id)}" aria-label="Delete ${esc(e.meta.name)} permanently"><span class="ms" style="font-size:18px">delete_forever</span></button></div>`).join("")}</div>`:""}
+    ${miss.length?`<div class="row" style="flex-wrap:nowrap;gap:8px;margin-top:${t.length?"10px":"0"}"><span class="ms">auto_awesome</span><span class="title-s" style="flex:1">Sample projects not in this browser</span></div>
+    <div class="col" style="gap:0">${miss.map(m=>`<div class="shelfrow"><span class="ms osv">folder_special</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</span><button class="btn text sm" data-reseed="${esc(m.id)}"><span class="ms">refresh</span>Rebuild</button></div>`).join("")}</div>
+    <div class="body-s osv" style="margin-top:6px">Rebuilt from the sample data in the code, so any edits you made to them are not included.</div>`:""}`;
+  $$("[data-undel]",host).forEach(b=>b.onclick=()=>{restoreProject(b.dataset.undel);renderLanding()});
+  $$("[data-reseed]",host).forEach(b=>b.onclick=()=>{rebuildSeed(b.dataset.reseed);renderLanding()});
+  $$("[data-purge]",host).forEach(b=>b.onclick=()=>{const e=trashList().find(x=>x.meta.id===b.dataset.purge);
+    dialog(`<span class="headline-s">Delete “${esc(e.meta.name)}” permanently?</span><div class="body-m">This removes it from this browser for good. It cannot be undone.</div>`,[["Cancel","text",()=>{}],["Delete permanently","filled",()=>{purgeProject(b.dataset.purge);renderLanding();toast("Deleted permanently")}]])});
+}
 function openProject(id){const sv=STORE.states[id];if(sv&&["trending","reference"].includes(sv.view))sv.view="inspiration";if(S&&S.pid&&S.pid!==id)save();STORE.current=id;S=JSON.parse(JSON.stringify(STORE.states[id]));if(!S.tokens&&S.type==="restaurant")S.tokens=seedTokens();
   try{rTurns=[];pTurns=[];previewVer=null}catch{}storeWrite();showApp();setProjChip();go(S.view||"research")}
 function setProjChip(){const t=PTYPES[S.type]||PTYPES.restaurant;$("#projChip").innerHTML=`<span class="ms" style="font-size:16px">${t.icon}</span>${esc(S.project)}`;$("#projChip").title="Switch project";}
@@ -85,22 +151,17 @@ function openWizard(editId){const ed=editId?STORE.states[editId]:null;const ec=e
   const close=()=>d.remove();d.onclick=e=>{if(e.target===d)close()};d.onkeydown=e=>{if(e.key==="Escape")close()};
   const draw=()=>{
     d.innerHTML=`<div class="box" style="width:min(640px,100%)"><span class="headline-s" id="wzT">${ed?"Project details":"New project"}</span>${ed?`<div class="body-s osv">The AI uses these details, with your research, at every stage. Regenerate a stage to apply changes.</div>`:""}
-      <div class="field"><label for="wzWhat">What are you building? *</label><input id="wzWhat" value="${esc(W.what)}" placeholder="e.g. an online ordering site for a neighborhood food co-op"></div>
-      <div class="field"><label for="wzType">What kind of project is it?</label><select id="wzType"><option value="auto" ${W.typeChoice==="auto"?"selected":""}>Decide from my description${W.what?` (${(PTYPES[guessType(W.what+" "+W.brief)]||PTYPES.other).name})`:""}</option>${Object.entries(PTYPES).map(([k,t])=>`<option value="${k}" ${W.typeChoice===k?"selected":""}>${esc(t.name)}</option>`).join("")}</select></div>
-      <div class="field"><label for="wzName">Project name</label><input id="wzName" value="${esc(W.name)}" placeholder="e.g. Riverbend Food Co-op"></div>
-      <div class="field"><label for="wzWho">Who is it for?</label><input id="wzWho" value="${esc(W.audience)}" placeholder="e.g. members over 55, mostly on phones"></div>
-      <div class="field"><label for="wzBrief">Add context</label><textarea id="wzBrief" rows="4" placeholder="Background, constraints, what you already know about the people you're designing for.">${esc(W.brief)}</textarea></div>
-      <div class="field"><label for="wzAvoid">What should it never look or feel like?</label><input id="wzAvoid" value="${esc(W.avoid)}" placeholder="e.g. a chain supermarket"></div>
-      ${ed?"":`<div class="field"><label>Add research <span class="osv">(optional)</span></label><div class="drop" id="wzDrop">Drop interview notes, transcripts or survey exports<br><button class="btn text sm" id="wzPick" type="button">Choose files</button><input type="file" id="wzFile" multiple accept=".txt,.md,.csv,.json,text/*" hidden></div>
-      <div class="col" id="wzFiles">${W.files.map((f,i)=>`<div class="list-item"><span class="ms">description</span><div class="t">${esc(f.name)}<div class="s">${f.text.length} characters</div></div><button class="x" data-wzrm="${i}" aria-label="Remove ${esc(f.name)}"><span class="ms" style="font-size:16px">close</span></button></div>`).join("")}</div></div>`}
+      <div class="field"><label for="wzWhat">What are you building? *</label><textarea id="wzWhat" rows="4" placeholder="e.g. an online ordering site for a neighborhood food co-op">${esc(W.what)}</textarea></div>
+      <div class="field"><label for="wzType">What kind of project is it? *</label><select id="wzType"><option value="auto" ${W.typeChoice==="auto"?"selected":""}>Decide from my description${W.what?` (${(PTYPES[guessType(W.what+" "+W.brief)]||PTYPES.other).name})`:""}</option>${Object.entries(PTYPES).filter(([k,t])=>!t.legacy||W.typeChoice===k).map(([k,t])=>`<option value="${k}" ${W.typeChoice===k?"selected":""}>${esc(t.name)}</option>`).join("")}</select></div>
+      <div class="field"><label for="wzName">Project name *</label><input id="wzName" value="${esc(W.name)}" placeholder="e.g. Riverbend Food Co-op"></div>
+      <div class="field"><label for="wzWho">Who is it for? *</label><input id="wzWho" value="${esc(W.audience)}" placeholder="e.g. members over 55, mostly on phones"></div>
+      <div class="field"><label for="wzBrief">Add context *</label><textarea id="wzBrief" rows="4" placeholder="Background, constraints, what you already know about the people you're designing for.">${esc(W.brief)}</textarea></div>
+      
       <div class="row" style="justify-content:flex-end"><button class="btn text" id="wzCancel">Cancel</button><button class="btn filled" id="wzNext">${ed?"Save details":"Create project"}</button></div></div>`;
     $("#wzCancel",d).onclick=close;
-    const add=fs=>{grab();[...fs].forEach(f=>{const rd=new FileReader();rd.onload=()=>{W.files.push({name:f.name,text:String(rd.result).slice(0,20000)});draw()};rd.readAsText(f)})};
-    if($("#wzPick",d)){$("#wzPick",d).onclick=()=>$("#wzFile",d).click();$("#wzFile",d).onchange=e=>add(e.target.files);dragDrop($("#wzDrop",d),add)}
     $("#wzType",d).onchange=e=>{W.typeChoice=e.target.value};
-    $$("[data-wzrm]",d).forEach(b=>b.onclick=()=>{grab();W.files.splice(+b.dataset.wzrm,1);draw()});
-    $("#wzNext",d).onclick=()=>{grab();if(!W.what.trim()){$("#wzWhat",d).focus();toast("Say what you're building");return}
-      W.type=W.typeChoice&&W.typeChoice!=="auto"?W.typeChoice:guessType(W.what+" "+W.brief);if(ed){saveDetails(editId,W);close();return}if(!W.name.trim())W.name=W.what.trim().replace(/^(an?|the)\s+/i,"").replace(/^./,c=>c.toUpperCase()).slice(0,48);create()};
+    $("#wzNext",d).onclick=()=>{grab();const need=[["#wzWhat",W.what,"Say what you're building"],["#wzName",W.name,"Give the project a name"],["#wzWho",W.audience,"Say who it's for"],["#wzBrief",W.brief,"Add some context"]];for(const[sel,val,msg]of need){if(!String(val||"").trim()){$(sel,d)?.focus();toast(msg);return}}if(!W.typeChoice){$("#wzType",d)?.focus();toast("Pick a kind of project");return}
+      W.type=W.typeChoice&&W.typeChoice!=="auto"?W.typeChoice:guessType(W.what+" "+W.brief);if(ed){saveDetails(editId,W);close();return}create()};
     setTimeout(()=>$("#wzWhat",d)?.focus(),0)};
   const grab=()=>{const v=id=>$(id,d)?.value;W.typeChoice=v("#wzType")??W.typeChoice;W.what=v("#wzWhat")??W.what;W.name=v("#wzName")??W.name;W.audience=v("#wzWho")??W.audience;W.brief=v("#wzBrief")??W.brief;W.avoid=v("#wzAvoid")??W.avoid};
   const create=async()=>{const id="p-"+Math.random().toString(36).slice(2,8);
@@ -112,7 +173,7 @@ function openWizard(editId){const ed=editId?STORE.states[editId]:null;const ec=e
     afterProjectCreated()};
   draw()}
 
-function guessType(t){t=t.toLowerCase();const m=[["restaurant",/restaurant|cafe|café|menu|bakery|bar\b|food truck|diner/],["ecommerce",/shop|store|e-?commerce|sell|product|co-?op|market|checkout/],["mobile",/\bapp\b.*(ios|android|mobile|phone)|mobile app|ios|android/],["webapp",/portal|dashboard|web app|tool|saas|platform|patient|account|admin/],["portfolio",/portfolio|studio|artist|photograph|ceramic|maker/],["nonprofit",/nonprofit|non-profit|charity|donat|campaign|volunteer/]];for(const[k,r]of m)if(r.test(t))return k;return"other"}
+function guessType(t){t=t.toLowerCase();if(/\b(ios|android|native app|mobile app|phone app|app store|play store|swiftui|react native|flutter)\b/.test(t))return"mobile";if(/\b(website|web app|web-app|webapp|site|portal|dashboard|desktop|saas|platform|store|shop|browser)\b/.test(t))return"webapp";return"other"}
 /* Structured project context. New projects store it; older ones are parsed from the brief. */
 function projectContext(st){st=st||S;const b=st.brief||"";const line=re=>(b.match(re)||[])[1]||"";
   if(!st.context&&st.pid==="p-mali")st.context={what:"A website for Mali's Table, a family-run northern Thai restaurant in Minneapolis: menu, pickup and delivery ordering, and the family's story",audience:"Regulars and neighbors, mostly ordering pickup on their phones",context:"Mali cooks; her daughter Pim runs the front and wants it to feel modern, Mali wants it to feel like home. Survey: 81% look at photos first, 62% order online.",avoid:"generic “Thailand”: elephants, gold, temples"};

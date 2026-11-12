@@ -22,6 +22,7 @@
       <button data-x="tokens-css"><span class="ms">css</span>Tokens → CSS variables</button>
       <button data-x="gaps"><span class="ms">help_center</span>Gaps → interview guide</button>
       <button data-x="receipts"><span class="ms">receipt_long</span>Receipts → Markdown</button>
+      <button data-x="credits"><span class="ms">photo_library</span>Photo credits → Markdown</button>
       <button data-x="reset"><span class="ms">restart_alt</span>Reset prototype data</button>
     </div></div>
   <button class="icon-btn" id="themeBtn" aria-label="Toggle theme"><span class="ms">dark_mode</span></button>
@@ -45,7 +46,7 @@
     <section class="view g3 on" id="v-research">
       <aside class="pane left">
         <div class="pane-hd"><span class="title-m">Artifacts</span></div>
-        <input type="file" id="srcFile" multiple accept=".txt,.md,.csv,.json,text/*" hidden>
+        <input type="file" id="srcFile" multiple accept=".txt,.md,.csv,.json,.pdf,text/*,application/pdf" hidden>
         <div class="drop" id="dropSrc"><div>Drop interview notes, transcripts or survey exports</div><div class="body-s osv">.txt, .md or .csv</div><div class="row" style="justify-content:center;gap:0"><button class="btn text sm" id="pickSrc2">Choose files</button><button class="btn text sm" id="pasteSrc">Paste text</button></div></div>
         <div class="col" id="srcList" style="gap:2px"></div>
       </aside>
@@ -103,7 +104,7 @@
     </section>
   </main>
 </div>
-<footer><span>Prototype · imagery is procedurally rendered for the demo · typicality scores are seeded estimates standing in for a scored corpus of AI-generated restaurant sites (n≈1,200) · saved in this browser only</span><span class="spacer"></span><span id="aiNote"></span></footer>
+
 <div hidden aria-hidden="true" id="legacyStubs"><button id="pickRef"></button><input type="file" id="refFile"><div id="dropRef"></div><form id="palForm"><input id="palInput"></form><form id="quoteForm"><textarea id="quoteInput"></textarea></form><form id="findForm"><input id="findInput"><button id="findBtn"></button></form><button id="buildSysBtn"></button><div id="tiles"></div><div id="shelfSum"></div><div id="shelfBal"></div><div id="refFilters"></div><div id="trendSeg"></div><button id="baselinePill"></button><div id="trendBody"></div><div id="rail-trending"></div><div id="rail-reference"></div><div id="trendFilters"></div></div>
 <div class="toast" id="toast" role="status"></div>
 

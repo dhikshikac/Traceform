@@ -16,6 +16,13 @@
     "mock-ai": "node tests/mock-ai.mjs"
   },
   "devDependencies": {
+    "@astryxdesign/cli": "^0.7.14",
     "playwright": "^1.47.0"
+  },
+  "dependencies": {
+    "@astryxdesign/core": "^0.7.14",
+    "@astryxdesign/theme-neutral": "^0.7.14",
+    "@stylexjs/stylex": "^0.19.2",
+    "pdfjs-dist": "^6.5.438"
   }
 }
