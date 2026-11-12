@@ -5,6 +5,8 @@
 //   GET  /src/... /img/...  static files
 //   GET  /api/ai/health which provider is configured (never returns the key)
 //   POST /api/ai        {tier, messages, tools, json} -> {text, tool_calls, stop}
+//   GET  /api/images?q= stock photo search (Openverse by default, no key needed)
+//   POST /api/extract   PDF bytes -> {text, pages} for research uploads
 //
 // The API key stays on the server. The browser never sees it.
 
@@ -15,6 +17,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildAppJs } from "../scripts/build.mjs";
 import { getProvider } from "./providers/index.mjs";
+import { searchPhotos, photoInfo } from "./photos.mjs";
+import { extractPdf } from "./extract.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -34,6 +38,8 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 // Simple per-IP rate limit so a shared deployment can't run up the bill.
 const RATE = Number(process.env.AI_RATE_LIMIT_PER_MIN || 20);
 const hits = new Map();
+const photoCache = new Map();
+const PHOTO_TTL = 6 * 60 * 60 * 1000;
 function limited(ip) {
   const now = Date.now(), list = (hits.get(ip) || []).filter(t => now - t < 60_000);
   list.push(now); hits.set(ip, list);
@@ -67,6 +73,34 @@ http.createServer(async (req, res) => {
   try {
     if (url.pathname === "/app.js") return send(res, 200, await buildAppJs(), TYPES[".js"]);
     if (url.pathname === "/api/ai/health") return send(res, 200, provider.info());
+    if (url.pathname === "/api/images") {
+      const q = url.searchParams.get("q") || "";
+      const n = Math.max(1, Math.min(10, Number(url.searchParams.get("n") || 3)));
+      const key = n + "|" + q.toLowerCase().trim();
+      const hit = photoCache.get(key);
+      if (hit && Date.now() - hit.at < PHOTO_TTL) return send(res, 200, hit.body);
+      if (limited(req.socket.remoteAddress)) return send(res, 429, { code: "rate_limited", error: "Too many requests; try again in a minute." });
+      const body = await searchPhotos(q, n);
+      photoCache.set(key, { at: Date.now(), body });
+      if (photoCache.size > 300) photoCache.delete(photoCache.keys().next().value);
+      return send(res, 200, body);
+    }
+    if (url.pathname === "/api/images/health") return send(res, 200, photoInfo());
+    if (url.pathname === "/api/extract" && req.method === "POST") {
+      const chunks = [];
+      let size = 0;
+      for await (const c of req) {
+        size += c.length;
+        if (size > 25 * 1024 * 1024) return send(res, 413, { code: "too_large", error: "PDF is larger than 25 MB." });
+        chunks.push(c);
+      }
+      try {
+        const out = await extractPdf(Buffer.concat(chunks));
+        return send(res, 200, out);
+      } catch (e) {
+        return send(res, 422, { code: "unreadable_pdf", error: "That PDF could not be read." });
+      }
+    }
     if (url.pathname === "/api/ai" && req.method === "POST") {
       if (!provider.configured) return send(res, 503, { code: "not_configured", error: "No AI provider configured. Copy .env.example to .env and add a key." });
       if (limited(req.socket.remoteAddress)) return send(res, 429, { code: "rate_limited", error: "Too many requests; try again in a minute." });
@@ -83,4 +117,6 @@ http.createServer(async (req, res) => {
   const i = provider.info();
   console.log(`Traceform running at http://localhost:${PORT}`);
   console.log(i.configured ? `AI: ${i.provider} · ${i.model}` : "AI: offline (no provider configured; see README › Connecting an AI)");
+  const ph = photoInfo();
+  console.log(`Photos: ${ph.provider}${ph.configured ? "" : " (not configured — falling back to placeholders)"}`);
 });

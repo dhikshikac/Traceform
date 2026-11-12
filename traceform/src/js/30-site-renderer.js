@@ -71,10 +71,20 @@ function MALI_SITE(){return{
   about:{title:"Our story",img:"board",alt:"Mali's mother's menu board",paragraphs:["We cook the food we eat at home. Khao soi from Chiang Mai, the way Mali's mother made it at her stall by Warorot market. Som tam pounded to order. Greens from the garden when there are greens.","Mali came to Minneapolis in 2004 and cooked for other people's restaurants for fifteen years. In 2019 she and her daughter Pim took over the small room on Lyndale, painted it, and put her mother's menu board on the wall. The board still sets the menu: what's on it is what we cook.","We don't do a long menu. We do the dishes the family eats, and we make them the way they were made for us. Order a few and share them."],photos:[["hands","Mali pounding som tam"],["herbs","Herbs from the garden"],["celadon","Mali's mother's bowls"]],people:[["Mali","Cooks. Grew up in Chiang Mai, learned from her mother's stall. Grinds the larb spices herself every Tuesday."],["Pim","Runs the front and the ordering. Will tell you exactly how hot “hot” is. Wants the site to feel modern; Mali wants it to feel like home."]]}
 }}
 function site(){if(!S.site)S.site=S.pid==="p-mali"?MALI_SITE():templateSite();return S.site}
-/* image slot: a demo photo, the designer's upload, or a labeled placeholder with art direction (for handoff) */
-function pic(key,alt,style=""){const u=userImg(key);const src=u||(key&&IMG[key]);
+/* image slot, in priority order:
+     1. the designer's own upload ("user:N")
+     2. a real photograph resolved from the stock library and frozen on the project
+     3. a legacy demo key from IMG (older projects, seeded demos)
+     4. a labeled placeholder carrying the art direction, for handoff
+   Nothing here is generated; 2 and 3 are photographs with a creator and a licence. */
+function pic(key,alt,style=""){const u=userImg(key);
+  if(u)return`<img src="${u}" alt="${esc(alt||"")}" style="${style}">`;
+  const ph=typeof photoGet==="function"?photoGet(key):null;
+  if(ph&&!ph.miss&&ph.src)return`<img src="${esc(ph.src)}" alt="${esc(alt||ph.alt||"")}" style="${style}" loading="lazy" data-credit="${esc(ph.creator)} \u00b7 ${esc(ph.license)}">`;
+  const src=key&&IMG[key];
   if(src)return`<img src="${src}" alt="${esc(alt||"")}" style="${style}">`;
-  return`<div class="phs" role="img" aria-label="${esc(alt||"Image")}"><span>PHOTO</span><b>${esc(alt||"Image to be supplied")}</b></div>`}
+  const waiting=key&&typeof PHOTOS_ON!=="undefined"&&PHOTOS_ON;
+  return`<div class="phs" role="img" aria-label="${esc(alt||"Image")}"><span>${waiting?"FINDING PHOTO":"PHOTO"}</span><b>${esc(alt||key||"Image to be supplied")}</b></div>`}
 const money=p=>p===""||p==null?"":/^[\d.]+$/.test(String(p))?"$"+p:String(p);
 function pageHTML(){
   const W=site();const ov=S.overlays;const P=S.page;const SMALL={brand:1,cta:1,heat:1};

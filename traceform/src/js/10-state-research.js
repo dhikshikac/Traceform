@@ -116,7 +116,7 @@ function setToken(k,v,why,not){if(!S.tokens)S.tokens=seedTokens();const t=S.toke
 /* ============================ AI ============================ */
 let sample=null;
 (async()=>{try{sample=await TraceformAI.connect()}catch{sample=null}
-  const el=$("#aiState");if(sample){el.innerHTML='<span class="ai-dot live"></span>AI live';$("#aiNote").textContent="AI calls go through the provider configured on the server (or the viewer's Claude account inside Claude)."}else{el.innerHTML='<span class="ai-dot"></span>AI offline · connect a provider';$("#aiNote").textContent="Connect an AI provider (see README) to regenerate the design system with AI."}})();
+  const el=$("#aiState");if(sample){el.innerHTML='<span class="ai-dot live"></span>AI live'}else{el.innerHTML='<span class="ai-dot"></span>AI offline · connect a provider'}})();
 const RULES=`You are the design assistant inside Traceform, a research-first design tool. Help the designer keep an AI-generated website grounded in research and distinct from generic AI output. Answer in 2-5 short sentences, plain language, no headings. Cite research (card id, quote, survey number, shelf tile) when justifying a choice. Never propose anything on the avoid list. When asked to change the selected thing, use the tools then say what changed in one sentence; when asked a question, answer without changing anything. Typicality percentages are estimates; say so if asked.`;
 function ctxSummary(){const toks=(S.tokens||seedTokens()).map(t=>`${t.k}=${t.v} | why: ${t.why} | not: ${t.not}`).join("\n");const cards=S.themes.map(t=>`[${t.name}] `+t.cards.map(c=>`${c.id}: ${c.text} (${c.quote})`).join(" ; ")).join("\n");const princ=S.principles.map((p,i)=>`${i+1}. ${p.text}${p.hard?" (hard)":""}`).join("\n");const shelf=S.tiles.map(t=>`${t.id} [${t.type}/${t.kind}${t.flag?", flagged":""}] ${t.title} — borrow: ${t.borrow}`).join("\n");return`${typeof projectHeader==="function"?projectHeader():"PROJECT: "+S.project}\nPRINCIPLES:\n${princ}\nAVOID: ${avoidList().join("; ")}\nCARDS:\n${cards}\nSHELF:\n${shelf}\nTOKENS:\n${toks}\nELEMENT OVERRIDES: ${JSON.stringify(S.elements)}`}
 
@@ -170,8 +170,28 @@ function renderSources(){
 }
 function addSource(name,text,kind){const s={id:uid("s"),name,kind:kind||guessKind(name,text),star:false,text:String(text).slice(0,20000)};S.sources.push(s);return s}
 function afterSourcesAdded(n,label){save();renderResearch();toast(S.themes.length?`Added ${label}. Regenerate to include it in the insights.`:`Added ${label}. Generate to draft insights from it.`)}
-function addSourceFiles(files){const fs=[...files].filter(f=>!/^image\//.test(f.type));if(!fs.length){toast("Upload text files: .txt, .md or .csv");return}
-  let left=fs.length;fs.forEach(f=>{const rd=new FileReader();rd.onload=()=>{addSource(f.name,rd.result);if(--left===0)afterSourcesAdded(fs.length,fs.length===1?f.name:`${fs.length} files`)};rd.readAsText(f)})}
+const isPdf=f=>/^application\/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name);
+/* Read one upload as text. A PDF goes to the server to be extracted, because
+   reading it in the browser as text yields binary noise that then poisons every
+   AI stage downstream. */
+async function readSourceFile(f){
+  if(!isPdf(f))return new Promise((res,rej)=>{const rd=new FileReader();rd.onload=()=>res(String(rd.result));rd.onerror=()=>rej(new Error("read failed"));rd.readAsText(f)});
+  const r=await fetch("/api/extract",{method:"POST",headers:{"content-type":"application/pdf"},body:f});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||"That PDF could not be read.")}
+  const d=await r.json();
+  if(d.empty)throw new Error(`${f.name} has no selectable text (it looks scanned).`);
+  return d.text+(d.truncated?`\n\n[... truncated after ${d.pages} pages]`:"")}
+function addSourceFiles(files){const fs=[...files].filter(f=>!/^image\//.test(f.type));if(!fs.length){toast("Upload text files: .txt, .md, .csv or .pdf");return}
+  const pdfs=fs.filter(isPdf).length;if(pdfs)toast(`Reading ${pdfs} PDF${pdfs===1?"":"s"}\u2026`);
+  (async()=>{let ok=0,failed=[];
+    for(const f of fs){
+      try{ addSource(f.name,await readSourceFile(f)); ok++ }
+      catch(e){ failed.push(e.message||f.name) }
+    }
+    if(ok)afterSourcesAdded(ok,ok===1?fs.find(f=>true).name:`${ok} files`);
+    else save();
+    if(failed.length)toast(failed[0]);
+  })()}
 function highlightCited(s){const text=s.text||"";const ranges=[];
   S.themes.forEach(t=>t.cards.forEach(c=>cardQuotes(c).forEach(q=>{if(verifyQuote(q,c.src).src!==s.id)return;
     quoteParts(q).forEach(p=>{const ws=normQ(p).split(" ").filter(Boolean);if(ws.length<2)return;

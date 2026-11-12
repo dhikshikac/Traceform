@@ -259,7 +259,8 @@ function renderReview(){syncEL();
     const h=S.history[previewVer];st.innerHTML=`<div class="verbar"><span class="ms">history</span><span style="flex:1;min-width:0"><b>Previewing</b> · ${esc(verLabel(h.what))} · ${new Date(h.t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span><button class="btn text sm" id="vbBack">Back to current</button><button class="btn filled sm" id="vbRestore">Restore this version</button></div><div class="morph">${pageHTML()}</div>`;Object.assign(S,keep);
     $("#vbBack",st).onclick=()=>{previewVer=null;renderReview()};$("#vbRestore",st).onclick=()=>$(`[data-restore="${previewVer}"]`)?.click()||(()=>{const i=previewVer;const a=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(a.tokens));S.elements=JSON.parse(JSON.stringify(a.elements));S.site=a.site?JSON.parse(JSON.stringify(a.site)):S.site;S.review=a.review;previewVer=null;save();renderAll();toast("Restored that version")})();
     $$(".el",st).forEach(e=>{e.style.cursor="default"});renderReviewRail();return}
-  st.innerHTML=`<div class="morph">${pageHTML()}</div>`;
+  st.innerHTML=`<div class="morph">${pageHTML()}</div>${photoCreditBar()}`;
+  photoFill();
   $$(".el",st).forEach(e=>e.addEventListener("click",ev=>{ev.stopPropagation();const inner=ev.target.closest(".el");if(inner&&inner!==e)return;select({kind:"el",id:e.dataset.el});S.reviewTab="panel";renderReview()}));
   st.onclick=e=>{if(e.target===st||e.target.classList.contains("site")){select(null);renderReview()}};
   renderReviewRail();
@@ -269,6 +270,16 @@ function renderReview(){syncEL();
 function erf(x){const t=1/(1+.3275911*Math.abs(x));const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return x>=0?y:-y}
 const CORPUS={mean:54,sd:13,n:1200};
 function pctile(v){return Math.round(100*.5*(1+erf((v-CORPUS.mean)/(CORPUS.sd*Math.SQRT2))))}
+/* Photo credits. A photograph without its creator and licence is not traceable,
+   and most CC licences require the attribution be shown. */
+function photoCreditBar(){if(typeof photoCredits!=="function")return"";const c=photoCredits();if(!c.length)return"";
+  return`<div class="note" id="photoCredits" style="margin-top:8px;font-size:12px">Photographs: ${c.map(p=>`<a href="${esc(p.source)}" target="_blank" rel="noopener">${esc(p.alt||"photo")}</a> by ${esc(p.creator)} (<a href="${esc(p.licenseUrl)}" target="_blank" rel="noopener">${esc(p.license)}</a>)`).join(" · ")} · via ${esc(c[0].provider)}</div>`}
+/* Resolve any photo subjects the current site refers to but hasn't looked up yet. */
+var photoFilling=false;
+function photoFill(){if(photoFilling||typeof photoResolveAll!=="function")return;
+  const want=sitePhotoSubjects().filter(q=>!photoGet(q)&&!IMG[q]&&!/^user:/.test(q));
+  if(!want.length)return;photoFilling=true;
+  photoResolveAll(want,()=>{if(S.view==="review")renderReview()}).finally(()=>{photoFilling=false})}
 function siteScore(){const au=audit();const pf=patterns();
   const onPage=Object.entries(EL).filter(([id,e])=>(e.page==="*"||e.page===S.page)&&!elState(id).hidden);
   const gaps=Object.entries(EL).filter(([id,e])=>e.page==="*"||e.page===S.page).flatMap(([id,e])=>e.gaps||[]);
@@ -362,6 +373,7 @@ function exportX(kind){let text="",label="";const toks=S.tokens||seedTokens();
   if(kind==="figma"){text=JSON.stringify({collections:[{name:"Traceform",modes:["default"],variables:toks.map(t=>({name:t.k.replace(/\./g,"/"),type:t.type==="color"?"COLOR":"STRING",value:t.v,description:`${t.why} | NOT: ${t.not}`}))}],frames:["Home","Menu","Order","Story"].map(p=>({name:`${S.project} / ${p}`,receipts:Object.entries(EL).filter(([i,e])=>e.page==="*"||e.page===p.toLowerCase()).map(([i,e])=>({layer:e.name,receipt:e.receipt||"AI decided",typicality:e.prev.find(x=>x[0]===e.mine)?.[1]||null}))}))},null,2);label="figma-push.json (variables + frames with receipts on layers)"}
   if(kind==="gaps"){const gaps=Object.entries(EL).flatMap(([id,e])=>(e.gaps||[]).map(g=>`- ${g}  (${e.name})`));text=`# Follow-up interview guide · ${S.project}\n\nOpen gaps:\n${gaps.join("\n")}\n\nRejected AI assumptions:\n${S.assume.filter(a=>a.rej).map(a=>"- "+a.label).join("\n")}\n\nDivergent themes to resolve:\n${S.themes.filter(t=>t.mode==="divergent").map(t=>"- "+t.name+": "+t.cards.map(c=>c.text).join("; ")).join("\n")}`;label="interview-guide.md"}
   if(kind==="receipts"){text=`# Receipts · ${S.project}\n\n`+Object.entries(EL).map(([id,e])=>`## ${e.pin}. ${e.name}${elState(id).hidden?" (removed)":""}\n${e.receipt||"_AI decided — no research_"}\nTypicality: ${e.prev.map(p=>`${p[0]} ${p[1]}%`).join(", ")} · yours: ${e.mine}`).join("\n\n")+`\n\n## Versions\n`+S.history.map(l=>`- ${new Date(l.t).toLocaleTimeString()} ${l.what}`).join("\n");label="receipts.md"}
+  if(kind==="credits"){const c=typeof photoCredits==="function"?photoCredits():[];text=`# Photo credits \u00b7 ${S.project}\n\n`+(c.length?c.map(p=>`- **${p.alt||p.q}** \u2014 ${p.creator}, ${p.license}\n  ${p.source}`).join("\n"):"_No stock photographs in this site yet._");label="photo-credits.md"}
   if(kind==="reset"){localStorage.removeItem("of-m3-v2");S=SEED();renderAll();toast("Reset");return}
   dialog(`<span class="headline-s">${esc(label)}</span><div class="field"><textarea rows="14" readonly style="font-family:var(--mono);font-size:12px">${esc(text)}</textarea></div><div class="note">Downloads are blocked inside the viewer; copy and paste into a file, Figma's variable import, or your repo. “Push to Figma” would send this payload through the plugin.</div>`,[["Close","text",()=>{}],["Copy","filled",async()=>{try{await navigator.clipboard.writeText(text);toast("Copied")}catch{toast("Select the text and copy")}}]])}
 $("#themeBtn").onclick=()=>{const cur=document.documentElement.getAttribute("data-theme");const dark=cur?cur==="dark":matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.setAttribute("data-theme",dark?"light":"dark");$("#themeBtn .ms").textContent=dark?"dark_mode":"light_mode"};

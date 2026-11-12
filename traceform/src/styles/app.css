@@ -482,4 +482,14 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:6px;padding-
 .arect.old{border-style:dashed;opacity:.6}
 .selarea{position:relative;aspect-ratio:16/10;border-radius:12px;overflow:hidden;cursor:crosshair;user-select:none;touch-action:none;background:var(--surface-container-highest)}.selarea>img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}.selarea .mock{pointer-events:none}
 .selrect{position:absolute;display:none;border:2px solid var(--primary);background:color-mix(in srgb,var(--primary) 18%,transparent);border-radius:4px;z-index:4;pointer-events:none}
+
+
+/* Project card menu renders in a fixed layer so the card's overflow:hidden can't clip it. */
+.menu.pmenu{position:fixed;right:auto;top:auto}
+
+/* Recently deleted projects, under the project grid on the landing page. */
+.trashbar{margin-top:20px;padding:12px 14px;border:1px solid var(--outline-variant);border-radius:12px;background:var(--surface-container-low)}
+.trashbar .shelfrow{display:flex;align-items:center;gap:8px;padding:6px 0}
+.toast-act{border:0;background:transparent;color:var(--inverse-primary,#b9c3ff);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer;padding:0 4px}
 @media (max-width:1080px){#v-inspiration .insp-sidebar{order:-1}}
+

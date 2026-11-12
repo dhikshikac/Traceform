@@ -8,7 +8,7 @@ import path from "node:path";
 const tmp = await mkdtemp(path.join(os.tmpdir(), "traceform-"));
 const app = path.join(tmp, "app.js");
 await writeFile(app, await buildAppJs());
-const targets = [app, "server/server.mjs", "scripts/build.mjs", ...(await readdir("server/providers")).map(f => "server/providers/" + f)];
+const targets = [app, "server/server.mjs", "server/photos.mjs", "server/extract.mjs", "scripts/build.mjs", ...(await readdir("server/providers")).map(f => "server/providers/" + f)];
 let failed = 0;
 for (const f of targets) {
   try { execFileSync(process.execPath, ["--check", f], { stdio: "pipe" }); }

@@ -75,7 +75,7 @@ function projectHeader(){const c=projectContext();const v=vocab(S.type);
     `AVOID-LIST (rejected assumptions and hard rules): ${avoidList().join("; ")||"(none)"}`,
     `HOW TO DECIDE: build what the project type and the designer's context call for (pages, sections, items, tone, primary action) and make every specific choice from the research. If the research contradicts the context, follow the research and say so. Write for the audience above.`].filter(Boolean).join("\n")}
 const isHex=v=>/^#[0-9a-f]{6}$/i.test(String(v||""));
-function imageKeyGuide(){return S.type==="restaurant"?`Image slots: use one of these demo photo keys when it fits, otherwise "" (a placeholder with your art direction is shown): overhead (several dishes from above), hands (hands pounding in a mortar), after (the table after a meal), board (handwritten menu board), celadon (blue-green ceramic bowls), herbs (fresh herbs), khaosoi (curry noodle bowl), somtam (papaya salad), larb (minced meat salad), rice (sticky rice basket), greens (stir-fried greens), curry (pork curry), mango (mango sticky rice), storefront (small restaurant front).`:`Image slots: set "img" to "" and put art direction for the photo to shoot or source in "alt" (what it shows and why, from the research).`}
+function imageKeyGuide(){return `Image slots: set "img" to a SHORT search phrase naming the SUBJECT of a real photograph: 2-4 plain nouns, no adjectives, no brand or person names. Say what the thing IS, not how it looks: "papaya salad mortar", "jewelers workbench", "nurse and patient", "potter at wheel". Adjectives like fresh, green, wooden or rustic match nothing and make the search worse. It is used to search a stock photo library, so describe what is IN the frame, not how it is shot. Base the subject on the research, not on the category. Put the reason the photo shows that, and any cropping or art direction, in "alt". Use "" for img only when no photograph belongs in that slot.`}
 
 /* ---------- stage 1: research → themes, cards, assumptions ---------- */
 async function aiResearch(){const names=S.sources.map(s=>JSON.stringify(s.name)).join(", ");
@@ -120,7 +120,8 @@ function offlineSystem(){S.tokens=S.pid==="p-mali"?seedTokens():genericTokens();
 
 /* ---------- stage 4: site content + review decisions ---------- */
 function siteSchema(){return`{"brand":string,"pages":{"home":string,"menu":string,"order":string,"story":string},"navLinks":[4 strings],"cta":string,
-"hero":{"headline":string,"sub":string,"caption":string,"img":string,"alt":string},"side":{"img":string,"alt":string},
+"hero":{"headline":string,"sub":string,"caption":string,"img":string,"alt":string},
+"side":{"img":string,"alt":string},   // a SECOND photo, a sibling of hero - never nested inside it
 "info":{"title":string,"lines":[[string,string]]},"lead":{"text":string,"button":string},
 "items":{"title":string,"sub":string,"button":string,"show":2|3,"gap":string,"list":[{"n":string,"d":string,"p":string,"tags":[string],"img":string,"alt":string,"group":string,"heat":0|1|2|3}]},
 "collections":{"title":string,"sub":string,"button":string,"list":[{"n":string,"i":string,"p":string,"img":string,"alt":string}]},
@@ -137,7 +138,20 @@ async function aiReview(){const W=site();const ids=Object.entries(elBase()).map(
 function mergeShape(base,ai){if(ai==null)return base;if(Array.isArray(base))return Array.isArray(ai)&&ai.length?ai:base;
   if(base&&typeof base==="object"){if(typeof ai!=="object"||Array.isArray(ai))return base;const o={...base};Object.keys(ai).forEach(k=>{o[k]=k in base?mergeShape(base[k],ai[k]):ai[k]});return o}
   return typeof ai===typeof base||(typeof base==="string"&&typeof ai==="number")?(typeof base==="string"?String(ai):ai):base}
-function applySite(out){const base=templateSite();const W=mergeShape(base,out||{});const okImg=k=>(k&&IMG[k]&&S.type==="restaurant")?k:"";
+/* The model occasionally nests a top-level section inside another (usually "side"
+   inside "hero"). Left alone, that section keeps its template text and the page
+   renders "[ART DIRECTION]" to the user. Lift any stray section back out. */
+const SITE_SECTIONS=["side","info","lead","items","collections","story","location","footer","catalog","action","about"];
+function hoistSections(out){if(!out||typeof out!=="object")return out;
+  SITE_SECTIONS.forEach(k=>{
+    if(out[k]&&!(k==="side"&&!out[k].img))return;
+    for(const host of ["hero","side","story","about","items"]){
+      const h=out[host];
+      if(h&&typeof h==="object"&&h[k]&&typeof h[k]==="object"){out[k]=h[k];delete h[k];break}
+    }
+  });
+  return out}
+function applySite(out){out=hoistSections(out);const base=templateSite();const W=mergeShape(base,out||{});const okImg=k=>{k=String(k||"").trim();if(!k)return"";if(IMG[k]||/^user:\d+$/.test(k))return k;return k.length>2&&k.length<=120?k.toLowerCase():""};
   W.hero.img=okImg(W.hero.img);W.side.img=okImg(W.side.img);W.story.img=okImg(W.story.img);W.about.img=okImg(W.about.img);W.location.img=okImg(W.location.img);W.location.map=S.pid==="p-mali";
   W.items.list=(W.items.list||[]).map(d=>({n:String(d.n||""),d:String(d.d||""),p:String(d.p??""),tags:(d.tags||[]).map(String).slice(0,3),img:okImg(d.img),alt:String(d.alt||d.n||""),group:String(d.group||W.catalog.title),heat:S.type==="restaurant"?Math.max(0,Math.min(3,+d.heat||0)):0})).filter(d=>d.n);
   W.collections.list=(W.collections.list||[]).map(b=>({n:String(b.n||""),i:String(b.i||""),p:String(b.p??""),img:okImg(b.img),alt:String(b.alt||b.n||"")})).filter(b=>b.n);
@@ -152,7 +166,7 @@ function stageFns(){return{
   research:{ai:async()=>applyResearch(await aiResearch()),off:offlineResearch,done:"Themes and cards generated from your artifacts"},
   inspiration:{ai:async()=>applyInspiration(await aiInspiration()),off:offlineInspiration,done:"Inspiration directions generated · save the ones you like"},
   system:{ai:async()=>applySystem(await aiSystem()),off:offlineSystem,done:"Design system generated from research + inspiration"},
-  site:{ai:async()=>{applySite(await aiSite());try{applyReview(await aiReview())}catch(e){S.review=null}},off:offlineSite,done:"Site and review generated · click any part to edit"}}}
+  site:{ai:async()=>{applySite(await aiSite());try{applyReview(await aiReview())}catch(e){S.review=null}try{await photoResolveAll(sitePhotoSubjects())}catch(e){}},off:offlineSite,done:"Site and review generated · click any part to edit"}}}
 async function runStage(stage,opts={}){const G=gen();if(G.busy)return false;const pid=S.pid;const f=stageFns()[stage];
   G.busy=stage;refreshGenUI();let ok=true;
   try{
