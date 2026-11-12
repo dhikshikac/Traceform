@@ -461,6 +461,14 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:6px;padding-
 
 /* inspiration */
 .insp-hd{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:4px 0 8px}
+.insp-anno-list{display:flex;flex-direction:column;gap:10px}
+.insp-anno{border:1px solid var(--outline-variant);border-radius:10px;overflow:hidden;background:var(--surface-container-lowest)}
+.insp-anno-preview{position:relative;aspect-ratio:16/10;overflow:hidden;background:var(--surface-container-highest)}
+.insp-anno-preview>img{width:100%;height:100%;object-fit:cover;display:block}
+.insp-anno-meta{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:10px}
+.insp-anno-meta .annonote{width:100%}
+.insp-anno-remove{align-self:flex-end}
+.insp-anno-empty{padding:14px;background:var(--surface-container);border-radius:8px}
 .insp-sec{display:flex;flex-direction:column;gap:12px;padding:16px 18px}
 .refgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .refcard{background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .15s,transform .15s}
@@ -475,6 +483,7 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:6px;padding-
 .selarea{position:relative;aspect-ratio:16/10;border-radius:12px;overflow:hidden;cursor:crosshair;user-select:none;touch-action:none;background:var(--surface-container-highest)}.selarea>img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}.selarea .mock{pointer-events:none}
 .selrect{position:absolute;display:none;border:2px solid var(--primary);background:color-mix(in srgb,var(--primary) 18%,transparent);border-radius:4px;z-index:4;pointer-events:none}
 
+
 /* Project card menu renders in a fixed layer so the card's overflow:hidden can't clip it. */
 .menu.pmenu{position:fixed;right:auto;top:auto}
 
@@ -482,3 +491,5 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:6px;padding-
 .trashbar{margin-top:20px;padding:12px 14px;border:1px solid var(--outline-variant);border-radius:12px;background:var(--surface-container-low)}
 .trashbar .shelfrow{display:flex;align-items:center;gap:8px;padding:6px 0}
 .toast-act{border:0;background:transparent;color:var(--inverse-primary,#b9c3ff);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer;padding:0 4px}
+@media (max-width:1080px){#v-inspiration .insp-sidebar{order:-1}}
+
