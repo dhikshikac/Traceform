@@ -30,7 +30,7 @@
 <section id="landing" hidden>
   <div class="land-wrap">
     <div class="land-hd"><div><h1 class="display-s">Your projects</h1><p class="body-l osv">Every project starts from research, so the design that comes out is traceable to it.</p></div><button class="btn filled" id="newProj"><span class="ms">add</span>New project</button></div>
-    <div class="row" id="landFilters" style="margin:4px 0 14px"></div>
+    <div class="row" id="landFilters" style="margin:var(--sp-1) 0 var(--sp-4)"></div>
     <div class="pgrid2" id="projGrid"></div>
   </div>
 </section>
@@ -48,7 +48,7 @@
         <div class="pane-hd"><span class="title-m" style="flex:1">Artifacts</span><button class="btn text sm" id="projDetails"><span class="ms">tune</span>Project details</button></div>
         <input type="file" id="srcFile" multiple accept=".txt,.md,.csv,.json,.pdf,text/*,application/pdf" hidden>
         <div class="drop" id="dropSrc"><div>Drop interview notes, transcripts or survey exports</div><div class="body-s osv">.txt, .md or .csv</div><div class="row" style="justify-content:center;gap:0"><button class="btn text sm" id="pickSrc2">Choose files</button><button class="btn text sm" id="pasteSrc">Paste text</button></div></div>
-        <div class="col" id="srcList" style="gap:2px"></div>
+        <div class="col" id="srcList" style="gap:var(--sp-0)"></div>
       </aside>
       <div class="pane center">
         <div class="pane-hd"><div style="flex:1;min-width:220px"><div class="title-l">Insights</div></div></div>
@@ -59,11 +59,11 @@
       </div>
       <aside class="pane side" id="rail-research">
         <div class="pane-hd"><span class="title-m">Assumptions</span></div>
-        <div class="col" id="assume" style="gap:6px"></div>
+        <div class="col" id="assume" style="gap:var(--sp-2)"></div>
         <div class="card outlined" id="researchAsk" style="margin-top:auto">
           <span class="title-s">Add something you learned</span>
           <div id="rOut" class="col" style="max-height:220px;overflow:auto" hidden></div>
-          <form id="rForm" class="col" style="gap:6px;margin-top:6px"><textarea class="inl" id="rIn" rows="3" style="border:1px solid var(--outline);border-radius:12px;padding:10px 12px" placeholder="A client call, a constraint, who it's for, something to avoid…" aria-label="Add context to your research"></textarea><div class="row"><span class="spacer"></span><button class="btn filled sm"><span class="ms">add</span>Add</button></div></form>
+          <form id="rForm" class="col" style="gap:var(--sp-2);margin-top:var(--sp-2)"><textarea class="inl" id="rIn" rows="3" style="border:1px solid var(--outline);border-radius:12px;padding:var(--sp-3) var(--sp-3)" placeholder="A client call, a constraint, who it's for, something to avoid…" aria-label="Add context to your research"></textarea><div class="row"><span class="spacer"></span><button class="btn filled sm"><span class="ms">add</span>Add</button></div></form>
         </div>
       </aside>
     </section>
@@ -90,13 +90,10 @@
     <!-- REVIEW -->
     <section class="view g2" id="v-review">
       <div class="pane center">
-        <div class="pane-hd" id="pagetabs">
-          <button class="chip sm on" data-p="home">Home</button><button class="chip sm" data-p="menu">Menu</button><button class="chip sm" data-p="order">Order</button><button class="chip sm" data-p="story">Story</button>
-          <span class="spacer"></span>
-          <div class="row" id="ovl"><button class="chip sm on" data-o="receipts"><span class="ms">checklist</span>decision markers</button></div>
-          <select id="device" class="chip sm"><option value="desk">Desktop</option><option value="phone">Phone</option></select>
-        </div>
+        <div class="pane-hd revhd"><div class="title-l">Review</div><div class="rsum" id="revSum"></div></div>
+        <div id="genslot-review" data-genslot="site"></div>
         <div class="stage" id="stage"></div>
+        <div class="row stagefoot"><span class="body-s osv" id="revFoot">Click any part to see the decision behind it.</span></div>
       </div>
       <aside class="pane side" id="rail-review" style="padding:0"></aside>
     </section>

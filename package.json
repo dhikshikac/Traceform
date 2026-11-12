@@ -23,6 +23,7 @@
     "@astryxdesign/core": "^0.7.14",
     "@astryxdesign/theme-neutral": "^0.7.14",
     "@stylexjs/stylex": "^0.19.2",
+    "axe-core": "^4.14.0",
     "pdfjs-dist": "^6.5.438"
   }
 }
