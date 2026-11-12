@@ -52,7 +52,7 @@ const SEED=()=>({
   ],
   refFilter:"all",
   baseSystem:"custom",
-  tokens:null,sysSection:"base",sysBuilt:false,
+  tokens:null,sysSection:"color",sysBuilt:false,
   page:"home",device:"desk",overlays:{receipts:true,prev:true,gaps:false},
   elements:{},history:[],log:[],sel:null,trend:"similar"
 });

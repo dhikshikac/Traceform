@@ -22,57 +22,198 @@ function mineLabel(t){ // describe the CURRENT value of a token in the vocabular
 function prevFor(t){const lbl=mineLabel(t);let p=t.prev.find(x=>x[0]===lbl);if(!p){const fallback={"neutral light":38,"near-black":70,"grey":30,"turmeric / amber":78,"red / clay":12,"green":9,"blue / ceramic":7,"purple":24,"neutral sans":64,"square":8}[lbl];p=[lbl,fallback??20]}return p}
 
 function siteVars(){return`--g:${tv("color.ground")};--a:${tv("color.accent")};--h:${tv("color.heat")};--i:${tv("color.ink")};--fd:'${tv("type.display")}',Georgia,serif;--fb:'${tv("type.body")}',system-ui,sans-serif`}
+/* ===== System page: decisions in the center, inspector on the right =====
+   Every token is a design decision: what it is, why (research it cites), what it is NOT,
+   who made it (AI / you / a base system), and how typical it is of AI output.
+   Locked decisions are never changed by regenerating or switching the base system. */
+const DEC_NAME={"color.ground":"Background","color.accent":"Accent","color.heat":"Signal / heat","color.ink":"Text",
+  "type.display":"Display font","type.body":"Body font","type.scale":"Type scale","type.accentLine":"Accent line",
+  "space.scale":"Spacing scale","shape.radius":"Corner radius","imagery":"Photography","motif":"Motifs & icons",
+  "comp.dishCard":"Item card","comp.cta":"Primary action","comp.heat":"Heat indicator"};
+const SEC_NAME={base:"Start from a base",color:"Color",type:"Text styles",space:"Spacing & shape",imagery:"Imagery & motif",components:"Components"};
+const SEC_ICON={imagery:"image",motif:"interests",components:"widgets"};
+const decName=t=>DEC_NAME[t.k]||t.k;
+/* research a decision cites: c# insight cards, s# sources, r# references, p# principles */
+function citeInfo(code){
+  for(const th of S.themes||[]){const c=th.cards.find(x=>x.id===code);if(c)return{kind:"Insight",icon:"lightbulb",text:c.text,open:()=>cardModal(code)}}
+  const s=(S.sources||[]).find(x=>x.id===code);if(s)return{kind:"Source",icon:"description",text:s.name,open:()=>openSource(code)};
+  const r=(S.tiles||[]).find(x=>x.id===code);if(r)return{kind:"Reference",icon:"collections_bookmark",text:r.title,open:()=>{const src=r.src||(r.imgk&&IMG[r.imgk]);
+    dialog(`<span class="label-m osv">Reference · ${esc(code)}</span><span class="headline-s">${esc(r.title)}</span>${src?`<img src="${esc(src)}" alt="" style="width:100%;max-height:260px;object-fit:cover;border-radius:12px">`:r.colors?`<div class="row" style="gap:0;border-radius:12px;overflow:hidden">${r.colors.map(c=>`<i style="flex:1;height:56px;background:${esc(c)}"></i>`).join("")}</div>`:""}${r.borrow?`<div class="kv"><span>What to borrow</span><b>${esc(r.borrow)}</b></div>`:""}${r.why?`<div class="kv"><span>Why it was saved</span><b>${esc(r.why)}</b></div>`:""}`,[["Open Inspiration","text",()=>go("inspiration")],["Done","filled",()=>{}]])}};
+  const p=(S.principles||[]).find(x=>x.id===code);if(p)return{kind:"Principle",icon:"flag",text:p.text,open:()=>dialog(`<span class="label-m osv">${p.hard?"Hard rule":"Principle"} · ${esc(code)}</span><span class="headline-s">${esc(p.text)}</span>`,[["Open Research","text",()=>go("research")],["Done","filled",()=>{}]])};
+  return null}
+function cites(text){const seen=new Set();return String(text||"").match(/\b[a-z]{1,3}\d{1,3}\b/g)?.filter(c=>{if(seen.has(c))return false;seen.add(c);return!!citeInfo(c)})||[]}
+function whyHTML(text){return esc(text).replace(/\b[a-z]{1,3}\d{1,3}\b/g,m=>{const i=citeInfo(m);return i?`<button class="cite" data-cite="${m}" title="${esc(i.kind)}: ${esc(i.text)}">${m}</button>`:m})}
+function origin(t){
+  if(t.edited&&t.why==="imported")return["Imported","t"];
+  if(t.edited&&/ default$/.test(t.why||""))return["From "+t.why.replace(/ default$/,""),"t"];
+  if(t.edited)return["Edited by you","p"];
+  if(t.ai||S.pid==="p-mali")return["AI draft",""];
+  return["Template",""]}
+function typical(t){const top=[...t.prev].sort((a,b)=>b[1]-a[1])[0];const me=prevFor(t);
+  if(top&&me[0]===top[0])return{label:"Most common AI choice",cls:"e",pct:me[1],top};
+  return me[1]>40?{label:`Fairly common · ${me[1]}%`,cls:"w",pct:me[1],top}:{label:`Distinct · ${me[1]}% of AI sites`,cls:"ok",pct:me[1],top}}
+function needsLook(t){return typical(t).cls==="e"||!cites(t.why).length}
+function decSample(t){
+  if(t.type==="color")return`<span class="dec-sw" style="background:${esc(t.v)}"></span>`;
+  if(t.type==="font")return`<span class="dec-aa" style="font-family:'${esc(t.v)}',${t.k==="type.display"?"Georgia,serif":"system-ui,sans-serif"}">Aa</span>`;
+  if(t.k==="shape.radius"){const r=String(t.v).split(/[\/,\s]+/).map(Number).filter(n=>!isNaN(n));return`<span class="dec-rad"><i style="border-radius:${r[r.length-1]||8}px"></i></span>`}
+  if(t.k==="space.scale"){const s=String(t.v).split(/[·,\s]+/).map(Number).filter(Boolean).slice(0,5);return`<span class="dec-sp">${s.map(n=>`<i style="width:${Math.max(3,Math.min(40,n/1.6))}px"></i>`).join("")}</span>`}
+  if(t.k==="type.scale")return`<span class="dec-aa" style="font-size:14px;letter-spacing:-.5px"><b style="font-size:22px">A</b>a<small>a</small></span>`;
+  return`<span class="dec-ic"><span class="ms">${SEC_ICON[t.k]||SEC_ICON[t.sec]||"tune"}</span></span>`}
+function keepLocked(old){(old||[]).filter(t=>t.locked).forEach(o=>{const i=S.tokens.findIndex(t=>t.k===o.k);if(i>=0)S.tokens[i]=o})}
+function wireCites(root){$$("[data-cite]",root).forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();citeInfo(b.dataset.cite)?.open()})}
+/* Inspectable parts of the live homepage. Each part is bound to the shared decisions it uses,
+   so selecting one shows every other part that changes with the same decision.
+   Ordered general → specific: when selectors overlap, the more specific part wins. */
+const SYS_PICK=[
+  {id:"page",name:"Page background",sel:"&",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"navbar",name:"Navigation bar",sel:".nav",tok:["color.ground","space.scale"]},
+  {id:"footer",name:"Footer",sel:".foot",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"heroBlock",name:"Hero section",sel:".hero",tok:["space.scale"]},
+  {id:"cardGroup",name:"Item cards",sel:".cards",tok:["comp.dishCard","space.scale"]},
+  {id:"bundleGroup",name:"Bundle cards",sel:".bund",tok:["comp.dishCard","space.scale"]},
+  {id:"card",name:"Item card",sel:".card",tok:["color.ground","shape.radius","comp.dishCard"]},
+  {id:"brand",name:"Site name",sel:".brand",tok:["type.display","color.ink"]},
+  {id:"brandMark",name:"Logo mark",sel:".brand i",tok:["color.accent","motif"]},
+  {id:"navLinks",name:"Navigation links",sel:".links>a:not(.btn)",tok:["type.body","color.ink"]},
+  {id:"action",name:"Primary action",sel:".btn",tok:["color.accent","shape.radius","comp.cta","type.body"]},
+  {id:"heroPhoto",name:"Hero photo",sel:".hero .ph",tok:["imagery","shape.radius"]},
+  {id:"heroHeadline",name:"Hero headline",sel:".hero .ov h1",tok:["type.display","type.scale"]},
+  {id:"heroSub",name:"Hero description",sel:".hero .ov p",tok:["type.body","type.scale"]},
+  {id:"sidePhoto",name:"Second photo",sel:".hero .side .im",tok:["imagery","shape.radius"]},
+  {id:"infoCard",name:"Hours card",sel:".hcard",tok:["color.ground","color.ink","type.body","shape.radius"]},
+  {id:"lead",name:"Intro text",sel:".lead p",tok:["type.body","type.scale","color.ink"]},
+  {id:"secHead",name:"Section heading",sel:"h2.sec",tok:["type.display","type.scale","color.ink"]},
+  {id:"secSub",name:"Section description",sel:"p.secsub",tok:["type.body","color.ink"]},
+  {id:"cardPhoto",name:"Card photo",sel:".card .im",tok:["imagery"]},
+  {id:"cardTitle",name:"Card title",sel:".card h3",tok:["type.display","type.scale","color.ink"]},
+  {id:"cardText",name:"Card description",sel:".card .b>p",tok:["type.body","color.ink"]},
+  {id:"heat",name:"Heat indicator",sel:".heat",tok:["color.heat","comp.heat"]},
+  {id:"tag",name:"Dietary tag",sel:".tag",tok:["shape.radius","color.ink"]},
+  {id:"storyPhoto",name:"Story photo",sel:".story .im",tok:["imagery","shape.radius"]},
+  {id:"storyQuote",name:"Story quote",sel:".story .q",tok:["type.display","type.accentLine","color.ink"]},
+  {id:"storyBody",name:"Story text",sel:".story p:not(.q)",tok:["type.body","color.ink"]},
+  {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]}
+];
+const pickById=id=>SYS_PICK.find(p=>p.id===id);
+/* Plain-language explanations for the System inspector. The stored "why" stays terse (it feeds the AI and other pages);
+   here it is shown as a readable sentence, and research codes become named sources. */
+const SYS_PLAIN={
+  "color.ground":"A calm, warm off-white background lets the food photos stand out. Most customers (81%) look at the photos first, and the owner asked for a site that is “not yelling.”",
+  "color.accent":"The blue comes from the glaze on Mali’s own bowls. It avoids the turmeric-and-chili colors that most AI-made restaurant sites use.",
+  "color.heat":"Red is saved for showing how spicy a dish is, because spice is one of the questions customers ask most.",
+  "color.ink":"Dark text on the light background keeps everything easy to read.",
+  "type.display":"A soft, friendly serif for headings, because the owners describe the place as “warm, casual, very human.”",
+  "type.body":"A plain, clear font for body text, kept at 16px or larger so it is easy to read.",
+  "type.scale":"Four text sizes are enough. Headlines are at least 2.5 times the body size, so the page is easy to scan.",
+  "type.accentLine":"At most one handwritten line, inspired by Mali’s mother’s menu board, so it stays special.",
+  "space.scale":"Roomy spacing, like food laid out on a shared table, instead of a crowded ordering-app layout.",
+  "shape.radius":"Slightly rounded corners, like the edges of ceramic bowls, rather than fully rounded pill shapes.",
+  "imagery":"Photos from above, with several plates and hands in the frame, show people eating together.",
+  "motif":"Icons and patterns come from objects the family cares about, like the bowl glaze and the mortar and pestle.",
+  "comp.dishCard":"Each dish card leads with a photo and a one-line story, because customers look at photos first and like the story in small doses.",
+  "comp.cta":"The main button says “See the menu” instead of a generic “Order Now,” because the menu should lead.",
+  "comp.heat":"Spice level is shown as three dots in the heat color, because spice is a frequent question."
+};
+function plainWhy(t){
+  if(SYS_PLAIN[t.k]&&seedTokens().find(x=>x.k===t.k)?.why===t.why)return SYS_PLAIN[t.k];
+  let w=String(t.why||"").replace(/\b[a-z]{1,3}\d{1,3}\b/g,m=>citeInfo(m)?"":m)
+    .replace(/\(\s*[,/–\-\s]*\)/g,"").replace(/\(\s*[,/\s]+/g,"(").replace(/[,/\s]+\)/g,")").replace(/\bshelf\b/gi,"").replace(/(^|\s)[/–\-]+(?=[\s:,]|$)/g,"$1").replace(/\s{2,}/g," ").replace(/\s+([,.;:])/g,"$1").replace(/^[\s:;,/–\-]+/,"").trim();
+  if(!w)return"";w=w[0].toUpperCase()+w.slice(1);return/[.!?”"]$/.test(w)?w:w+"."}
+function basedOnHTML(codes){return codes.map(code=>{const i=citeInfo(code);const txt=i.text.length>70?i.text.slice(0,68).trim()+"…":i.text;return`<button type="button" class="sys-src" data-cite="${code}">${esc(i.kind)}: ${esc(txt)}</button>`}).join("")}
+/* Unapplied edits per decision; they survive switching between decisions, not projects. */
+let sysDrafts={},sysDraftOwner=null;
+function syncSysDrafts(){if(sysDraftOwner!==S){sysDraftOwner=S;sysDrafts={}}}
+function sysDirty(t){const d=sysDrafts[t.k];return!!d&&(d.v!==t.v||d.why!==(t.why||"")||d.not!==(t.not||""))}
+function sysSecToks(sec){return S.tokens.filter(t=>t.sec===sec)}
+function sysPickToks(p,sec){return p.tok.filter(k=>{const t=T(k);return t&&t.sec===sec})}
 function renderSystem(){
   if(!S.tokens)S.tokens=seedTokens();
-  $$("#secnav button").forEach(b=>b.classList.toggle("on",b.dataset.s===S.sysSection));
-  const c=$("#sysCenter");const sec=S.sysSection;
-  if(sec==="base"){
-    c.innerHTML=`<div class="pane-hd"><span class="title-l">Base system</span><span class="body-s osv">choose a prebuilt system as a reference, or keep the custom one drafted from research</span></div>
-    <div class="dsgrid">${Object.entries(BASES).map(([k,b])=>`<div class="ds ${S.baseSystem===k?"on":""}" data-base="${k}" tabindex="0" role="button"><div class="row"><span class="title-s">${esc(b.name)}</span>${k==="upload"?'<span class="ms" style="margin-left:auto">upload</span>':""}</div><div class="sws">${b.sws.map(s=>`<i style="background:${s}"></i>`).join("")}</div><div class="body-s">${esc(b.desc)}</div><div class="body-s osv">${esc(b.note)}</div></div>`).join("")}</div>
-    <div class="reason"><span class="ms">auto_awesome</span><div><div class="title-s">AI reasoning · base</div><div class="body-m">${esc(S.baseSystem==="custom"||!BASE_TOKENS[S.baseSystem]?reason("base"):`${BASES[S.baseSystem].name} is now the base: its color, type scale, spacing and radius replaced the research draft. That gives you a proven component set, but it also moves you toward what AI tools produce on top of it; the rail on the right shows which tokens are now the most common choice. Keep the research-derived imagery and components, and consider restoring color.accent from the shelf (r1, r4) so the site still reads as the family’s.`)}</div></div></div>
-    <div class="card"><div class="title-s">How this system differs from common AI output</div><div class="col" style="margin-top:8px">${S.tokens.map(t=>{const p=prevFor(t)[1];return`<div class="pr ${p>50?"me":""}"><span class="mono">${esc(t.k)}</span><div class="bar ${p>50?"red":""}"><i style="width:${p}%"></i></div><span class="mono">${p}%</span></div>`}).join("")}</div><div class="note" style="margin-top:8px">% = how often AI-generated restaurant sites make the same choice. Red = you're on the most common option.</div></div>
-    <div class="row"><button class="btn filled" id="genBtn"><span class="ms">web</span>Generate pages → Review</button><span class="note">Pages render from these tokens; a token edit updates every page.</span></div>`;
-    $$("[data-base]").forEach(d=>d.onclick=()=>{const k=d.dataset.base;if(k==="upload"){dialog(`<span class="headline-s">Upload a design system</span><div class="note">Paste a tokens.json or a Figma variables export. Keys named color.*, type.*, space.*, shape.* map to sections; everything else goes to Components.</div><div class="field"><textarea id="dsTA" rows="8" placeholder='{"color.accent":"#2B6E63", "type.display":"Fraunces"}'></textarea></div>`,[["Cancel","text",()=>{}],["Import","filled",()=>{try{const o=JSON.parse($("#dsTA").value);let n=0;Object.entries(o).forEach(([k,v])=>{const t=T(k);if(t&&typeof v==="string"){t.v=v;t.edited=true;t.why="imported";n++}});S.baseSystem="upload";snapshot("imported tokens");save();renderSystem();toast(`Imported ${n} tokens`)}catch{toast("Not valid JSON")}}]]);return}
-      snapshot("base: "+BASES[k].name);S.baseSystem=k;
-      if(k==="custom"){S.tokens=seedTokens()}
-      else if(BASE_TOKENS[k]){S.tokens=seedTokens();Object.entries(BASE_TOKENS[k]).forEach(([key,val])=>{const t=S.tokens.find(x=>x.k===key);if(t){t.v=val;t.why=`${BASES[k].name} default`;t.edited=true}});
-        Object.entries(BASE_PREV[k]).forEach(([key,label])=>{const t=S.tokens.find(x=>x.k===key);if(t&&!t.prev.some(p=>p[0]===label))t.prev=[[label,k==="m3"?46:k==="hig"?38:k==="carbon"?12:31],...t.prev]})}
-      S.tokens.forEach(t=>{t.mine=mineLabel(t)});save();renderSystem();if(S.view==="review")renderReview();toast("Base: "+BASES[k].name+" · tokens updated")});
-    $("#genBtn").onclick=()=>{go("review");toast("Pages generated from the system")};
-  } else {
-    const toks=S.tokens.filter(t=>t.sec===sec);
-    const names={color:"Color",type:"Text styles",space:"Spacing & shape",imagery:"Imagery & motif",components:"Components"};
-    c.innerHTML=`<div class="pane-hd"><span class="title-l">${names[sec]}</span><span class="body-s osv">click any item to edit its token · ${toks.filter(t=>t.edited).length} edited</span></div>
-    <div class="reason"><span class="ms">auto_awesome</span><div><div class="title-s">AI reasoning · ${names[sec].toLowerCase()}</div><div class="body-m">${esc(reason(sec))}</div></div></div>
-    ${specSheet(sec)}
-    <details class="card" style="padding:8px 16px"><summary class="title-s" style="cursor:pointer">Token reference · ${toks.length}</summary><div class="toks" style="margin-top:8px"><div class="h">token</div><div class="h">value</div><div class="h">why (evidence)</div><div class="h">what it is NOT</div>${toks.map(t=>`<div class="tokrow ${S.sel?.kind==="token"&&S.sel.id===t.k?"sel":""}" data-tok="${t.k}" tabindex="0" role="button"><div class="k">${esc(t.k)}${t.edited?' <span class="osv">·edited</span>':""}</div><div>${t.type==="color"?`<span class="sw" style="background:${esc(t.v)}"></span>`:""}${esc(t.v)}</div><div class="osv">${esc(t.why)}</div><div class="osv">${esc(t.not)}</div></div>`).join("")}</div></details>`;
-    $$("[data-tok]",c).forEach(r=>r.onclick=()=>{select({kind:"token",id:r.dataset.tok});renderSystem()});
-    if(sec==="imagery")wireUserImgs(c);
-  }
+  syncSysDrafts();
+  if(!SEC_NAME[S.sysSection]||S.sysSection==="base")S.sysSection="color";
+  if(S.sel?.kind==="token"){const tk=T(S.sel.id);if(!tk)S.sel=null;else if(tk.sec!==S.sysSection)S.sysSection=tk.sec}
+  const sec=S.sysSection,view=S.sysView==="tokens"?"tokens":"preview";
+  $$("#secnav button").forEach(b=>b.classList.toggle("on",b.dataset.s===sec));
+  const c=$("#sysCenter"),toks=sysSecToks(sec),name=SEC_NAME[sec];
+  c.innerHTML=`<div class="pane-hd sys-hd"><div><span class="title-l">${name}</span><div class="body-s osv">Select an element to edit its style. Highlighted elements share the same setting.</div></div></div>
+  <div class="sys-toolbar"><div class="seg" role="group" aria-label="System view"><button data-sysview="preview" class="${view==="preview"?"on":""}" aria-pressed="${view==="preview"}">Preview</button><button data-sysview="tokens" class="${view==="tokens"?"on":""}" aria-pressed="${view==="tokens"}">Tokens</button></div></div>
+  ${view==="preview"?sysPreviewHTML():sysTokenGrid(toks)}
+  <details class="sys-why"><summary><span class="title-s">About these ${esc(name.toLowerCase())} settings</span></summary><div class="sys-why-b"><div class="body-m">${whyHTML(reason(sec))}</div><form id="sysNotes" class="col" style="gap:8px"><div class="field"><label for="sysNotesTA">Category notes</label><textarea id="sysNotesTA" rows="4">${esc(reason(sec))}</textarea></div><button class="btn outlined sm" type="submit" style="align-self:flex-start">Save notes</button></form></div></details>`;
+  $$("[data-sysview]",c).forEach(b=>b.onclick=()=>{S.sysView=b.dataset.sysview;save();renderSystem()});
+  $$("[data-tok]",c).forEach(r=>r.onclick=()=>{select({kind:"token",id:r.dataset.tok});renderSystem()});
+  $("#sysNotes",c).onsubmit=e=>{e.preventDefault();S.reasons=S.reasons||{};S.reasons[sec]=$("#sysNotesTA").value.trim();snapshot(`${sec} notes`);save();renderSystem();$(".sys-why",c)?.setAttribute("open","");toast(`${name} notes saved`)};
+  wireCites(c);wireSysPreview(c,sec);photoFill();
   renderSystemRail();
 }
+/* Tokens view: every decision in the section as a selectable card. */
+function sysTokenGrid(toks){const selK=S.sel?.kind==="token"?S.sel.id:null;
+  return`<section class="tokgrid" aria-label="Tokens">${toks.map(t=>`<button class="tokcard ${selK===t.k?"sel":""}" data-tok="${t.k}" aria-pressed="${selK===t.k}"><span class="tokcard-s">${decSample(t)}</span><span class="title-s">${esc(decName(t))}</span><span class="mono osv">${esc(t.k)}</span><span class="body-s tokcard-v">${esc(t.v)}</span>${sysDirty(t)?'<span class="body-s warn-t">Unapplied edits</span>':""}</button>`).join("")}</section>`}
+/* Live website preview: the homepage rendered from the current tokens; click a part to inspect it. */
+function sysPreviewHTML(){
+  let site_="";const keep={page:S.page,sel:S.sel,device:S.device,overlays:S.overlays};
+  try{S.page="home";S.sel=null;S.device="desk";S.overlays={...S.overlays,receipts:false};if(typeof syncEL==="function")syncEL();site_=pageHTML()}
+  finally{Object.assign(S,keep)}
+  return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview"><div class="sysprev-hd"><span class="title-s">${esc(SEC_NAME[S.sysSection])} preview</span></div>
+  <div class="sys-scope" role="status" id="sysScopeText"></div>
+  <div class="sysprev-canvas"><div class="sysprev-frame inspect">${site_}</div></div></section>`}
+function wireSysPreview(c,sec){
+  const frame=$(".sysprev-frame.inspect",c);if(!frame)return;
+  const root=$(".site",frame);if(!root)return;
+  const selK=S.sel?.kind==="token"?S.sel.id:null,selP=S.sel?.kind==="token"?S.sel.pick:null;
+  /* tag the parts that use a decision from this section; specific parts overwrite general ones */
+  SYS_PICK.forEach(p=>{if(!sysPickToks(p,sec).length)return;(p.sel==="&"?[root]:$$(p.sel,root)).forEach(el=>{el.dataset.sp=p.id})});
+  let n=0;
+  $$("[data-sp]",frame).forEach(el=>{const p=pickById(el.dataset.sp);
+    el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label","Inspect "+p.name);el.title=p.name;
+    const picked=selP===p.id,shared=!!selK&&p.tok.includes(selK);if(picked||shared)n++;
+    el.classList.toggle("sp-sel",picked);el.classList.toggle("sp-shared",shared&&!picked)});
+  const pick=id=>{const p=pickById(id),keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id});renderSystem()};
+  frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp)};
+  frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}};
+  const st=$("#sysScopeText",c);if(st)st.textContent=selK?`Changes apply to ${n} element${n===1?"":"s"}.`:`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`;
+}
+/* Inspector: the selected element, its property, the value, and why. */
 function renderSystemRail(){
-  const r=$("#rail-system");
+  const r=$("#rail-system"),sec=S.sysSection;
   const t=S.sel?.kind==="token"?T(S.sel.id):null;
-  if(!t){r.innerHTML=`<div class="pane-hd"><span class="title-m">Edit a token</span></div><div class="note">Click any row. Change the value, the reason, or the NOT; everything downstream re-renders.</div><div class="card outlined"><div class="row"><span class="title-s">Common AI-generated choices</span><span class="badge p">${esc(BASES[S.baseSystem]?.name||"Custom")}</span></div><div class="note" style="margin:4px 0 8px">Updates with the base system and every token edit.</div><div class="col">${S.tokens.filter(t=>S.sysSection==="base"||t.sec===S.sysSection).map(t=>{const top=[...t.prev].sort((a,b)=>b[1]-a[1])[0];const me=prevFor(t);const same=me[0]===top[0];return`<div class="body-s" style="padding:6px 0;border-bottom:1px solid var(--outline-variant)"><div class="row" style="gap:6px"><b class="mono" style="font-size:12px">${esc(t.k)}</b><span class="spacer"></span><span class="badge ${same?"e":me[1]>40?"w":"ok"}">${same?"most common":me[1]+"%"}</span></div><div class="osv">most AI sites: ${esc(top[0])} (${top[1]}%)</div><div>yours: ${t.type==="color"?`<span class="sw" style="background:${esc(t.v)}"></span>`:""}${esc(t.v)} <span class="osv">· ${esc(me[0])}</span></div></div>`}).join("")}</div></div>`;return}
-  const isC=t.type==="color";
-  r.innerHTML=`<div class="rhead"><span class="title-m">Edit · <span class="mono">${esc(t.k)}</span></span><span class="spacer"></span><span class="badge p">live</span><button class="icon-btn" data-closesel aria-label="Close editor"><span class="ms">close</span></button></div>
-  <div class="field"><label>Value</label><div class="row" style="flex-wrap:nowrap">${isC?`<input type="color" id="tkColor" value="${esc(t.v)}" aria-label="Color" style="width:48px;padding:2px">`:""}${t.type==="font"?`<select id="tkFont">${(t.k==="type.display"?FONTS.display:FONTS.body).map(f=>`<option ${f===t.v?"selected":""}>${f}</option>`).join("")}</select>`:`<input type="text" id="tkVal" value="${esc(t.v)}">`}</div></div>
-  <div class="field"><label>Why (evidence)</label><textarea id="tkWhy">${esc(t.why)}</textarea></div>
-  <div class="field"><label>What it is NOT</label><textarea id="tkNot">${esc(t.not)}</textarea></div>
-  ${isC?`<div class="kv"><span>Contrast on ground</span><b class="${ratio(t.v,tv("color.ground"))>=4.5?"ok-t":ratio(t.v,tv("color.ground"))>=3?"warn-t":"bad-t"}">${r1(ratio(t.v,tv("color.ground")))}:1</b></div>`:""}
-  <div class="rsec"><span>In AI output, this choice is…</span></div>
-  ${(()=>{const me=prevFor(t);const list=t.prev.some(p=>p[0]===me[0])?t.prev:[...t.prev,me];return list.map(p=>`<div class="pr ${p[0]===me[0]?"me":""}"><span>${esc(p[0])}${p[0]===me[0]?" (yours)":""}</span><div class="bar ${p[0]===me[0]?"red":""}"><i style="width:${p[1]}%"></i></div><span class="mono">${p[1]}%</span></div>`).join("")})()}
-  <div class="row"><button class="btn text sm" id="tkReset">Reset to draft</button></div>${promptBox(t.k,`token ${t.k} = ${t.v} (why: ${t.why}; not: ${t.not})`)}`;
-  const commit=()=>{const v=isC?$("#tkColor").value:t.type==="font"?$("#tkFont").value:$("#tkVal").value;setToken(t.k,v,$("#tkWhy").value,$("#tkNot").value)};
-  $("#tkColor")&&($("#tkColor").onchange=commit);$("#tkFont")&&($("#tkFont").onchange=commit);$("#tkVal")&&($("#tkVal").onchange=commit);$("#tkWhy").onchange=commit;$("#tkNot").onchange=commit;
+  if(!t){
+    const toks=sysSecToks(sec);
+    r.innerHTML=`<div class="pane-hd"><span class="title-m">${esc(SEC_NAME[sec])}</span></div>
+    ${toks.length>1?`<div class="field"><label for="tkProp">Property</label><select id="tkProp"><option value="" disabled selected>Choose a property</option>${toks.map(x=>`<option value="${x.k}">${esc(decName(x))}</option>`).join("")}</select></div>`:""}
+    <div class="insp-empty"><span class="ms">ads_click</span><div><div class="title-s">Select an element</div><div class="body-s osv">Choose an element in Preview or a property in Tokens.</div></div></div>`;
+    const prop=$("#tkProp",r);if(prop)prop.onchange=()=>{select({kind:"token",id:prop.value});renderSystem()};
+    return}
+  const p=S.sel.pick?pickById(S.sel.pick):null,keys=p?sysPickToks(p,t.sec):sysSecToks(t.sec).map(x=>x.k);
+  const d=sysDrafts[t.k]||{v:t.v,why:t.why||"",not:t.not||""};
+  const isC=t.type==="color",o=origin(t),cs=cites(t.why);
+  const valOk=v=>!isC||/^#[0-9a-f]{6}$/i.test(v);
+  r.innerHTML=`<div class="rhead"><div class="title-m" style="min-width:0">${esc(p?p.name:decName(t))}</div><span class="spacer"></span><button class="icon-btn" data-closesel aria-label="Clear selection"><span class="ms">close</span></button></div>
+  ${keys.length>1?`<div class="field"><label for="tkProp">Property</label><select id="tkProp">${keys.map(k=>`<option value="${k}" ${k===t.k?"selected":""}>${esc(decName(T(k)))}</option>`).join("")}</select></div>`:""}
+  <form class="sys-editor" id="tkForm" novalidate>
+    <div class="field"><label for="${isC?"tkHex":t.type==="font"?"tkFont":"tkVal"}">${isC?"Color":esc(decName(t))}</label><div class="row" style="flex-wrap:nowrap">${isC?`<input type="color" id="tkColor" value="${esc(valOk(d.v)?d.v:t.v)}" aria-label="Color picker" class="sys-color"><input type="text" id="tkHex" value="${esc(d.v)}" spellcheck="false" autocomplete="off">`:t.type==="font"?`<select id="tkFont">${(t.k==="type.display"?FONTS.display:FONTS.body).map(f=>`<option ${f===d.v?"selected":""}>${esc(f)}</option>`).join("")}</select>`:`<input type="text" id="tkVal" value="${esc(d.v)}">`}</div></div>
+    <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${esc(plainWhy(t))||'<span class="osv">No explanation added.</span>'}</div>${cs.length?`<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>`:`<span class="body-s osv">${o[0]==="AI draft"?"Suggested by AI":esc(o[0])} · not linked to research yet</span>`}</section>
+    <details class="sys-sub" id="tkMore"><summary>More details</summary><div class="col" style="gap:12px;padding-top:8px">
+      <div class="col" style="gap:6px"><span class="title-s">Evidence</span>${cs.length?cs.map(code=>{const i=citeInfo(code);return`<button type="button" class="evi" data-cite="${code}"><span class="ms">${i.icon}</span><span class="evi-m"><span class="label-m osv">${esc(i.kind)} · ${code}</span><span class="body-s">${esc(i.text)}</span></span><span class="ms osv">open_in_new</span></button>`}).join(""):`<div class="body-s osv">No research cited.</div>`}</div>
+      <div class="field"><label for="tkNot">What to avoid</label><textarea id="tkNot" rows="2">${esc(d.not)}</textarea></div>
+      <div class="col" style="gap:6px"><span class="title-s">How common is this in AI designs?</span>${(()=>{const me=prevFor(t);const list=t.prev.some(x=>x[0]===me[0])?t.prev:[...t.prev,me];return list.map(x=>`<div class="pr ${x[0]===me[0]?"me":""}"><span>${esc(x[0])}${x[0]===me[0]?" <b>(yours)</b>":""}</span><div class="bar"><i style="width:${x[1]}%"></i></div><span class="mono">${x[1]}%</span></div>`).join("")})()}</div>
+    </div></details>
+    <p class="body-s bad-t" id="tkErr" role="alert"></p>
+    <div class="row sys-apply" id="tkActions" ${sysDirty(t)?"":"hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="tkCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>
+  </form>
+  ${promptBox(t.k,`token ${t.k} = ${t.v} (why: ${t.why}; not: ${t.not})`)}`;
+  const val=()=>isC?$("#tkHex").value.trim():t.type==="font"?$("#tkFont").value:$("#tkVal").value;
+  const draft=()=>{sysDrafts[t.k]={v:val(),why:t.why||"",not:$("#tkNot").value};$("#tkActions").hidden=!sysDirty(t);$("#tkErr").textContent=""};
+  if(isC){$("#tkColor").oninput=()=>{$("#tkHex").value=$("#tkColor").value.toUpperCase();draft()};$("#tkHex").oninput=()=>{const v=$("#tkHex").value.trim();if(valOk(v))$("#tkColor").value=v;draft()}}
+  const f=$("#tkForm");f.addEventListener("input",draft);f.addEventListener("change",draft);
+  f.onsubmit=e=>{e.preventDefault();const v=val();if(!valOk(v)){$("#tkErr").textContent="Use a six-digit hex color, such as #4F6F8F.";return}if(!v.trim()){$("#tkErr").textContent="Enter a value.";return}
+    snapshot(`token ${t.k} → ${v}`);t.v=isC?v.toUpperCase():v;t.not=$("#tkNot").value.trim();t.edited=true;t.mine=mineLabel(t);delete sysDrafts[t.k];save();renderSystem();if(S.view==="review")renderReview();toast(`${decName(t)} updated across the website`)};
+  $("#tkCancel").onclick=()=>{delete sysDrafts[t.k];renderSystemRail()};
+  const prop=$("#tkProp");if(prop)prop.onchange=()=>{select({kind:"token",id:prop.value,pick:S.sel.pick});renderSystem()};
   wirePrompt(r,{kind:"token",id:t.k},`token ${t.k} = ${t.v} (why: ${t.why}; not: ${t.not})`);
+  wireCites(r);
   $$("[data-closesel]",r).forEach(b=>b.onclick=clearSel);
-  $("#tkReset").onclick=()=>{const s=seedTokens().find(x=>x.k===t.k);snapshot(`reset ${t.k}`);Object.assign(t,s,{edited:false});save();renderSystem();if(S.view==="review")renderReview()};
 }
 $$("#secnav button").forEach(b=>b.onclick=()=>{S.sysSection=b.dataset.s;select(null);save();renderSystem()});
-$("#redraftLocal").onclick=()=>{snapshot("reset system");S.tokens=seedTokens();S.elements={};S.baseSystem="custom";save();renderSystem();toast("Reset to draft")};
-$("#redraftBtn").onclick=async()=>{if(!sample){toast("Offline: connect an AI provider to regenerate");return}const b=$("#redraftBtn");b.disabled=true;try{const out=await sample.json(`${RULES}\n\nCONTEXT:\n${ctxSummary()}\n\nRedraft the design tokens from the principles and shelf. Keep the same keys. Colors: hex, ink/ground ≥ 4.5:1, accent/ground ≥ 3:1. type.display one of ${FONTS.display.join(", ")}; type.body one of ${FONTS.body.join(", ")}. Also write one short paragraph of reasoning per section (base, color, type, space, imagery, components). Reply with only a JSON object {"tokens": [{"k","v","why","not"}], "reasoning": {"color": string, ...}}.`);if(out&&Array.isArray(out.tokens)){snapshot("AI regenerate");out.tokens.forEach(o=>{const t=T(o.k);if(t){t.v=String(o.v);t.why=String(o.why||t.why);t.not=String(o.not||t.not);t.edited=true}});if(out.reasoning)Object.entries(out.reasoning).forEach(([k,v])=>{S.reasons=S.reasons||{};S.reasons[k]=String(v)});save();renderSystem();toast("Regenerated from research + references")}}catch(e){toast("Couldn't regenerate: "+(e.code||"error"))}b.disabled=false};
 
 /* user imagery: upload + how-to-use (typed or AI-written) */
 function wireUserImgs(c){S.userImgs=S.userImgs||[];
@@ -279,7 +420,7 @@ var photoFilling=false;
 function photoFill(){if(photoFilling||typeof photoResolveAll!=="function")return;
   const want=sitePhotoSubjects().filter(q=>!photoGet(q)&&!IMG[q]&&!/^user:/.test(q));
   if(!want.length)return;photoFilling=true;
-  photoResolveAll(want,()=>{if(S.view==="review")renderReview()}).finally(()=>{photoFilling=false})}
+  photoResolveAll(want,()=>{if(S.view==="review")renderReview();else if(S.view==="system")renderSystem()}).finally(()=>{photoFilling=false})}
 function siteScore(){const au=audit();const pf=patterns();
   const onPage=Object.entries(EL).filter(([id,e])=>(e.page==="*"||e.page===S.page)&&!elState(id).hidden);
   const gaps=Object.entries(EL).filter(([id,e])=>e.page==="*"||e.page===S.page).flatMap(([id,e])=>e.gaps||[]);

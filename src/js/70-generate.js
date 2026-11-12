@@ -107,7 +107,7 @@ function offlineInspiration(){const g=tv("color.ground"),i=tv("color.ink");const
 /* ---------- stage 3: design system ---------- */
 async function aiSystem(){const toks=(S.tokens||genericTokens());
   return sample.json(`${projectHeader()}\n\nINSIGHTS:\n${insightDump()}\n\nSAVED REFERENCES AND WHAT TO BORROW:\n${inspirationDump()}\n\nDraft this project's design tokens from the research and references. Keep exactly these keys and types:\n${toks.map(t=>`${t.k} (${t.type})`).join("\n")}\nRules: colors are hex; color.ink on color.ground at least 4.5:1; white text on color.accent at least 4.5:1; color.heat is a secondary signal color. type.display one of ${FONTS.display.join(", ")}; type.body one of ${FONTS.body.join(", ")}. comp.cta is the primary button label in curly quotes, e.g. “See the menu”. Text tokens are short specs a developer can follow. For each token give: why (cite the insight card id or reference), not (the generic choice it avoids), typical (the most common choice AI tools make for this token in this kind of project) and typicalPct (your estimate, 0–100). Also one short paragraph of reasoning per section: base, color, type, space, imagery, components.\nJSON: {"tokens":[{"k":string,"v":string,"why":string,"not":string,"typical":string,"typicalPct":number}],"reasoning":{"base":string,"color":string,"type":string,"space":string,"imagery":string,"components":string}}`,{modelTier:"default"})}
-function applySystem(out){const base=S.pid==="p-mali"?seedTokens():genericTokens();const got=new Map((out.tokens||[]).filter(o=>o&&o.k).map(o=>[o.k,o]));
+function applySystem(out){const old=S.tokens;const base=S.pid==="p-mali"?seedTokens():genericTokens();const got=new Map((out.tokens||[]).filter(o=>o&&o.k).map(o=>[o.k,o]));
   S.tokens=base.map(t=>{const o=got.get(t.k);if(!o)return t;let v=String(o.v??t.v);
     if(t.type==="color"&&!isHex(v))v=t.v;if(t.type==="font"&&!(t.k==="type.display"?FONTS.display:FONTS.body).includes(v))v=t.v;
     const n={...t,v,why:String(o.why||t.why),not:String(o.not||""),edited:false,ai:true};if(o.typical)n.prev=[[String(o.typical),Math.max(0,Math.min(100,+o.typicalPct||50))]];n.mine=mineLabel(n);return n});
@@ -115,6 +115,7 @@ function applySystem(out){const base=S.pid==="p-mali"?seedTokens():genericTokens
   if(ratio(T_("color.ink").v,T_("color.ground").v)<4.5)T_("color.ink").v=ratio("#111111",T_("color.ground").v)>=4.5?"#111111":"#FFFFFF";
   if(ratio("#ffffff",T_("color.accent").v)<4.5){/* darken accent until white text passes */let c=T_("color.accent").v;for(let k=0;k<12&&ratio("#ffffff",c)<4.5;k++)c="#"+c.slice(1).match(/../g).map(h=>Math.round(parseInt(h,16)*0.88).toString(16).padStart(2,"0")).join("");T_("color.accent").v=c}
   S.reasons=out.reasoning&&typeof out.reasoning==="object"?Object.fromEntries(Object.entries(out.reasoning).map(([k,v])=>[k,String(v)])):S.reasons;
+  if(typeof keepLocked==="function")keepLocked(old);
   S.baseSystem="custom";S.sysBuilt=true;S.tokensTemplated=true}
 function offlineSystem(){S.tokens=S.pid==="p-mali"?seedTokens():genericTokens();S.tokensTemplated=true;S.sysBuilt=true}
 
