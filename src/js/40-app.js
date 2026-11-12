@@ -76,7 +76,7 @@ $("#redraftBtn").onclick=async()=>{if(!sample){toast("Offline: connect an AI pro
 
 /* user imagery: upload + how-to-use (typed or AI-written) */
 function wireUserImgs(c){S.userImgs=S.userImgs||[];
-  const add=files=>{[...files].forEach(f=>{if(!f.type.startsWith("image/"))return;const rd=new FileReader();rd.onload=()=>{S.userImgs.push({name:f.name.replace(/\.[^.]+$/,"").replace(/[-_]/g," "),src:rd.result,use:""});snapshot("uploaded image");save();renderSystem();toast("Image added · write or generate a usage note")};rd.readAsDataURL(f)})};
+  const add=files=>{[...files].forEach(f=>{if(!f.type.startsWith("image/"))return;const rd=new FileReader();rd.onload=async()=>{const pid=currentPid();const key="ui:"+(S.pid||"p")+":"+uid("");const stored=await rememberImage(key,rd.result);if(!stillOnProject(pid)){imgDel(key).catch(()=>{});return}S.userImgs.push({name:f.name.replace(/\.[^.]+$/,"").replace(/[-_]/g," "),src:stored,imgKey:key,use:""});snapshot("uploaded image");save();renderSystem();toast("Image added · write or generate a usage note")};rd.readAsDataURL(f)})};
   const fi=$("#uiFile",c);if(fi)fi.onchange=e=>add(e.target.files);
   const drop=$(".icard.add",c);if(drop){drop.addEventListener("dragover",e=>{e.preventDefault();drop.style.borderColor="var(--primary)"});drop.addEventListener("dragleave",()=>drop.style.borderColor="");drop.addEventListener("drop",e=>{e.preventDefault();add(e.dataTransfer.files)})}
   $$("[data-uiname]",c).forEach(i=>i.onchange=()=>{S.userImgs[+i.dataset.uiname].name=i.value;save()});

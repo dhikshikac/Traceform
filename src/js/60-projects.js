@@ -86,14 +86,28 @@ function toastUndo(msg,fn){const t=$("#toast");t.innerHTML="";
   t.append(b);t.classList.add("on");clearTimeout(toast.t);
   toast.t=setTimeout(()=>{t.classList.remove("on");t.textContent=""},8000)}
 function storeRead(){try{const j=localStorage.getItem("traceform-projects");return j?JSON.parse(j):null}catch{return null}}
-function storeWrite(){try{localStorage.setItem("traceform-projects",JSON.stringify(STORE))}catch{}}
+var storeWriteWarned=false;
+function storeWrite(){try{localStorage.setItem("traceform-projects",JSON.stringify(STORE));storeWriteWarned=false}
+  catch(e){
+    // Silently swallowing this lost every later change without telling anyone.
+    if(!storeWriteWarned){storeWriteWarned=true;
+      try{toast(/quota/i.test(e.name||"")?"Out of browser storage \u2014 recent changes are not being saved":"Could not save to this browser")}catch{}
+      try{console.error("traceform: save failed",e)}catch{}}
+  }}
 function oldAssumeRe(){return /Mama's|Mom makes|Pad Thai|gingham|lotus|elephant|turmeric|Tone: warm|lifestyle carousel|“Shop now”|4-column|Newsletter pop-up|black, white, one accent|emoji in headlines|Left sidebar|four KPI|#3B82F6|Inter everywhere|donut|Dark-mode toggle|Dark background|Huge name|Masonry|work together|Cursor-follow|five tabs|Three-screen onboarding|Gradient splash|Floating action|Donate now|close-up of a child|10k\+|hand icon|gradient$|Three feature cards|Testimonials carousel/i}
 function migrateAssumptions(){if(!STORE||STORE.assumeV===2)return;PTYPES=PTYPES||_ptypes();const seed=SEED().assume;
   Object.values(STORE.states).forEach(st=>{if(!st||!Array.isArray(st.assume))return;const old=st.assume.filter(a=>oldAssumeRe().test(a.label));if(!old.length)return;const kept=st.assume.filter(a=>!oldAssumeRe().test(a.label));
     const fresh=st.pid==="p-mali"?seed:(PTYPES[st.type]||PTYPES.other).assume.map((a,i)=>({id:"g"+i+Math.random().toString(36).slice(2,5),label:a[0],from:a[1],rej:false}));st.assume=[...fresh,...kept]});
   STORE.assumeV=2;storeWrite()}
 function load(){PTYPES=PTYPES||_ptypes();STORE=storeRead()||makeSeedStore();migrateAssumptions();const id=STORE.states[STORE.current]?STORE.current:STORE.list[0].id;STORE.current=id;return JSON.parse(JSON.stringify(STORE.states[id]))}
-function save(){if(!STORE||!S)return;const c={...S,tiles:S.tiles.map(t=>({...t,img:undefined})),history:(S.history||[]).slice(-30)};STORE.states[S.pid]=c;const m=STORE.list.find(x=>x.id===S.pid);if(m){m.name=S.project;m.updated=Date.now()}storeWrite()}
+function save(){if(!STORE||!S)return;
+  // Image data goes to IndexedDB (see 07-imagestore.js); localStorage keeps the key.
+  try{adoptLooseImages()}catch{}
+  const c={...S,
+    tiles:S.tiles.map(t=>({...t,img:undefined})),
+    userImgs:(S.userImgs||[]).map(u=>u.imgKey?{...u,src:undefined}:u),
+    history:(S.history||[]).slice(-30)};
+  STORE.states[S.pid]=c;const m=STORE.list.find(x=>x.id===S.pid);if(m){m.name=S.project;m.updated=Date.now()}storeWrite()}
 function ago(t){const d=(Date.now()-t)/1000;if(d<60)return"just now";if(d<3600)return Math.round(d/60)+" min ago";if(d<86400)return Math.round(d/3600)+" h ago";return Math.round(d/86400)+" d ago"}
 
 /* ---- landing ---- */
@@ -141,7 +155,7 @@ function renderTrash(){const t=trashList();const miss=missingSeeds();
     dialog(`<span class="headline-s">Delete “${esc(e.meta.name)}” permanently?</span><div class="body-m">This removes it from this browser for good. It cannot be undone.</div>`,[["Cancel","text",()=>{}],["Delete permanently","filled",()=>{purgeProject(b.dataset.purge);renderLanding();toast("Deleted permanently")}]])});
 }
 function openProject(id){const sv=STORE.states[id];if(sv&&["trending","reference"].includes(sv.view))sv.view="inspiration";if(S&&S.pid&&S.pid!==id)save();STORE.current=id;S=JSON.parse(JSON.stringify(STORE.states[id]));if(!S.tokens&&S.type==="restaurant")S.tokens=seedTokens();
-  try{rTurns=[];pTurns=[];previewVer=null}catch{}storeWrite();showApp();setProjChip();go(S.view||"research")}
+  try{rTurns=[];pTurns=[];previewVer=null}catch{}storeWrite();showApp();setProjChip();go(S.view||"research");hydrateAndRender()}
 function setProjChip(){const t=PTYPES[S.type]||PTYPES.restaurant;$("#projChip").innerHTML=`<span class="ms" style="font-size:16px">${t.icon}</span>${esc(S.project)}`;$("#projChip").title="Switch project";}
 
 /* ---- new project wizard ---- */
