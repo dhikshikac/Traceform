@@ -12,13 +12,34 @@ const DISHES=[
 const BUNDLES=[{n:"For two",p:"38",i:"Khao soi, som tam, sticky rice",img:"khaosoi"},{n:"For four",p:"72",i:"Khao soi ×2, larb, greens, sticky rice ×2",img:"overhead"},{n:"Birthday table",p:"110",i:"Gaeng hang lay, khao soi ×2, som tam, greens, rice, mango",img:"curry"}];
 const HEAT=(n,v)=>{if(!n)return"";const t=["mild","medium","hot"][n-1];const mode=v||"pips";return`<span class="heat" aria-label="${t}">${mode==="text only"?t:"●".repeat(n)+"○".repeat(3-n)+(mode==="pips + label"?` <small>${t}</small>`:"")}</span>`};
 const MAPSVG=()=>`<svg viewBox="0 0 400 220" width="100%" height="100%" role="img" aria-label="Map: 412 Lyndale Ave S"><rect width="400" height="220" fill="#e9e6df"/><g stroke="#fff" stroke-width="10"><path d="M0 60H400M0 150H400M80 0V220M200 0V220M320 0V220"/></g><g stroke="#d8d4ca" stroke-width="3"><path d="M0 105H400M140 0V220M260 0V220"/></g><rect x="150" y="70" width="40" height="28" fill="#cfd9c8"/><rect x="330" y="160" width="60" height="50" fill="#cfd9c8"/><circle cx="200" cy="105" r="9" fill="var(--a)" stroke="#fff" stroke-width="3"/><text x="212" y="100" font-size="11" fill="#333" font-family="system-ui">Mali's Table</text><text x="86" y="52" font-size="9" fill="#777" font-family="system-ui">Lyndale Ave S</text><text x="206" y="146" font-size="9" fill="#777" font-family="system-ui">W 34th St</text></svg>`;
-function siteCSS(){const rad=(tv("shape.radius")||"4 / 8 / 12").split("/").map(x=>parseInt(x)||8);return`
-.s{--g:${tv("color.ground")};--a:${tv("color.accent")};--h:${tv("color.heat")};--i:${tv("color.ink")};--fd:'${tv("type.display")}',Georgia,serif;--fb:'${tv("type.body")}',system-ui,sans-serif;--r1:${rad[0]}px;--r2:${rad[1]||8}px;--r3:${rad[2]||12}px;background:var(--g);color:var(--i);font-family:var(--fb);font-size:15px;line-height:1.5}
+var SITE_ACCENT_CSS="";
+function accentRules(){return SITE_ACCENT_CSS}
+/* The page used only four colours, two fonts and the radius, so every project
+   rendered at the same size, rhythm and weight however the design system was
+   drafted. The scale, spacing and heading treatment now reach the page too. */
+function siteCSS(){
+  // A sharp-cornered system is a real choice: parse 0 as 0, not as the fallback.
+  const rad=(tv("shape.radius")||"4 / 8 / 12").split("/").map(x=>{const n=parseInt(x,10);return Number.isFinite(n)?n:8});
+  const ts=(tv("type.scale")||"40 / 28 / 20 / 16 / 13").split("/").map(x=>parseFloat(x)).filter(n=>n>0);
+  const t=(i,d)=>ts[i]||d;
+  // "8 / 16 / 24 / 48" or a single step; the first useful number sets the rhythm.
+  const sp=(tv("space.scale")||"").split("/").map(x=>parseFloat(x)).filter(n=>n>0);
+  const unit=sp.length?Math.max(4,Math.min(16,sp[0]<=16?sp[0]:sp[0]/2)):8;
+  const accent=String(tv("type.accentLine")||"none").toLowerCase();
+  const accentCSS=/underline/.test(accent)
+      ?`.s h1,.s h2{text-decoration:underline;text-decoration-color:var(--a);text-underline-offset:6px;text-decoration-thickness:2px}`
+    :/rule|line|bar/.test(accent)
+      ?`.s h2{border-left:3px solid var(--a);padding-left:12px}`
+    :/caps|letterspac/.test(accent)
+      ?`.s h2{text-transform:uppercase;letter-spacing:.08em}`:"";
+  SITE_ACCENT_CSS=accentCSS;
+  return`
+.s{--g:${tv("color.ground")};--a:${tv("color.accent")};--h:${tv("color.heat")};--i:${tv("color.ink")};--fd:'${tv("type.display")}',Georgia,serif;--fb:'${tv("type.body")}',system-ui,sans-serif;--r1:${rad[0]}px;--r2:${rad[1]??8}px;--r3:${rad[2]??12}px;--t1:${t(0,40)}px;--t2:${t(1,28)}px;--t3:${t(2,20)}px;--t4:${t(3,16)}px;--t5:${t(4,13)}px;--sp:${unit}px;--sp2:${unit*2}px;--sp3:${unit*4}px;--sp4:${unit*7}px;background:var(--g);color:var(--i);font-family:var(--fb);font-size:var(--t4);line-height:1.5}
 .s *{box-sizing:border-box}.s img{display:block;width:100%;height:100%;object-fit:cover}.s a{color:inherit}
-.s .wrap{padding:0 28px}.s .nav{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 28px;border-bottom:1px solid color-mix(in srgb,var(--i) 10%,transparent)}
-.s .brand{font-family:var(--fd);font-size:24px;line-height:1;display:flex;align-items:center;gap:10px}.s .brand i{width:28px;height:28px;border-radius:50%;background:var(--a);display:inline-grid;place-items:center;color:#fff}
-.s .links{display:flex;gap:20px;font-size:14px;align-items:center}.s .links a{text-decoration:none;opacity:.85}
-.s .btn{display:inline-flex;align-items:center;justify-content:center;height:42px;padding:0 18px;border-radius:var(--r2);background:var(--a);color:#fff;font-weight:600;font-size:14px;white-space:nowrap;text-decoration:none}
+.s .wrap{padding:0 var(--sp3)}.s .nav{display:flex;justify-content:space-between;align-items:center;gap:var(--sp2);padding:var(--sp2) var(--sp3);border-bottom:1px solid color-mix(in srgb,var(--i) 10%,transparent)}
+.s .brand{font-family:var(--fd);font-size:var(--t3);line-height:1;display:flex;align-items:center;gap:10px}.s .brand i{width:28px;height:28px;border-radius:50%;background:var(--a);display:inline-grid;place-items:center;color:#fff}
+.s .links{display:flex;gap:var(--sp2);font-size:var(--t5);align-items:center}.s .links a{text-decoration:none;opacity:.85}
+.s .btn{display:inline-flex;align-items:center;justify-content:center;height:calc(var(--sp)*5);padding:0 var(--sp2);border-radius:var(--r2);background:var(--a);color:#fff;font-weight:600;font-size:var(--t5);white-space:nowrap;text-decoration:none}
 .s .btn.o{background:transparent;border:1.5px solid var(--a);color:var(--a)}.s .btn.s{height:34px;padding:0 12px;font-size:13px}
 .s .hero{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;padding:18px 28px 0}.s .hero .ph{aspect-ratio:16/9;border-radius:var(--r3);overflow:hidden;position:relative}.s .hero .side{display:grid;grid-template-rows:1fr auto;gap:14px}.s .hero .side .im{border-radius:var(--r3);overflow:hidden;min-height:140px}
 .s .hero .ov{position:absolute;left:0;right:0;bottom:0;padding:22px 20px;background:linear-gradient(transparent,rgba(0,0,0,.55));color:#fff}.s .hero .ov h1{margin:0 0 4px;font-family:var(--fd);font-size:34px;line-height:1.1;font-weight:600}.s .hero .ov p{margin:0;font-size:15px;opacity:.95;max-width:46ch}
@@ -71,6 +92,13 @@ function MALI_SITE(){return{
   about:{title:"Our story",img:"board",alt:"Mali's mother's menu board",paragraphs:["We cook the food we eat at home. Khao soi from Chiang Mai, the way Mali's mother made it at her stall by Warorot market. Som tam pounded to order. Greens from the garden when there are greens.","Mali came to Minneapolis in 2004 and cooked for other people's restaurants for fifteen years. In 2019 she and her daughter Pim took over the small room on Lyndale, painted it, and put her mother's menu board on the wall. The board still sets the menu: what's on it is what we cook.","We don't do a long menu. We do the dishes the family eats, and we make them the way they were made for us. Order a few and share them."],photos:[["hands","Mali pounding som tam"],["herbs","Herbs from the garden"],["celadon","Mali's mother's bowls"]],people:[["Mali","Cooks. Grew up in Chiang Mai, learned from her mother's stall. Grinds the larb spices herself every Tuesday."],["Pim","Runs the front and the ordering. Will tell you exactly how hot “hot” is. Wants the site to feel modern; Mali wants it to feel like home."]]}
 }}
 function site(){if(!S.site)S.site=S.pid==="p-mali"?MALI_SITE():templateSite();return S.site}
+/* True when nothing has been generated yet and the page would only show the
+   empty scaffold. */
+/* Asked of the stage rather than a flag: projects generated before the flag
+   existed have a real site and no flag, and were shown "No site yet" under a
+   banner reading "Generated by AI". */
+function siteIsScaffold(){if(S.pid==="p-mali"||S.siteBuilt||(S.design&&S.design.html))return false;
+  return typeof genState!=="function"||genState("site")==="none"}
 /* image slot, in priority order:
      1. the designer's own upload ("user:N")
      2. a real photograph resolved from the stock library and frozen on the project
@@ -96,7 +124,7 @@ function pageHTML(){
   const ctaTxt=(tv("comp.cta")||"").match(/“([^”]+)”/)?.[1]||W.cta;
   const heatV=elState("heat").variant||"pips";
   const pages=W.pages||{};const pg=k=>esc(pages[k]||k);
-  const nav=`<div class="nav" style="padding-left:48px">${el("brand",`<span class="brand"><i aria-hidden="true">${S.pid==="p-mali"?MOTIF_SVG.bowl.replace(/width="56" height="56"/,'width="18" height="18"'):esc((W.brand||"?")[0])}</i>${esc(W.brand||S.project)}</span>`)}<div class="links">${(W.navLinks||[]).map((l,i)=>`<a href="#${["menu","order","story","hours"][i]||"top"}">${esc(l)}</a>`).join("")}${el("cta",`<a class="btn" href="#menu">${esc(ctaTxt)}</a>`,"display:inline-block;margin-left:22px")}</div></div>`;
+  const nav=`<div class="nav" style="padding-left:48px">${el("brand",`<span class="brand" data-gopage="home"><i aria-hidden="true">${S.pid==="p-mali"?MOTIF_SVG.bowl.replace(/width="56" height="56"/,'width="18" height="18"'):esc((W.brand||"?")[0])}</i>${esc(W.brand||S.project)}</span>`)}<div class="links">${(W.navLinks||[]).map((l,i)=>{const pg=["menu","order","story","home"][i]||"home";return `<a href="#${pg}" data-gopage="${pg}" class="${S.page===pg?"here":""}">${esc(l)}</a>`}).join("")}${el("cta",`<a class="btn" href="#menu">${esc(ctaTxt)}</a>`,"display:inline-block;margin-left:22px")}</div></div>`;
   const F=W.footer||{};
   const foot=el("footer",`<div class="foot"><div><b>${esc(W.brand)}</b>${esc(F.blurb||"")}<br>${esc(F.address||"")}<br>${esc(F.contact||"")}${F.signup?`<div class="nl"><i>Your email</i><span class="btn s">${esc(F.signup)}</span></div>`:""}</div>${(F.cols||[]).slice(0,3).map(c=>`<div><b>${esc(c.title)}</b>${(c.lines||[]).map(esc).join("<br>")}</div>`).join("")}<div class="c"><span>${esc(F.legal||"© "+W.brand)}</span><span>Privacy · Accessibility</span></div></div>`);
   const items=W.items.list||[];const tags=d=>`<div class="tags">${(d.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>`;
@@ -115,7 +143,7 @@ function pageHTML(){
   else if(P==="order"){const A=W.action;const cart=items.slice(0,4).map((d,i)=>({d,q:i%2?1:2}));const priced=cart.every(c=>/^[\d.]+$/.test(String(c.d.p||"")));const sub=priced?cart.reduce((s,c)=>s+c.q*parseFloat(c.d.p),0):0;const tax=Math.round(sub*0.08*100)/100;
     body=`${el("orderflow",`<h1 class="t">${esc(A.title)}</h1><p class="sub">${esc(A.sub||"")}</p><div class="order"><div><div class="box"><h4>${esc(A.cartTitle||"Your selection")}</h4>${cart.map(c=>`<div class="line"><span>${esc(c.d.n)} <span class="q"><span${(S.a11yFix||{}).steppers?` role="button" aria-label="Decrease ${esc(c.d.n)}"`:""}>−</span><span>${c.q}</span><span${(S.a11yFix||{}).steppers?` role="button" aria-label="Increase ${esc(c.d.n)}"`:""}>+</span></span></span><span>${priced?"$"+(c.q*parseFloat(c.d.p)).toFixed(0):""}</span></div>`).join("")}${priced?`<div class="line" style="opacity:.75"><span>Subtotal</span><span>$${sub.toFixed(2)}</span></div><div class="line" style="opacity:.75"><span>Tax</span><span>$${tax.toFixed(2)}</span></div><div class="line" style="font-weight:600;font-size:16px;border:0"><span>Total</span><span>$${(sub+tax).toFixed(2)}</span></div>`:""}</div>${items.length>4?`<div class="box" style="margin-top:14px"><h4>${esc(A.addTitle||"You might also want")}</h4><div class="cards" style="padding:0;grid-template-columns:repeat(3,1fr)">${items.slice(4,7).map(d=>`<div class="card"><div class="im" style="aspect-ratio:16/9">${pic(d.img,d.alt||d.n)}</div><div class="b" style="padding:10px"><h3 style="font-size:15px">${esc(d.n)}</h3><div class="m"><span>${money(d.p)}</span><a class="btn s" href="#order">${esc(W.items.button||"Add")}</a></div></div></div>`).join("")}</div></div>`:""}</div><div><div class="box"><h4>${esc(A.formTitle||"Details")}</h4>${(A.options||[]).length?`<div class="seg">${A.options.map((o,i)=>i?`<span>${esc(o)}</span>`:`<b>${esc(o)}</b>`).join("")}</div>`:""}${(A.fields||[]).map(f=>`<div class="field">${esc(f[0])}<i>${esc(f[1]||"")}</i></div>`).join("")}<a class="btn" href="#" style="width:100%;margin-top:6px">${esc(A.submit)}${priced?` · $${(sub+tax).toFixed(2)}`:""}</a><p style="font-size:12px;opacity:.7;margin:10px 0 0">${esc(A.note||"")}</p></div></div></div>`)}${foot}`}
   else{const B=W.about;body=`${el("storyhero",`<div class="shero">${pic(elState("storyhero").img||B.img,B.alt)}<div class="ov" style="position:absolute;left:0;right:0;bottom:0;padding:22px 20px;background:linear-gradient(transparent,rgba(0,0,0,.55));color:#fff"><h1 style="margin:0;font-family:var(--fd);font-size:30px;font-weight:600">${esc(B.title)}</h1></div></div>`)}<div class="prose">${(B.paragraphs||[]).map((p,i)=>`<p>${esc(i===0&&elState("storybody").caption||p)}</p>`).join("")}</div><div class="pgrid">${(B.photos||[]).slice(0,3).map(p=>`<div class="im">${pic(p[0],p[1])}</div>`).join("")}</div><div class="bios">${(B.people||[]).map(p=>`<div class="bio"><i>${esc((p[0]||"?")[0])}</i><div><b>${esc(p[0])}</b><br>${esc(p[1])}</div></div>`).join("")}</div>${foot}`}
-  return`<style>${siteCSS()}.s .phs{width:100%;height:100%;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:12px;background:color-mix(in srgb,var(--a) 16%,var(--g));color:color-mix(in srgb,var(--i) 80%,transparent);font-size:12px}.s .phs span{font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;opacity:.7}.s .phs b{font-weight:500;max-width:32ch}</style><div class="site s ${S.device==="phone"?"phone":""}">${nav}${body}</div>`;
+  return`<style>${siteCSS()}${accentRules()}.s .phs{width:100%;height:100%;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:12px;background:color-mix(in srgb,var(--a) 16%,var(--g));color:color-mix(in srgb,var(--i) 80%,transparent);font-size:12px}.s .phs span{font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;opacity:.7}.s .phs b{font-weight:500;max-width:32ch}</style><div class="site s ${S.device==="phone"?"phone":""}">${nav}${body}</div>`;
 }
 /* ---- Typical AI baseline: what Claude Design / Figma Make return for "make a website for a Thai restaurant" ---- */
 function baselineCSS(){return`

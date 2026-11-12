@@ -3,6 +3,7 @@
 //   GET  /              index.html
 //   GET  /app.js        src/js/*.js concatenated in filename order (rebuilt on every request)
 //   GET  /src/... /img/...  static files
+//   GET  /vendor/axe.min.js  the accessibility checker, from node_modules
 //   GET  /api/ai/health which provider is configured (never returns the key)
 //   POST /api/ai        {tier, messages, tools, json} -> {text, tool_calls, stop}
 //   GET  /api/images?q= stock photo search (Openverse by default, no key needed)
@@ -77,6 +78,8 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
   try {
     if (url.pathname === "/app.js") return send(res, 200, await buildAppJs(), TYPES[".js"]);
+    // axe-core, for the Review page's accessibility audit (runs in the browser).
+    if (url.pathname === "/vendor/axe.min.js") return send(res, 200, await readFile(path.join(ROOT, "node_modules", "axe-core", "axe.min.js")), TYPES[".js"]);
     if (url.pathname === "/api/ai/health") return send(res, 200, provider.info());
     if (url.pathname === "/api/images") {
       const q = url.searchParams.get("q") || "";
