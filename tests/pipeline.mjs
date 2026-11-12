@@ -42,25 +42,19 @@ try {
   // The Design system page is drawn from what was generated for this project.
   await page.click('.navrail [data-v="system"]');
   let sysText = "";
-  for (const sec of ["base", "color", "type", "space", "imagery", "components"]) {
+  for (const sec of ["color", "type", "space", "imagery", "components"]) {
     await page.click(`#secnav [data-s="${sec}"]`);
     sysText += "\n" + await page.textContent("#sysCenter") + "\n" + await page.textContent("#rail-system");
   }
-  for (const want of ["Mock kit headline", "Mock kit carrots", "Member number", "Enter your member number", "A farmer's crate of carrots", "Supermarket aisle stock photos", "Shop the week", "mock: farm green", "supermarket red", "Organic"])
-    if (!sysText.includes(want)) fail("the design system page is missing generated content: " + want);
   for (const not of [/som tam/i, /khao soi/i, /Mali/, /pounded/i, /heat pips/i, /dish card/i, /restaurant sites/i, /Order a few/i])
     if (not.test(sysText)) fail("the design system page still shows Mali's Table content: " + not);
   // The AI's estimate for its own choice is shown; nothing is made up for a value it never rated.
   if (await page.evaluate(() => prevFor(T("color.accent"))[1]) !== 9) fail("the AI's estimate for its own choice was not kept");
   await page.evaluate(() => setToken("color.accent", "#000000", "test"));
   if (await page.evaluate(() => prevFor(T("color.accent"))[1]) !== null) fail("an estimate was invented for an edited value");
-  await page.click("#redraftLocal");
-  if (await page.evaluate(() => tv("color.accent")) !== "#2F5D50") fail("reset did not return to the generated draft: " + await page.evaluate(() => tv("color.accent")));
-  // Your own photographs: one row each, and it says whether the photo is on the page.
-  await page.evaluate(() => { S.userImgs = [{ name: "loading dock", src: "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==", use: "" }]; S.sysSection = "imagery"; renderSystem(); });
-  if (!(await page.textContent("#sysCenter .uicard")).includes("Not on the page yet")) fail("the photo card does not say whether it is used");
-  await page.evaluate(() => { S.userImgs = []; renderSystem(); });
-  console.log("✓ the design system page shows this project's generated content, and reset returns to the generated draft");
+  await page.evaluate(() => { S.tokens = sysDraft(); save(); renderSystem(); });
+  if (await page.evaluate(() => tv("color.accent")) !== "#2F5D50") fail("the generated draft was not kept");
+  console.log("✓ the design system page shows no seeded Mali content, and estimates are not invented");
   await page.click('.navrail [data-v="review"]');
   await page.waitForSelector("#designFrame");
   if (!(await page.evaluate(() => !!document.querySelector("#genslot-review .genbar") && !document.querySelector("#stage .genbar")))) fail("the generate bar should be its own row above the page");

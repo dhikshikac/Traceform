@@ -173,7 +173,7 @@ async function aiSystem(){const toks=(S.tokens||genericTokens());
    whole design system. On its own it is short, and if it fails the tokens stand. */
 async function aiSystemKit(){const pick=k=>{const t=(S.tokens||[]).find(x=>x.k===k);return t?t.v:""};
   return aiRetry(()=>sample.json(`${projectHeader()}\n\nINSIGHTS:\n${insightDump()}\n\nSAVED REFERENCES AND WHAT TO BORROW:\n${inspirationDump()}\n\nDESIGN SYSTEM DECISIONS ALREADY MADE:\nimagery: ${pick("imagery")}\nmotif: ${pick("motif")}\nprimary button: ${pick("comp.cta")}\nitem card: ${pick("comp.dishCard")}\n\nSPEC SHEET CONTENT. Draft what this project's design-system spec sheets will show, so they illustrate THIS project and nothing generic.\nimagery.show: 3-4 photographs the site should use, following the imagery decision above. Each has "subject" (a stock-library search phrase: 2-4 plain nouns, no adjectives, no names), "what" (one line saying what the photo shows) and "why" (the finding or saved reference behind it, said in words, never a card id).\nimagery.avoid: 2-3 kinds of image this site must not use, each with why (draw on the rejected assumptions and the research).\nsamples is real copy in this organisation's own words, used to show the components: a headline; one body sentence; 3-4 nav labels; 2-3 of the main things on offer, each with a name, a one-line detail, and a price, date or status (or ""); one form field this site would really have (label, an example value, the error message); and 3-4 tags or filters these people would really use. No placeholders, and nothing invented: use only names, places, prices and facts that appear in the research above; where the research gives none, say it generally ("a local farm", no price) rather than making one up.\nJSON: {"imagery":{"show":[{"subject":string,"what":string,"why":string}],"avoid":[{"what":string,"why":string}]},"samples":{"headline":string,"body":string,"nav":[string],"items":[{"name":string,"detail":string,"meta":string}],"field":{"label":string,"example":string,"error":string},"chips":[string]}}`,{modelTier:"default"}))}
-function applySystem(out){const base=S.pid==="p-mali"?seedTokens():genericTokens();const got=new Map((out.tokens||[]).filter(o=>o&&o.k).map(o=>[o.k,o]));
+function applySystem(out){const old=S.tokens;const base=S.pid==="p-mali"?seedTokens():genericTokens();const got=new Map((out.tokens||[]).filter(o=>o&&o.k).map(o=>[o.k,o]));
   S.tokens=base.map(t=>{const o=got.get(t.k);if(!o)return t;let v=String(o.v??t.v);
     if(t.type==="color"&&!isHex(v))v=t.v;
     /* The scales drive the page's CSS, so they have to be numbers. A model that
@@ -192,6 +192,7 @@ function applySystem(out){const base=S.pid==="p-mali"?seedTokens():genericTokens
   S.reasons=out.reasoning&&typeof out.reasoning==="object"?Object.fromEntries(Object.entries(out.reasoning).map(([k,v])=>[k,String(v)])):S.reasons;
   // What "Reset to draft" on the Design system page goes back to.
   S.draftTokens=JSON.parse(JSON.stringify(S.tokens));
+  if(typeof keepLocked==="function")keepLocked(old);
   S.baseSystem="custom";S.sysBuilt=true;S.tokensTemplated=true}
 /* Sample copy and imagery for the spec sheets. Checked for shape; a system that
    came back without them simply has no kit, and the sheets fall back to what the
