@@ -119,6 +119,10 @@ Browser (app.js)                    server/server.mjs                 AI provide
 
 Tools (for example `add_insight_card`, `add_assumption`, `set_token`) **run in the browser** because they change the project. The server only relays messages and doesn't store anything.
 
+### Free option: Google Gemini (what the team uses for the MVP)
+
+Get a free key at https://aistudio.google.com/apikey, copy `traceform/.env.example` to `traceform/.env`, paste the key in, and restart `npm start`. Step-by-step instructions and troubleshooting are in [GEMINI_SETUP.md](GEMINI_SETUP.md).
+
 ### Option A: Claude (Anthropic)
 
 1. Get a key at https://console.anthropic.com.
