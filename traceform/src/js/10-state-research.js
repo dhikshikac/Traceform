@@ -165,7 +165,6 @@ function cardEvidence(c){const qs=cardQuotes(c);const r=qs.map(q=>verifyQuote(q,
 function renderSources(){
   const cited=id=>S.themes.reduce((n,t)=>n+t.cards.filter(c=>c.src===id).length,0);
   $("#srcList").innerHTML=sourceOrder().map(s=>{const n=cited(s.id);return`<div class="list-item src" data-src="${s.id}" tabindex="0" role="button" aria-label="Open ${esc(s.name)}"><span class="ms">${KICON[s.kind]||"description"}</span><div class="t"><div class="nm">${esc(s.name)}</div><div class="s">${esc(KNAME[s.kind]||"Notes")} · ${wordCount(s.text).toLocaleString()} words${n?` · cited ${n}×`:""}</div></div><button class="icon-btn" data-star="${s.id}" aria-label="${s.star?"Unstar":"Star"} ${esc(s.name)}" title="${s.star?"Starred: read first":"Star to have the AI read it first"}" style="width:32px;height:32px"><span class="ms star ${s.star?"on":""}">star</span></button></div>`}).join("")||'<div class="note">No artifacts yet.</div>';
-  $("#srcCount").textContent=S.sources.length?`${S.sources.length} artifact${S.sources.length===1?"":"s"}. Starred ones are read first when the AI drafts insights.`:"";
   $$("[data-src]").forEach(el=>{el.onclick=e=>{if(e.target.closest("[data-star]"))return;openSource(el.dataset.src)};el.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&e.target===el){e.preventDefault();openSource(el.dataset.src)}}});
   $$("[data-star]").forEach(b=>b.onclick=()=>{const s=S.sources.find(x=>x.id===b.dataset.star);s.star=!s.star;save();renderSources()});
 }
@@ -214,17 +213,16 @@ function renderResearch(){try{renderResearchUnsafe()}catch(e){console.error("Res
 function renderResearchUnsafe(){
   normalizeResearch();
   renderSources();
-  const all=S.themes.flatMap(t=>t.cards);const evs=all.map(cardEvidence);const nQ=evs.reduce((n,e)=>n+e.qs.length,0),nOk=evs.reduce((n,e)=>n+e.ok,0),nCheck=evs.filter(e=>e.check).length;
+  const all=S.themes.flatMap(t=>t.cards);const nCheck=all.map(cardEvidence).filter(e=>e.check).length;
   if(!nCheck)rCheckOnly=false;
-  $("#rSum").innerHTML=all.length?`<span><b>${all.length}</b> insight${all.length===1?"":"s"} in <b>${S.themes.length}</b> theme${S.themes.length===1?"":"s"}</span><span class="dot"></span><span><b>${nOk}</b> of ${nQ} quotes found word for word in your artifacts</span>${nCheck?`<span class="spacer"></span><button class="chip sm ${rCheckOnly?"on":""}" id="rCheck"><span class="ms" style="font-size:16px">${rCheckOnly?"close":"error"}</span>${rCheckOnly?"Show all":`${nCheck} to check`}</button>`:""}`:"";
+  $("#rSum").innerHTML=all.length?`${nCheck?`<span class="spacer"></span><button class="chip sm ${rCheckOnly?"on":""}" id="rCheck"><span class="ms" style="font-size:16px">${rCheckOnly?"close":"error"}</span>${rCheckOnly?"Show all":`${nCheck} to check`}</button>`:""}`:"";
   $("#rCheck")&&($("#rCheck").onclick=()=>{rCheckOnly=!rCheckOnly;renderResearch()});
   $("#themes").innerHTML=S.themes.map(t=>{const cards=t.cards.filter(c=>!rCheckOnly||cardEvidence(c).check);if(rCheckOnly&&!cards.length)return"";
     return`<div class="theme" data-t="${t.id}">
     <div class="hd"><input class="inl" value="${esc(t.name)}" data-tn="${t.id}" aria-label="Theme name"><span class="tcount">${t.cards.length}</span><button class="x" data-dt="${t.id}" aria-label="Delete theme ${esc(t.name)}"><span class="ms" style="font-size:18px">close</span></button></div>
     ${cards.map(cardHTML).join("")}
-    ${rCheckOnly?"":`<button class="btn text sm addc" data-ac="${t.id}"><span class="ms">add</span>Add insight</button>`}</div>`}).join("")||(S.sources.length?"":`<div class="rempty"><span class="ms">upload_file</span><div class="title-m">Start with your research</div><div class="body-m osv">Add interview notes, transcripts or survey exports on the left. The AI groups them into themes and insight cards, and every quote it uses is checked against your files.</div></div>`);
-  $("#assume").innerHTML=S.assume.map(a=>`<div class="arow ${a.rej?"rej":""}"><button class="icon-btn" style="width:32px;height:32px;flex:none" data-a="${a.id}" aria-label="${a.rej?"Keep this assumption":"Reject this assumption"}" title="${a.rej?"Rejected. Click to keep it.":"Kept. Click to reject it."}"><span class="ms ${a.rej?"bad-t":"ok-t"}">${a.rej?"block":"check_circle"}</span></button><div class="lbl"><textarea class="inl" rows="1" data-al="${a.id}" aria-label="Assumption">${esc(a.label)}</textarea><textarea class="inl body-s osv" rows="1" data-af="${a.id}" aria-label="Why the AI assumes this">${esc(a.from)}</textarea></div><button class="x" data-ad="${a.id}" aria-label="Delete assumption"><span class="ms" style="font-size:16px">close</span></button></div>`).join("")||'<div class="note">No assumptions yet. Add one, or describe the project below.</div>';
-  const rej=S.assume.filter(a=>a.rej).length;$("#assumeSum").textContent=S.assume.length?`${rej} of ${S.assume.length} rejected. Rejected ones are passed to every later stage as things to avoid.`:"";
+    ${rCheckOnly?"":`<button class="btn text sm addc" data-ac="${t.id}"><span class="ms">add</span>Add insight</button>`}</div>`}).join("")||(S.sources.length?"":`<div class="rempty"><span class="ms">upload_file</span><div class="title-m">No research yet</div></div>`);
+  $("#assume").innerHTML=S.assume.map(a=>`<div class="arow ${a.rej?"rej":""}"><button class="icon-btn" style="width:32px;height:32px;flex:none" data-a="${a.id}" aria-label="${a.rej?"Keep this assumption":"Reject this assumption"}" title="${a.rej?"Rejected. Click to keep it.":"Kept. Click to reject it."}"><span class="ms ${a.rej?"bad-t":"ok-t"}">${a.rej?"block":"check_circle"}</span></button><div class="lbl"><textarea class="inl" rows="1" data-al="${a.id}" aria-label="Assumption">${esc(a.label)}</textarea><textarea class="inl body-s osv" rows="1" data-af="${a.id}" aria-label="Why the AI assumes this">${esc(a.from)}</textarea></div><button class="x" data-ad="${a.id}" aria-label="Delete assumption"><span class="ms" style="font-size:16px">close</span></button></div>`).join("")||'<div class="note">No assumptions yet.</div>';
   $$("[data-tn]").forEach(i=>i.onchange=()=>{S.themes.find(t=>t.id===i.dataset.tn).name=i.value.trim()||"Untitled theme";save()});
   $$("[data-dt]").forEach(b=>b.onclick=()=>{const i=S.themes.findIndex(t=>t.id===b.dataset.dt);const th=S.themes[i];S.themes.splice(i,1);save();renderResearch();undoToast(`Deleted “${th.name}” and its ${th.cards.length} card${th.cards.length===1?"":"s"}`,()=>{S.themes.splice(i,0,th);save();renderResearch()})});
   $$("[data-ac]").forEach(b=>b.onclick=()=>{const c={id:uid("c"),text:"",quote:"",quotes:[],src:"",conf:"medium"};S.themes.find(t=>t.id===b.dataset.ac).cards.push(c);cardModal(c.id,true)});
@@ -241,7 +239,7 @@ function cardModal(id,isNew){const c=findCard(id);if(!c)return;const th=S.themes
   const srcOpts=()=>'<option value="">No linked artifact</option>'+sourceOrder().map(s=>`<option value="${s.id}" ${s.id===c.src?"selected":""}>${esc(s.name)}</option>`).join("");
   const d=modalShell(`<div class="row" style="align-items:flex-start"><div style="flex:1"><div class="label-m osv">${esc(th?th.name:"Insight")}</div><span class="headline-s">${isNew?"New insight":"Insight"}</span></div><button class="icon-btn" data-cm-x aria-label="Close"><span class="ms">close</span></button></div>
     <div class="field"><label for="cmText">What did you learn?</label><textarea id="cmText" rows="2" placeholder="One sentence a designer can act on">${esc(c.text)}</textarea></div>
-    <div><div class="row" style="margin-bottom:6px"><span class="title-s">Evidence</span><span class="body-s osv">Quotes are checked against your artifacts as you type.</span><span class="spacer"></span><button class="btn text sm" id="cmAdd"><span class="ms">add</span>Add quote</button></div><div id="cmQuotes" class="col" style="gap:8px"></div></div>
+    <div><div class="row" style="margin-bottom:6px"><span class="title-s">Evidence</span><span class="spacer"></span><button class="btn text sm" id="cmAdd"><span class="ms">add</span>Add quote</button></div><div id="cmQuotes" class="col" style="gap:8px"></div></div>
     <div class="row" style="gap:12px;align-items:flex-end"><div class="field" style="flex:2;min-width:200px"><label for="cmSrc">Linked artifact</label><select id="cmSrc">${srcOpts()}</select></div><div class="field" style="flex:1;min-width:140px"><label for="cmConf">Confidence</label><select id="cmConf">${["high","medium","low","hard"].map(k=>`<option value="${k}" ${c.conf===k?"selected":""}>${{high:"High: sources agree",medium:"Medium: one strong source",low:"Low: one person or conflicting",hard:"Rule: never break this"}[k]}</option>`).join("")}</select></div><button class="btn text sm" id="cmOpen" ${c.src?"":"disabled"}><span class="ms">open_in_new</span>Open artifact</button></div>
     <div class="row"><button class="btn text" id="cmDel" style="color:var(--error)"><span class="ms">delete</span>Delete card</button><span class="spacer"></span><button class="btn text" id="cmCancel">Cancel</button><button class="btn filled" id="cmSave">Save</button></div>`);
   const stHTML=(q)=>{if(!q.trim())return"";const v=verifyQuote(q,$("#cmSrc",d)?.value||c.src);const s=S.sources.find(x=>x.id===v.src);
@@ -267,7 +265,7 @@ function cardModal(id,isNew){const c=findCard(id);if(!c)return;const th=S.themes
 
 /* ---- right: add context (AI turns it into cards and assumptions) ---- */
 let rTurns=[],rBusy=false;
-function renderResearchAsk(){const n=$("#rNote");if(!n)return;n.textContent=sample?"Saved to context_notes.md. The AI then adds any insights or assumptions it supports, with the quote it used.":"Saved to context_notes.md. The AI is offline, so start a line with “card:” or “assume:” to add one directly.";
+function renderResearchAsk(){const i=$("#rIn");if(!i)return;i.placeholder="A client call, a constraint, who it's for, something to avoid…";
   $("#rOut").innerHTML=rTurns.map(t=>`<div class="msg ${t.role==="user"?"me":""}">${esc(t.content)}</div>`).join("");$("#rOut").hidden=!rTurns.length}
 $("#rIn").onkeydown=e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)){e.preventDefault();$("#rForm").requestSubmit()}};
 $("#rForm").onsubmit=async e=>{e.preventDefault();if(rBusy)return;const q=$("#rIn").value.trim();if(!q)return;$("#rIn").value="";
@@ -292,9 +290,7 @@ function offlineContext(q){const t=q.trim();let m;
   return"Saved to context_notes.md. Generate or regenerate the insights to include it."}
 
 $("#addTheme").onclick=()=>{S.themes.push({id:uid("t"),name:"New theme",cards:[]});save();renderResearch();const ins=$$("[data-tn]");const last=ins[ins.length-1];if(last){last.focus();last.select()}};
-$("#addAssume").onclick=()=>{S.assume.push({id:uid("a"),label:"",from:"",rej:false});save();renderResearch();const ins=$$("[data-al]");const last=ins[ins.length-1];if(last){last.placeholder="What would an AI assume?";ins[ins.length-1].closest(".arow").querySelector("[data-af]").placeholder="Why it would assume it";last.focus()}};
 $("#lockBtn").onclick=()=>{S.locked=true;snapshot("research locked");save();go("inspiration");toast(`Research saved. ${avoidList().length} things to avoid passed on.`)};
-$("#pickSrc").onclick=()=>$("#srcFile").click();
 $("#pickSrc2").onclick=()=>$("#srcFile").click();
 $("#srcFile").onchange=e=>{addSourceFiles(e.target.files);e.target.value=""};
 function dragDrop(el,fn){el.addEventListener("dragover",e=>{e.preventDefault();el.classList.add("over")});el.addEventListener("dragleave",()=>el.classList.remove("over"));el.addEventListener("drop",e=>{e.preventDefault();el.classList.remove("over");fn(e.dataTransfer.files)})}
