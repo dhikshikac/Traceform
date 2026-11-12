@@ -57,6 +57,7 @@ const SEED=()=>({
   elements:{},history:[],log:[],sel:null,trend:"similar"
 });
 let S=load()||SEED();
+try{hydrateAndRender()}catch{}
 function load(){try{const j=localStorage.getItem("traceform-v1");return j?JSON.parse(j):null}catch{return null}}
 function save(){try{const c={...S,tiles:S.tiles.map(t=>({...t,img:undefined})),history:S.history.slice(-30)};localStorage.setItem("traceform-v1",JSON.stringify(c))}catch{}}
 const $=(q,r=document)=>r.querySelector(q),$$=(q,r=document)=>[...r.querySelectorAll(q)];
@@ -235,15 +236,23 @@ function renderResearchUnsafe(){
   renderSources();
   const all=S.themes.flatMap(t=>t.cards);const nCheck=all.map(cardEvidence).filter(e=>e.check).length;
   if(!nCheck)rCheckOnly=false;
-  $("#rSum").innerHTML=all.length?`${nCheck?`<span class="spacer"></span><button class="chip sm ${rCheckOnly?"on":""}" id="rCheck"><span class="ms" style="font-size:16px">${rCheckOnly?"close":"error"}</span>${rCheckOnly?"Show all":`${nCheck} to check`}</button>`:""}`:"";
+    /* The quote check is always visible: "0 to check" is a result worth seeing, and
+     a control that appears only on failure hides whether checking happened. */
+  $("#rSum").innerHTML=`<span class="body-s osv">${all.length} insight${all.length===1?"":"s"} in ${S.themes.length} theme${S.themes.length===1?"":"s"}</span><span class="spacer"></span>${
+    nCheck?`<button class="chip sm ${rCheckOnly?"on":""}" id="rCheck"><span class="ms" style="font-size:16px">${rCheckOnly?"close":"error"}</span>${rCheckOnly?"Show all":`${nCheck} to check`}</button>`
+         :`<span class="chip sm ok" id="rCheckOk"><span class="ms" style="font-size:16px">${all.length?"check_circle":"remove"}</span>${all.length?"0 to check":"Nothing to check yet"}</span>`
+    }<button class="btn filled sm" id="addTheme"><span class="ms">add</span>Theme</button>`;
+  // The row is rebuilt on every render, so the button is rebound here rather than once at load.
+  $("#addTheme")&&($("#addTheme").onclick=addThemeNow);
   $("#rCheck")&&($("#rCheck").onclick=()=>{rCheckOnly=!rCheckOnly;renderResearch()});
   $("#themes").innerHTML=S.themes.map(t=>{const cards=t.cards.filter(c=>!rCheckOnly||cardEvidence(c).check);if(rCheckOnly&&!cards.length)return"";
-    return`<div class="theme" data-t="${t.id}">
-    <div class="hd"><input class="inl" value="${esc(t.name)}" data-tn="${t.id}" aria-label="Theme name"><span class="tcount">${t.cards.length}</span><button class="x" data-dt="${t.id}" aria-label="Delete theme ${esc(t.name)}"><span class="ms" style="font-size:18px">close</span></button></div>
+    return`<div class="theme${t.pinned?" pinned":""}" data-t="${t.id}">
+    <div class="hd"><input class="inl" value="${esc(t.name)}" data-tn="${t.id}" aria-label="Theme name"><span class="tcount">${t.cards.length}</span><button class="x pinbtn${t.pinned?" on":""}" data-pt="${t.id}" title="${t.pinned?"Pinned \u2014 kept when you regenerate":"Pin so regenerating keeps this theme"}" aria-pressed="${t.pinned?"true":"false"}" aria-label="${t.pinned?"Unpin":"Pin"} theme ${esc(t.name)}"><span class="ms" style="font-size:18px">${t.pinned?"push_pin":"push_pin"}</span></button><button class="x" data-dt="${t.id}" aria-label="Delete theme ${esc(t.name)}"><span class="ms" style="font-size:18px">close</span></button></div>
     ${cards.map(cardHTML).join("")}
     ${rCheckOnly?"":`<button class="btn text sm addc" data-ac="${t.id}"><span class="ms">add</span>Add insight</button>`}</div>`}).join("")||(S.sources.length?"":`<div class="rempty"><span class="ms">upload_file</span><div class="title-m">No research yet</div></div>`);
   $("#assume").innerHTML=S.assume.map(a=>`<div class="arow ${a.rej?"rej":""}"><button class="icon-btn" style="width:32px;height:32px;flex:none" data-a="${a.id}" aria-label="${a.rej?"Keep this assumption":"Reject this assumption"}" title="${a.rej?"Rejected. Click to keep it.":"Kept. Click to reject it."}"><span class="ms ${a.rej?"bad-t":"ok-t"}">${a.rej?"block":"check_circle"}</span></button><div class="lbl"><textarea class="inl" rows="1" data-al="${a.id}" aria-label="Assumption">${esc(a.label)}</textarea><textarea class="inl body-s osv" rows="1" data-af="${a.id}" aria-label="Why the AI assumes this">${esc(a.from)}</textarea></div><button class="x" data-ad="${a.id}" aria-label="Delete assumption"><span class="ms" style="font-size:16px">close</span></button></div>`).join("")||'<div class="note">No assumptions yet.</div>';
   $$("[data-tn]").forEach(i=>i.onchange=()=>{S.themes.find(t=>t.id===i.dataset.tn).name=i.value.trim()||"Untitled theme";save()});
+  $$("[data-pt]").forEach(b=>b.onclick=()=>{const th=S.themes.find(x=>x.id===b.dataset.pt);if(!th)return;th.pinned=!th.pinned;save();renderResearch();toast(th.pinned?`“${th.name}” pinned — regenerating keeps it`:`“${th.name}” unpinned`)});
   $$("[data-dt]").forEach(b=>b.onclick=()=>{const i=S.themes.findIndex(t=>t.id===b.dataset.dt);const th=S.themes[i];S.themes.splice(i,1);save();renderResearch();undoToast(`Deleted “${th.name}” and its ${th.cards.length} card${th.cards.length===1?"":"s"}`,()=>{S.themes.splice(i,0,th);save();renderResearch()})});
   $$("[data-ac]").forEach(b=>b.onclick=()=>{const c={id:uid("c"),text:"",quote:"",quotes:[],src:"",conf:"medium"};S.themes.find(t=>t.id===b.dataset.ac).cards.push(c);cardModal(c.id,true)});
   $$("#themes [data-c]").forEach(el=>{el.onclick=()=>cardModal(el.dataset.c);el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();cardModal(el.dataset.c)}}});
@@ -309,7 +318,10 @@ function offlineContext(q){const t=q.trim();let m;
   if(m=t.match(/^assume:?\s+(.+)/i)){S.assume.push({id:uid("a"),label:m[1],from:"added by you",rej:false});save();renderResearch();return"Added to the assumptions."}
   return"Saved to context_notes.md. Generate or regenerate the insights to include it."}
 
-$("#addTheme").onclick=()=>{S.themes.push({id:uid("t"),name:"New theme",cards:[]});save();renderResearch();const ins=$$("[data-tn]");const last=ins[ins.length-1];if(last){last.focus();last.select()}};
+/* Project details sit with the artifacts: they are research input, not a
+   property of the generation bar. */
+$("#projDetails")&&($("#projDetails").onclick=()=>openWizard(S.pid));
+function addThemeNow(){S.themes.push({id:uid("t"),name:"New theme",cards:[],pinned:true});save();renderResearch();const ins=$$("[data-tn]");const last=ins[ins.length-1];if(last){last.focus();last.select()}}
 $("#lockBtn").onclick=()=>{S.locked=true;snapshot("research locked");save();go("inspiration");toast(`Research saved. ${avoidList().length} things to avoid passed on.`)};
 $("#pickSrc2").onclick=()=>$("#srcFile").click();
 $("#srcFile").onchange=e=>{addSourceFiles(e.target.files);e.target.value=""};
@@ -342,7 +354,7 @@ $("#pickRef").onclick=()=>$("#refFile").click();$("#refFile").onchange=e=>addRef
 let lastRemoved=null;
 function removeTile(id){const i=S.tiles.findIndex(t=>t.id===id);if(i<0)return;lastRemoved={tile:S.tiles[i],i};S.tiles.splice(i,1);if(S.sel?.id===id)S.sel=null;snapshot("removed reference");save();renderReference();if(typeof renderTrending==="function"&&S.view==="trending")renderTrending();undoToast(`Removed “${lastRemoved.tile.title.slice(0,40)}”`,()=>{if(!lastRemoved)return;S.tiles.splice(lastRemoved.i,0,lastRemoved.tile);lastRemoved=null;save();renderReference()})}
 function undoToast(msg,fn){const t=$("#toast");t.innerHTML=`${esc(msg)} <button class="btn text sm" id="toastUndo" style="color:var(--inverse-on-surface);margin-left:8px;pointer-events:auto">Undo</button>`;t.style.pointerEvents="auto";t.classList.add("on");$("#toastUndo").onclick=()=>{fn();t.classList.remove("on");t.style.pointerEvents="none"};clearTimeout(toast.t);toast.t=setTimeout(()=>{t.classList.remove("on");t.style.pointerEvents="none"},5000)}
-function addRefFiles(files){[...files].forEach(f=>{if(!f.type.startsWith("image/"))return;const rd=new FileReader();rd.onload=()=>{S.tiles.push({id:uid("r"),type:"site",kind:"yours",title:f.name.replace(/\.[^.]+$/,""),borrow:"(say what to borrow)",why:"uploaded",img:rd.result});save();renderReference();toast("Added (image kept for this session)")};rd.readAsDataURL(f)})}
+function addRefFiles(files){[...files].forEach(f=>{if(!f.type.startsWith("image/"))return;const rd=new FileReader();rd.onload=async()=>{const pid=currentPid();const id=uid("r");const key="tile:"+id;const stored=await rememberImage(key,rd.result);if(!stillOnProject(pid)){imgDel(key).catch(()=>{});return}S.tiles.push({id,type:"site",kind:"yours",title:f.name.replace(/\.[^.]+$/,""),borrow:"(say what to borrow)",why:"uploaded",img:stored,imgKey:key});save();renderReference();toast("Reference added")};rd.readAsDataURL(f)})}
 $("#palForm").onsubmit=e=>{e.preventDefault();const cs=($("#palInput").value.match(/#[0-9a-f]{3,6}/gi)||[]);if(!cs.length){toast("Enter hex colors like #4F6F8F");return}S.tiles.push({id:uid("r"),type:"palette",kind:"yours",title:"Palette "+cs.join(" "),borrow:"colors",why:"uploaded scheme",colors:cs});$("#palInput").value="";save();renderReference()};
 $("#quoteForm").onsubmit=e=>{e.preventDefault();const v=$("#quoteInput").value.trim();if(!v)return;S.tiles.push({id:uid("r"),type:"vibe",kind:"yours",title:v,borrow:"tone of voice",why:"vibe note",ph:"text"});$("#quoteInput").value="";save();renderReference()};
 $("#buildSysBtn").onclick=()=>{if(!S.tokens)S.tokens=seedTokens();S.sysBuilt=true;snapshot("design system drafted");save();go("system");toast("Design system drafted from research + shelf")};

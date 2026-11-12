@@ -7,6 +7,8 @@
 //   POST /api/ai        {tier, messages, tools, json} -> {text, tool_calls, stop}
 //   GET  /api/images?q= stock photo search (Openverse by default, no key needed)
 //   POST /api/extract   PDF bytes -> {text, pages} for research uploads
+//   POST /api/check-urls {urls:[...]} -> which referenced sites actually resolve
+//   GET  /api/shot?url=  cached screenshot of a real site (Microlink; no key needed)
 //
 // The API key stays on the server. The browser never sees it.
 
@@ -19,6 +21,8 @@ import { buildAppJs } from "../scripts/build.mjs";
 import { getProvider } from "./providers/index.mjs";
 import { searchPhotos, photoInfo } from "./photos.mjs";
 import { extractPdf } from "./extract.mjs";
+import { checkUrls } from "./checkurl.mjs";
+import { getShot } from "./shots.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -39,6 +43,7 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 const RATE = Number(process.env.AI_RATE_LIMIT_PER_MIN || 20);
 const hits = new Map();
 const photoCache = new Map();
+const SHOT_CACHE = path.join(ROOT, ".cache", "shots");
 const PHOTO_TTL = 6 * 60 * 60 * 1000;
 function limited(ip) {
   const now = Date.now(), list = (hits.get(ip) || []).filter(t => now - t < 60_000);
@@ -62,7 +67,7 @@ async function serveStatic(res, urlPath) {
   // public/ is served at the root (public/img/x.jpg -> /img/x.jpg); everything else from the repo root.
   const candidates = [path.join(ROOT, "public", rel), path.join(ROOT, rel)];
   for (const file of candidates) {
-    if (!file.startsWith(ROOT) || file.includes(`${path.sep}server${path.sep}`) || file.endsWith(".env")) continue;
+    if (!file.startsWith(ROOT) || file.includes(`${path.sep}server${path.sep}`) || file.includes(`${path.sep}.cache${path.sep}`) || file.endsWith(".env")) continue;
     try { if ((await stat(file)).isFile()) return send(res, 200, await readFile(file), TYPES[path.extname(file)] || "application/octet-stream"); } catch {}
   }
   send(res, 404, "Not found", "text/plain");
@@ -86,6 +91,22 @@ http.createServer(async (req, res) => {
       return send(res, 200, body);
     }
     if (url.pathname === "/api/images/health") return send(res, 200, photoInfo());
+    if (url.pathname === "/api/shot") {
+      try {
+        const rec = await getShot(url.searchParams.get("url") || "", url.searchParams.get("w"), SHOT_CACHE);
+        res.writeHead(200, { "content-type": rec.type, "cache-control": "public, max-age=604800" });
+        return res.end(rec.buf);
+      } catch (e) {
+        console.error("shot failed:", e && e.message);
+        // A failure must be visible to the page so it can fall back to its mock.
+        return send(res, e.status || 502, { code: e.code || "no_shot", error: e.code === "blocked" ? "That site blocks automated screenshots." : "No screenshot available." });
+      }
+    }
+    if (url.pathname === "/api/check-urls" && req.method === "POST") {
+      if (limited(req.socket.remoteAddress)) return send(res, 429, { code: "rate_limited", error: "Too many requests; try again in a minute." });
+      const body = await readBody(req);
+      return send(res, 200, { results: await checkUrls(body && body.urls) });
+    }
     if (url.pathname === "/api/extract" && req.method === "POST") {
       const chunks = [];
       let size = 0;
