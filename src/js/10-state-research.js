@@ -117,7 +117,9 @@ function setToken(k,v,why,not){if(!S.tokens)S.tokens=seedTokens();const t=S.toke
 /* ============================ AI ============================ */
 let sample=null;
 (async()=>{try{sample=await TraceformAI.connect()}catch{sample=null}
-  const el=$("#aiState");if(sample){el.innerHTML='<span class="ai-dot live"></span>AI live'}else{el.innerHTML='<span class="ai-dot"></span>AI offline · connect a provider'}})();
+  const el=$("#aiState");if(sample){el.innerHTML='<span class="ai-dot live"></span>AI live'}else{el.innerHTML='<span class="ai-dot"></span>AI offline · connect a provider'}
+  // A Review page that was waiting on the AI to design an older project can start now.
+  if(sample&&S&&S.view==="review"&&typeof needsDesignUpgrade==="function"&&needsDesignUpgrade())renderReview()})();
 const RULES=`You are the design assistant inside Traceform, a research-first design tool. Help the designer keep an AI-generated website grounded in research and distinct from generic AI output. Answer in 2-5 short sentences, plain language, no headings. Cite research (card id, quote, survey number, shelf tile) when justifying a choice. Never propose anything on the avoid list. When asked to change the selected thing, use the tools then say what changed in one sentence; when asked a question, answer without changing anything. Typicality percentages are estimates; say so if asked.`;
 function ctxSummary(){const toks=(S.tokens||seedTokens()).map(t=>`${t.k}=${t.v} | why: ${t.why} | not: ${t.not}`).join("\n");const cards=S.themes.map(t=>`[${t.name}] `+t.cards.map(c=>`${c.id}: ${c.text} (${c.quote})`).join(" ; ")).join("\n");const princ=S.principles.map((p,i)=>`${i+1}. ${p.text}${p.hard?" (hard)":""}`).join("\n");const shelf=S.tiles.map(t=>`${t.id} [${t.type}/${t.kind}${t.flag?", flagged":""}] ${t.title} — borrow: ${t.borrow}`).join("\n");return`${typeof projectHeader==="function"?projectHeader():"PROJECT: "+S.project}\nPRINCIPLES:\n${princ}\nAVOID: ${avoidList().join("; ")}\nCARDS:\n${cards}\nSHELF:\n${shelf}\nTOKENS:\n${toks}\nELEMENT OVERRIDES: ${JSON.stringify(S.elements)}`}
 

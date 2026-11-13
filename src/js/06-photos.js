@@ -62,7 +62,7 @@ async function photoResolveAll(list, after) {
 /* Every subject phrase the current site copy refers to. */
 function sitePhotoSubjects() {
   // A designed page shows only its own photographs.
-  if (S.design && S.design.html) return (S.design.photos || []).filter(q => !/^user:/.test(q));
+  if (S.design && S.design.html) return (S.design.photos || []).filter(q => !/^(user|img):/.test(q));
   const W = S.site; if (!W) return [];
   const out = [W.hero && W.hero.img, W.side && W.side.img, W.story && W.story.img,
                W.about && W.about.img, W.location && W.location.img];

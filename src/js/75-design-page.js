@@ -394,6 +394,45 @@ function applyHomePage(out) {
   if (S.sel && S.sel.kind === "sec") S.sel = null;
 }
 
+/* ---------- projects made before the page designer ---------- */
+/* Their site was poured into the old fixed template and they have no designed
+   page, so the Review page showed the old layout for them. They are designed on
+   first visit, from the research, inspiration and design system they already
+   have; their site copy is left as it is. Tried once per project per visit to
+   the app, so a failure does not loop. */
+/* A getter, not a const: boot can draw the Review page before this file's top level has run. */
+function dzUp() { return window.__dzUpgrade || (window.__dzUpgrade = {}); }
+function needsDesignUpgrade() {
+  return !!S && !(S.design && S.design.html) && !(typeof siteIsScaffold === "function" && siteIsScaffold());
+}
+function upgradeStateHTML() {
+  const st = dzUp()[S.pid];
+  if (st === "busy") return `<div class="rempty"><span class="spin" aria-hidden="true"></span><div class="title-m">Updating this page to the current design…</div><div class="body-m osv">This project was made before the page designer. Its page is being designed from your research, inspiration and design system.</div></div>`;
+  const why = !sample ? "Connect an AI provider and it will be designed from your research, inspiration and design system."
+    : st === "failed" ? "Designing it did not work this time. Try again, and it will be built from your research, inspiration and design system."
+    : "It will be designed from your research, inspiration and design system.";
+  return `<div class="rempty"><span class="ms">auto_awesome</span><div class="title-m">This page needs the current design</div><div class="body-m osv">This project was made before the page designer. ${why}</div>${sample ? `<button class="btn filled" id="dzUpgradeBtn"><span class="ms">auto_awesome</span>Design this page</button>` : ""}</div>`;
+}
+async function upgradeToDesign(force) {
+  const pid = S.pid;
+  if (!sample || dzUp()[pid] === "busy" || (!force && dzUp()[pid])) return;
+  if (typeof gen === "function" && gen().busy) return;
+  dzUp()[pid] = "busy";
+  if (S.view === "review") renderReview();
+  try {
+    const out = await aiHomePage();
+    if (!stillOnProject(pid)) { delete dzUp()[pid]; return; }
+    snapshot("designed the page (update from the old template)");
+    applyHomePage(out); S.gen = S.gen || {}; S.gen.site = "done"; save();
+    dzUp()[pid] = "done";
+    toast("Page updated to the current design");
+  } catch (e) {
+    if (!stillOnProject(pid)) { delete dzUp()[pid]; return; }
+    dzUp()[pid] = "failed";
+  }
+  if (S.view === "review") renderReview();
+}
+
 /* ---------- how far the page follows each source ---------- */
 /* What a section rests on, after checking every name against the project. A
    record may also cite a card or reference only in its receipt sentence. */
@@ -484,7 +523,7 @@ function fillDesignPhotos(doc) {
     if (f.classList.contains("filled")) return;
     const q = f.getAttribute("data-photo");
     const ph = typeof photoGet === "function" ? photoGet(q) : null;
-    const src = userImg(q) || (ph && !ph.miss && ph.src) || null;
+    const src = userImg(q) || bundledImg(q) || (ph && !ph.miss && ph.src) || null;
     if (!src) return;
     const note = f.textContent.trim();
     f.textContent = "";
@@ -540,7 +579,7 @@ function wireDesignFrame(f) {
   axRun(dzFrameKey);
   if (dzScrollAfter) { const id = dzScrollAfter; dzScrollAfter = null; setTimeout(() => scrollDesignTo(id), 150); }
   // Look up whatever photographs the page asks for and has not been given yet.
-  const want = ((S.design && S.design.photos) || []).filter(q => !/^user:/.test(q) && typeof photoGet === "function" && !photoGet(q));
+  const want = ((S.design && S.design.photos) || []).filter(q => !/^(user|img):/.test(q) && typeof photoGet === "function" && !photoGet(q));
   // One at a time (the library rate-limits bursts), and each is shown as it
   // lands: a slow lookup must not hold back the photographs already found.
   if (want.length && !dzPhotoBusy && typeof photoResolve === "function") {
