@@ -44,7 +44,7 @@ function citeInfo(code){
   const p=(S.principles||[]).find(x=>x.id===code);if(p)return{kind:"Principle",icon:"flag",text:p.text,open:()=>dialog(`<span class="label-m osv">${p.hard?"Hard rule":"Principle"} · ${esc(code)}</span><span class="headline-s">${esc(p.text)}</span>`,[["Open Research","text",()=>go("research")],["Done","filled",()=>{}]])};
   return null}
 function cites(text){const seen=new Set();return String(text||"").match(/\b[a-z]{1,3}\d{1,3}\b/g)?.filter(c=>{if(seen.has(c))return false;seen.add(c);return!!citeInfo(c)})||[]}
-function whyHTML(text){return esc(text).replace(/\b[a-z]{1,3}\d{1,3}\b/g,m=>{const i=citeInfo(m);return i?`<button class="cite" data-cite="${m}" title="${esc(i.kind)}: ${esc(i.text)}">${m}</button>`:m})}
+function whyHTML(text){return esc(text).replace(/\b[a-z]{1,3}\d{1,3}\b/g,m=>{const i=citeInfo(m);return i?`<button class="chip sm" style="height:auto;vertical-align:baseline" data-cite="${m}" title="${esc(i.kind)}: ${esc(i.text)}">${m}</button>`:m})}
 function origin(t){
   if(t.edited&&t.why==="imported")return["Imported","t"];
   if(t.edited&&/ default$/.test(t.why||""))return["From "+t.why.replace(/ default$/,""),"t"];
@@ -55,13 +55,6 @@ function typical(t){const top=[...t.prev].sort((a,b)=>b[1]-a[1])[0];const me=pre
   if(top&&me[0]===top[0])return{label:"Most common AI choice",cls:"e",pct:me[1],top};
   return me[1]>40?{label:`Fairly common · ${me[1]}%`,cls:"w",pct:me[1],top}:{label:`Distinct · ${me[1]}% of AI sites`,cls:"ok",pct:me[1],top}}
 function needsLook(t){return typical(t).cls==="e"||!cites(t.why).length}
-function decSample(t){
-  if(t.type==="color")return`<span class="dec-sw" style="background:${esc(t.v)}"></span>`;
-  if(t.type==="font")return`<span class="dec-aa" style="font-family:'${esc(t.v)}',${t.k==="type.display"?"Georgia,serif":"system-ui,sans-serif"}">Aa</span>`;
-  if(t.k==="shape.radius"){const r=String(t.v).split(/[\/,\s]+/).map(Number).filter(n=>!isNaN(n));return`<span class="dec-rad"><i style="border-radius:${r[r.length-1]||8}px"></i></span>`}
-  if(t.k==="space.scale"){const s=String(t.v).split(/[·,\s]+/).map(Number).filter(Boolean).slice(0,5);return`<span class="dec-sp">${s.map(n=>`<i style="width:${Math.max(3,Math.min(40,n/1.6))}px"></i>`).join("")}</span>`}
-  if(t.k==="type.scale")return`<span class="dec-aa" style="font-size:14px;letter-spacing:-.5px"><b style="font-size:22px">A</b>a<small>a</small></span>`;
-  return`<span class="dec-ic"><span class="ms">${SEC_ICON[t.k]||SEC_ICON[t.sec]||"tune"}</span></span>`}
 function keepLocked(old){(old||[]).filter(t=>t.locked).forEach(o=>{const i=S.tokens.findIndex(t=>t.k===o.k);if(i>=0)S.tokens[i]=o})}
 function wireCites(root){$$("[data-cite]",root).forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();citeInfo(b.dataset.cite)?.open()})}
 /* Inspectable parts of the live homepage. Each part is bound to the shared decisions it uses,
@@ -96,6 +89,22 @@ const SYS_PICK=[
   {id:"storyQuote",name:"Story quote",sel:".story .q",tok:["type.display","type.accentLine","color.ink"]},
   {id:"storyBody",name:"Story text",sel:".story p:not(.q)",tok:["type.body","color.ink"]},
   {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]}
+,
+  /* The same parts on a designed page. Its markup is written per project, so these
+     go by structure rather than the template's class names; later entries win. */
+  {id:"dPage",name:"Page background",dsel:"&",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"dSection",name:"Section",dsel:"[data-tf]",tok:["space.scale","color.ground"]},
+  {id:"dHeader",name:"Header",dsel:"header",tok:["color.ground","space.scale"]},
+  {id:"dFooter",name:"Footer",dsel:"footer",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"dText",name:"Body text",dsel:"p, li",tok:["type.body","type.scale","color.ink"]},
+  {id:"dNavLinks",name:"Navigation links",dsel:"nav a, nav span",tok:["type.body","color.ink"]},
+  {id:"dHeading",name:"Section heading",dsel:"h2, h3, h4",tok:["type.display","type.scale","color.ink"]},
+  {id:"dHeadline",name:"Headline",dsel:"h1",tok:["type.display","type.scale","color.ink"]},
+  {id:"dBrand",name:"Site name",dsel:".brand, [class*='logo']",tok:["type.display","color.ink"]},
+  {id:"dCard",name:"Card",dsel:"[class*='card']:not([class*='card-'])",tok:["color.ground","shape.radius","comp.dishCard"]},
+  {id:"dPhoto",name:"Photo",dsel:".ph",tok:["imagery","shape.radius"]},
+  {id:"dHeat",name:"Heat indicator",dsel:"[class*='heat'], [class*='pip']",tok:["color.heat","comp.heat"]},
+  {id:"dAction",name:"Primary action",dsel:"button, a[class*='btn'], a[class*='cta'], a[class*='button']",tok:["color.accent","shape.radius","comp.cta","type.body"]}
 ];
 const pickById=id=>SYS_PICK.find(p=>p.id===id);
 /* Plain-language explanations for the System inspector. The stored "why" stays terse (it feeds the AI and other pages);
@@ -122,7 +131,9 @@ function plainWhy(t){
   let w=String(t.why||"").replace(/\b[a-z]{1,3}\d{1,3}\b/g,m=>citeInfo(m)?"":m)
     .replace(/\(\s*[,/–\-\s]*\)/g,"").replace(/\(\s*[,/\s]+/g,"(").replace(/[,/\s]+\)/g,")").replace(/\bshelf\b/gi,"").replace(/(^|\s)[/–\-]+(?=[\s:,]|$)/g,"$1").replace(/\s{2,}/g," ").replace(/\s+([,.;:])/g,"$1").replace(/^[\s:;,/–\-]+/,"").trim();
   if(!w)return"";w=w[0].toUpperCase()+w.slice(1);return/[.!?”"]$/.test(w)?w:w+"."}
-function basedOnHTML(codes){return codes.map(code=>{const i=citeInfo(code);const txt=i.text.length>70?i.text.slice(0,68).trim()+"…":i.text;return`<button type="button" class="sys-src" data-cite="${code}">${esc(i.kind)}: ${esc(txt)}</button>`}).join("")}
+function basedOnHTML(codes){return codes.map(code=>{const i=citeInfo(code);const txt=i.text.length>70?i.text.slice(0,68).trim()+"…":i.text;return`<button type="button" class="chip sm" style="height:auto;min-height:24px;padding:var(--sp-1) var(--sp-2);text-align:left" data-cite="${code}">${esc(i.kind)}: ${esc(txt)}</button>`}).join("")}
+/* The inspector's error line, shown only while it has something to say. */
+function tkErr(m){const e=$("#tkErr");if(e){e.textContent=m;e.hidden=!m}}
 /* Unapplied edits per decision; they survive switching between decisions, not projects. */
 let sysDrafts={},sysDraftOwner=null;
 function syncSysDrafts(){if(sysDraftOwner!==S){sysDraftOwner=S;sysDrafts={}}}
@@ -137,42 +148,72 @@ function renderSystem(){
   const sec=S.sysSection,view=S.sysView==="tokens"?"tokens":"preview";
   $$("#secnav button").forEach(b=>b.classList.toggle("on",b.dataset.s===sec));
   const c=$("#sysCenter"),toks=sysSecToks(sec),name=SEC_NAME[sec];
-  c.innerHTML=`<div class="pane-hd sys-hd"><div><span class="title-l">${name}</span><div class="body-s osv">Select an element to edit its style. Highlighted elements share the same setting.</div></div></div>
-  <div class="sys-toolbar"><div class="seg" role="group" aria-label="System view"><button data-sysview="preview" class="${view==="preview"?"on":""}" aria-pressed="${view==="preview"}">Preview</button><button data-sysview="tokens" class="${view==="tokens"?"on":""}" aria-pressed="${view==="tokens"}">Tokens</button></div></div>
+  c.innerHTML=`<div class="pane-hd"><div><span class="title-l">${name}</span><div class="body-s osv">Select an element to edit its style. Highlighted elements share the same setting.</div></div></div>
+  <div class="row"><div class="seg" role="group" aria-label="System view"><button data-sysview="preview" class="${view==="preview"?"on":""}" aria-pressed="${view==="preview"}">Preview</button><button data-sysview="tokens" class="${view==="tokens"?"on":""}" aria-pressed="${view==="tokens"}">Tokens</button></div></div>
   ${view==="preview"?sysPreviewHTML():sysTokenGrid(toks)}
-  <details class="sys-why"><summary><span class="title-s">About these ${esc(name.toLowerCase())} settings</span></summary><div class="sys-why-b"><div class="body-m">${whyHTML(reason(sec))}</div><form id="sysNotes" class="col" style="gap:8px"><div class="field"><label for="sysNotesTA">Category notes</label><textarea id="sysNotesTA" rows="4">${esc(reason(sec))}</textarea></div><button class="btn outlined sm" type="submit" style="align-self:flex-start">Save notes</button></form></div></details>`;
+  <details class="card" id="sysWhy" style="padding:var(--sp-2) var(--sp-4)"><summary class="title-s" style="cursor:pointer">About these ${esc(name.toLowerCase())} settings</summary><div class="col" style="gap:var(--sp-3);margin-top:var(--sp-2)"><div class="reason"><span class="ms">auto_awesome</span><div class="body-m">${whyHTML(reason(sec))}</div></div><form id="sysNotes" class="col"><div class="field"><label for="sysNotesTA">Category notes</label><textarea id="sysNotesTA" rows="4">${esc(reason(sec))}</textarea></div><button class="btn outlined sm" type="submit" style="align-self:flex-start">Save notes</button></form></div></details>`;
   $$("[data-sysview]",c).forEach(b=>b.onclick=()=>{S.sysView=b.dataset.sysview;save();renderSystem()});
   $$("[data-tok]",c).forEach(r=>r.onclick=()=>{select({kind:"token",id:r.dataset.tok});renderSystem()});
-  $("#sysNotes",c).onsubmit=e=>{e.preventDefault();S.reasons=S.reasons||{};S.reasons[sec]=$("#sysNotesTA").value.trim();snapshot(`${sec} notes`);save();renderSystem();$(".sys-why",c)?.setAttribute("open","");toast(`${name} notes saved`)};
+  $("#sysNotes",c).onsubmit=e=>{e.preventDefault();S.reasons=S.reasons||{};S.reasons[sec]=$("#sysNotesTA").value.trim();snapshot(`${sec} notes`);save();renderSystem();$("#sysWhy",c)?.setAttribute("open","");toast(`${name} notes saved`)};
   wireCites(c);wireSysPreview(c,sec);photoFill();
   renderSystemRail();
 }
 /* Tokens view: every decision in the section as a selectable card. */
 function sysTokenGrid(toks){const selK=S.sel?.kind==="token"?S.sel.id:null;
-  return`<section class="tokgrid" aria-label="Tokens">${toks.map(t=>`<button class="tokcard ${selK===t.k?"sel":""}" data-tok="${t.k}" aria-pressed="${selK===t.k}"><span class="tokcard-s">${decSample(t)}</span><span class="title-s">${esc(decName(t))}</span><span class="mono osv">${esc(t.k)}</span><span class="body-s tokcard-v">${esc(t.v)}</span>${sysDirty(t)?'<span class="body-s warn-t">Unapplied edits</span>':""}</button>`).join("")}</section>`}
+  return`<div class="card" style="padding:var(--sp-2) var(--sp-4)"><div class="toks"><div class="h">token</div><div class="h">value</div><div class="h">why (evidence)</div><div class="h">what it is NOT</div>${toks.map(t=>`<div class="tokrow ${selK===t.k?"sel":""}" data-tok="${t.k}" tabindex="0" role="button" aria-pressed="${selK===t.k}"><div class="k">${esc(t.k)}${t.edited?' <span class="osv">·edited</span>':""}</div><div>${t.type==="color"?`<span class="sw" style="background:${esc(t.v)}"></span>`:""}${esc(t.v)}${sysDirty(t)?' <span class="warn-t">· unapplied edits</span>':""}</div><div class="osv">${esc(plainWhy(t)||t.why||"")}</div><div class="osv">${esc(t.not||"")}</div></div>`).join("")}</div></div>`}
 /* Live website preview: the homepage rendered from the current tokens; click a part to inspect it. */
 function sysPreviewHTML(){
+  if(S.design&&S.design.html)return`<section class="card outlined" style="padding:0;overflow:hidden" aria-label="${esc(SEC_NAME[S.sysSection])} preview"><div class="rsec" style="padding:var(--sp-3) var(--sp-4) var(--sp-2)"><span>${esc(SEC_NAME[S.sysSection])} preview</span><span>your designed home page</span></div>
+  <div class="note" role="status" id="sysScopeText" style="padding:var(--sp-2) var(--sp-4)"></div>
+  <div class="stage sysprev-canvas" style="border-radius:0;min-height:0;max-height:60vh"><iframe class="sysprev-design" sandbox="allow-same-origin" title="Designed page preview"></iframe></div></section>`;
   let site_="";const keep={page:S.page,sel:S.sel,device:S.device,overlays:S.overlays};
   try{S.page="home";S.sel=null;S.device="desk";S.overlays={...S.overlays,receipts:false};if(typeof syncEL==="function")syncEL();site_=pageHTML()}
   finally{Object.assign(S,keep)}
-  return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview"><div class="sysprev-hd"><span class="title-s">${esc(SEC_NAME[S.sysSection])} preview</span></div>
-  <div class="sys-scope" role="status" id="sysScopeText"></div>
-  <div class="sysprev-canvas"><div class="sysprev-frame inspect">${site_}</div></div></section>`}
+  return`<section class="card outlined" style="padding:0;overflow:hidden" aria-label="${esc(SEC_NAME[S.sysSection])} preview"><div class="rsec" style="padding:var(--sp-3) var(--sp-4) var(--sp-2)"><span>${esc(SEC_NAME[S.sysSection])} preview</span></div>
+  <div class="note" role="status" id="sysScopeText" style="padding:var(--sp-2) var(--sp-4)"></div>
+  <div class="stage sysprev-canvas" style="border-radius:0;min-height:0;max-height:60vh"><div class="sysprev-frame inspect">${site_}</div></div></section>`}
 function wireSysPreview(c,sec){
+  const df=$(".sysprev-design",c);if(df){wireSysDesignPreview(c,df,sec);return}
   const frame=$(".sysprev-frame.inspect",c);if(!frame)return;
   const root=$(".site",frame);if(!root)return;
   const selK=S.sel?.kind==="token"?S.sel.id:null,selP=S.sel?.kind==="token"?S.sel.pick:null;
   /* tag the parts that use a decision from this section; specific parts overwrite general ones */
-  SYS_PICK.forEach(p=>{if(!sysPickToks(p,sec).length)return;(p.sel==="&"?[root]:$$(p.sel,root)).forEach(el=>{el.dataset.sp=p.id})});
+  SYS_PICK.forEach(p=>{if(!p.sel||!sysPickToks(p,sec).length)return;(p.sel==="&"?[root]:$$(p.sel,root)).forEach(el=>{el.dataset.sp=p.id})});
   let n=0;
   $$("[data-sp]",frame).forEach(el=>{const p=pickById(el.dataset.sp);
     el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label","Inspect "+p.name);el.title=p.name;
     const picked=selP===p.id,shared=!!selK&&p.tok.includes(selK);if(picked||shared)n++;
-    el.classList.toggle("sp-sel",picked);el.classList.toggle("sp-shared",shared&&!picked)});
+    el.classList.add("el");el.classList.toggle("sel",picked||shared)});
   const pick=id=>{const p=pickById(id),keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id});renderSystem()};
   frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp)};
   frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}};
   const st=$("#sysScopeText",c);if(st)st.textContent=selK?`Changes apply to ${n} element${n===1?"":"s"}.`:`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`;
+}
+/* A project with a designed page previews that page, not the old template. It
+   is drawn in a frame (its CSS is its own), and inspected the same way. */
+function wireSysDesignPreview(c,f,sec){
+  const canvas=f.closest(".sysprev-canvas");
+  f.onload=()=>{const d=f.contentDocument;if(!d||!d.body)return;
+    try{fillDesignPhotos(d)}catch{}
+    const pr=getComputedStyle(document.documentElement).getPropertyValue("--primary").trim()||"currentColor";
+    const css=d.createElement("style");css.textContent=`[data-sp]{cursor:pointer}[data-sp]:hover{outline:1px solid ${pr};outline-offset:-1px}[data-sp]:focus-visible{outline:2px solid ${pr};outline-offset:-2px}.sp-shared{outline:2px dashed ${pr}!important;outline-offset:-2px}.sp-sel{outline:2px solid ${pr}!important;outline-offset:-2px}`;d.head.appendChild(css);
+    const fit=()=>{f.style.height=d.documentElement.scrollHeight+"px"};fit();
+    try{new ResizeObserver(fit).observe(d.body)}catch{}try{d.fonts.ready.then(fit)}catch{}
+    if(canvas&&window.__sysPrevScroll){canvas.scrollTop=window.__sysPrevScroll;window.__sysPrevScroll=0}
+    const root=d.querySelector(".pg")||d.body;
+    const selK=S.sel?.kind==="token"?S.sel.id:null,selP=S.sel?.kind==="token"?S.sel.pick:null;
+    SYS_PICK.forEach(p=>{if(!p.dsel||!sysPickToks(p,sec).length)return;(p.dsel==="&"?[root]:[...root.querySelectorAll(p.dsel)]).forEach(el=>{el.dataset.sp=p.id})});
+    let n=0;
+    d.querySelectorAll("[data-sp]").forEach(el=>{const p=pickById(el.dataset.sp);
+      el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label","Inspect "+p.name);el.title=p.name;
+      const picked=selP===p.id,shared=!!selK&&p.tok.includes(selK);if(picked||shared)n++;
+      el.classList.toggle("sp-sel",picked);el.classList.toggle("sp-shared",shared&&!picked)});
+    const pick=id=>{const p=pickById(id),keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];
+      if(canvas)window.__sysPrevScroll=canvas.scrollTop;select({kind:"token",id:k,pick:id});renderSystem()};
+    d.addEventListener("click",e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(el)pick(el.dataset.sp)});
+    d.addEventListener("keydown",e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}});
+    const st=$("#sysScopeText",c);if(st)st.textContent=selK?`Changes apply to ${n} element${n===1?"":"s"}.`:`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`};
+  f.srcdoc=designFrameHTML();
 }
 /* Inspector: the selected element, its property, the value, and why. */
 function renderSystemRail(){
@@ -182,7 +223,7 @@ function renderSystemRail(){
     const toks=sysSecToks(sec);
     r.innerHTML=`<div class="pane-hd"><span class="title-m">${esc(SEC_NAME[sec])}</span></div>
     ${toks.length>1?`<div class="field"><label for="tkProp">Property</label><select id="tkProp"><option value="" disabled selected>Choose a property</option>${toks.map(x=>`<option value="${x.k}">${esc(decName(x))}</option>`).join("")}</select></div>`:""}
-    <div class="insp-empty"><span class="ms">ads_click</span><div><div class="title-s">Select an element</div><div class="body-s osv">Choose an element in Preview or a property in Tokens.</div></div></div>`;
+    <div class="reason"><span class="ms">ads_click</span><div><div class="title-s">Select an element</div><div class="body-s osv">Choose an element in Preview or a property in Tokens.</div></div></div>`;
     const prop=$("#tkProp",r);if(prop)prop.onchange=()=>{select({kind:"token",id:prop.value});renderSystem()};
     return}
   const p=S.sel.pick?pickById(S.sel.pick):null,keys=p?sysPickToks(p,t.sec):sysSecToks(t.sec).map(x=>x.k);
@@ -191,23 +232,23 @@ function renderSystemRail(){
   const valOk=v=>!isC||/^#[0-9a-f]{6}$/i.test(v);
   r.innerHTML=`<div class="rhead"><div class="title-m" style="min-width:0">${esc(p?p.name:decName(t))}</div><span class="spacer"></span><button class="icon-btn" data-closesel aria-label="Clear selection"><span class="ms">close</span></button></div>
   ${keys.length>1?`<div class="field"><label for="tkProp">Property</label><select id="tkProp">${keys.map(k=>`<option value="${k}" ${k===t.k?"selected":""}>${esc(decName(T(k)))}</option>`).join("")}</select></div>`:""}
-  <form class="sys-editor" id="tkForm" novalidate>
-    <div class="field"><label for="${isC?"tkHex":t.type==="font"?"tkFont":"tkVal"}">${isC?"Color":esc(decName(t))}</label><div class="row" style="flex-wrap:nowrap">${isC?`<input type="color" id="tkColor" value="${esc(valOk(d.v)?d.v:t.v)}" aria-label="Color picker" class="sys-color"><input type="text" id="tkHex" value="${esc(d.v)}" spellcheck="false" autocomplete="off">`:t.type==="font"?`<select id="tkFont">${(t.k==="type.display"?FONTS.display:FONTS.body).map(f=>`<option ${f===d.v?"selected":""}>${esc(f)}</option>`).join("")}</select>`:`<input type="text" id="tkVal" value="${esc(d.v)}">`}</div></div>
-    <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${esc(plainWhy(t))||'<span class="osv">No explanation added.</span>'}</div>${cs.length?`<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>`:`<span class="body-s osv">${o[0]==="AI draft"?"Suggested by AI":esc(o[0])} · not linked to research yet</span>`}</section>
-    <details class="sys-sub" id="tkMore"><summary>More details</summary><div class="col" style="gap:12px;padding-top:8px">
-      <div class="col" style="gap:6px"><span class="title-s">Evidence</span>${cs.length?cs.map(code=>{const i=citeInfo(code);return`<button type="button" class="evi" data-cite="${code}"><span class="ms">${i.icon}</span><span class="evi-m"><span class="label-m osv">${esc(i.kind)} · ${code}</span><span class="body-s">${esc(i.text)}</span></span><span class="ms osv">open_in_new</span></button>`}).join(""):`<div class="body-s osv">No research cited.</div>`}</div>
+  <form class="col" style="gap:var(--sp-3)" id="tkForm" novalidate>
+    <div class="field"><label for="${isC?"tkHex":t.type==="font"?"tkFont":"tkVal"}">${isC?"Color":esc(decName(t))}</label><div class="row" style="flex-wrap:nowrap">${isC?`<input type="color" id="tkColor" value="${esc(valOk(d.v)?d.v:t.v)}" aria-label="Color picker" style="width:48px;flex:none;padding:var(--sp-0)"><input type="text" id="tkHex" value="${esc(d.v)}" spellcheck="false" autocomplete="off">`:t.type==="font"?`<select id="tkFont">${(t.k==="type.display"?FONTS.display:FONTS.body).map(f=>`<option ${f===d.v?"selected":""}>${esc(f)}</option>`).join("")}</select>`:`<input type="text" id="tkVal" value="${esc(d.v)}">`}</div></div>
+    <section class="card outlined col"><span class="title-s">Why this setting?</span><div class="body-m">${esc(plainWhy(t))||'<span class="osv">No explanation added.</span>'}</div>${cs.length?`<div class="col" style="align-items:flex-start;gap:var(--sp-1)"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>`:`<span class="body-s osv">${o[0]==="AI draft"?"Suggested by AI":esc(o[0])} · not linked to research yet</span>`}</section>
+    <details id="tkMore"><summary class="title-s" style="cursor:pointer">More details</summary><div class="col" style="gap:var(--sp-3);padding-top:var(--sp-2)">
+      <div class="col"><span class="title-s">Evidence</span>${cs.length?cs.map(code=>{const i=citeInfo(code);return`<button type="button" class="reason" style="width:100%;border:0;text-align:left;cursor:pointer;color:inherit" data-cite="${code}"><span class="ms">${i.icon}</span><span class="col" style="flex:1;min-width:0;gap:0"><span class="label-m osv">${esc(i.kind)} · ${code}</span><span class="body-s">${esc(i.text)}</span></span><span class="ms osv">open_in_new</span></button>`}).join(""):`<div class="body-s osv">No research cited.</div>`}</div>
       <div class="field"><label for="tkNot">What to avoid</label><textarea id="tkNot" rows="2">${esc(d.not)}</textarea></div>
-      <div class="col" style="gap:6px"><span class="title-s">How common is this in AI designs?</span>${(()=>{const me=prevFor(t);const list=t.prev.some(x=>x[0]===me[0])?t.prev:[...t.prev,me];return list.map(x=>`<div class="pr ${x[0]===me[0]?"me":""}"><span>${esc(x[0])}${x[0]===me[0]?" <b>(yours)</b>":""}</span><div class="bar"><i style="width:${x[1]}%"></i></div><span class="mono">${x[1]}%</span></div>`).join("")})()}</div>
+      <div class="col"><span class="title-s">How common is this in AI designs?</span>${(()=>{const me=prevFor(t);const list=t.prev.some(x=>x[0]===me[0])?t.prev:[...t.prev,me];return list.map(x=>`<div class="pr ${x[0]===me[0]?"me":""}"><span>${esc(x[0])}${x[0]===me[0]?" <b>(yours)</b>":""}</span><div class="bar"><i style="width:${x[1]}%"></i></div><span class="mono">${x[1]}%</span></div>`).join("")})()}</div>
     </div></details>
-    <p class="body-s bad-t" id="tkErr" role="alert"></p>
-    <div class="row sys-apply" id="tkActions" ${sysDirty(t)?"":"hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="tkCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>
+    <p class="body-s bad-t" id="tkErr" role="alert" hidden></p>
+    <div class="row" id="tkActions" ${sysDirty(t)?"":"hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="tkCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>
   </form>
   ${promptBox(t.k,`token ${t.k} = ${t.v} (why: ${t.why}; not: ${t.not})`)}`;
   const val=()=>isC?$("#tkHex").value.trim():t.type==="font"?$("#tkFont").value:$("#tkVal").value;
-  const draft=()=>{sysDrafts[t.k]={v:val(),why:t.why||"",not:$("#tkNot").value};$("#tkActions").hidden=!sysDirty(t);$("#tkErr").textContent=""};
+  const draft=()=>{sysDrafts[t.k]={v:val(),why:t.why||"",not:$("#tkNot").value};$("#tkActions").hidden=!sysDirty(t);tkErr("")};
   if(isC){$("#tkColor").oninput=()=>{$("#tkHex").value=$("#tkColor").value.toUpperCase();draft()};$("#tkHex").oninput=()=>{const v=$("#tkHex").value.trim();if(valOk(v))$("#tkColor").value=v;draft()}}
   const f=$("#tkForm");f.addEventListener("input",draft);f.addEventListener("change",draft);
-  f.onsubmit=e=>{e.preventDefault();const v=val();if(!valOk(v)){$("#tkErr").textContent="Use a six-digit hex color, such as #4F6F8F.";return}if(!v.trim()){$("#tkErr").textContent="Enter a value.";return}
+  f.onsubmit=e=>{e.preventDefault();const v=val();if(!valOk(v)){tkErr("Use a six-digit hex color, such as #4F6F8F.");return}if(!v.trim()){tkErr("Enter a value.");return}
     snapshot(`token ${t.k} → ${v}`);t.v=isC?v.toUpperCase():v;t.not=$("#tkNot").value.trim();t.edited=true;t.mine=mineLabel(t);delete sysDrafts[t.k];save();renderSystem();if(S.view==="review")renderReview();toast(`${decName(t)} updated across the website`)};
   $("#tkCancel").onclick=()=>{delete sysDrafts[t.k];renderSystemRail()};
   const prop=$("#tkProp");if(prop)prop.onchange=()=>{select({kind:"token",id:prop.value,pick:S.sel.pick});renderSystem()};
@@ -404,7 +445,7 @@ function renderReview(){syncEL();
   const st=$("#stage");
   const foot=$("#revFoot");if(foot)foot.textContent=designed
     ?"Click a section to see the research, inspiration and design-system choices behind it. Token edits on the System page restyle this page straight away."
-    :"Use the site's own navigation to move between pages. Click any part to see the decision behind it.";
+    :previewVer!==null?"Use the site's own navigation to move between pages. Click any part to see the decision behind it.":"The page appears here once it is designed, with the decision behind each section.";
   if(!designed&&typeof dzFrameKey!=="undefined")dzFrameKey=null;
   if(previewVer!==null&&S.history[previewVer]){const keep={tokens:S.tokens,elements:S.elements,sel:S.sel,site:S.site,review:S.review,design:S.design};const at=stateAfter(previewVer);if("design" in at)S.design=at.design;S.tokens=at.tokens;S.elements=at.elements;S.site=at.site;S.review=at.review;S.sel=null;syncEL();
     const h=S.history[previewVer];const pvDoc=S.design&&S.design.html?designFrameHTML():null;const pvBody=pvDoc?`<div class="designwrap"><iframe id="designPreview" class="designframe ${S.device==="phone"?"phone":""}" sandbox="allow-same-origin" title="Version preview"></iframe></div>`:`<div class="morph">${pageHTML()}</div>`;st.innerHTML=`<div class="verbar"><span class="ms">history</span><span style="flex:1;min-width:0"><b>Previewing</b> · ${esc(verLabel(h.what))} · ${new Date(h.t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span><button class="btn text sm" id="vbBack">Back to current</button><button class="btn filled sm" id="vbRestore">Restore this version</button></div>${pvBody}`;Object.assign(S,keep);
@@ -427,8 +468,7 @@ function renderReview(){syncEL();
   /* A site from before the page designer: design it rather than show the old template. */
   if(typeof needsDesignUpgrade==="function"&&needsDesignUpgrade()){st.onclick=null;
     st.innerHTML=upgradeStateHTML();$("#dzUpgradeBtn",st)&&($("#dzUpgradeBtn",st).onclick=()=>upgradeToDesign(true));
-    /* The old element rail describes the old template, so it is not shown beside this; history still is. */
-    const rr=$("#rail-review");rr.innerHTML=`<div class="pane-hd" style="padding:var(--sp-4) var(--sp-4) 0"><span class="title-m">Version history</span><span class="spacer"></span><span class="badge">${S.history.length}</span></div><div class="col" style="padding:0 var(--sp-4) var(--sp-4)">${verList()}</div>`;wireVer(rr);
+    renderReviewRail();
     if(sample&&!dzUp()[S.pid])setTimeout(()=>upgradeToDesign(false),0);return}
   st.innerHTML=`<div class="morph">${pageHTML()}</div>${photoCreditBar()}`;
   photoFill();
@@ -544,6 +584,9 @@ function renderReviewRail(){
   /* A designed page has its own sections, so its decision records are shown
      directly rather than mapped onto the old fixed element list. */
   if(S.design&&S.design.html){return renderDesignRail(r)}
+  /* With no designed page yet (a new project, or one being updated from the old
+     template) the old element panel would describe a page that is not shown. */
+  if(previewVer===null){r.innerHTML=`<div class="pane-hd" style="padding:var(--sp-4) var(--sp-4) 0"><span class="title-m">Version history</span><span class="spacer"></span><span class="badge">${S.history.length}</span></div><div class="col" style="padding:0 var(--sp-4) var(--sp-4)">${verList()}</div>`;wireVer(r);return}
   const tab=S.reviewTab||"panel";const sel=S.sel?.kind==="el"?EL[S.sel.id]:null;
   const onPage=Object.entries(EL).filter(([id,e])=>(e.page==="*"||e.page===S.page)&&!elState(id).hidden);const common=onPage.filter(([id,e])=>(e.prev.find(x=>x[0]===e.mine)?.[1]||0)>50).length;const gaps=Object.entries(EL).filter(([id,e])=>e.page==="*"||e.page===S.page).flatMap(([id,e])=>(e.gaps||[]).map(g=>({id,g})));
   const pf=patterns();const axN=axFailCount(axLegacyKey);
