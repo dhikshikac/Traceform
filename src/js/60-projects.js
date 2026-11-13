@@ -21,6 +21,7 @@ function blankState(m,fixed){PTYPES=PTYPES||_ptypes();const k=fixed||"";const ba
   return st}
 function makeSeedStore(){let mali=null;try{const j=localStorage.getItem("traceform-v1");mali=j?JSON.parse(j):null}catch{}
   mali=mali||SEED();Object.assign(mali,{pid:"p-mali",type:"restaurant",brief:mali.brief||"Website for Mali's Table, a family-run northern Thai restaurant in Minneapolis. Menu, ordering for pickup and delivery, and the family's story. Must feel like Mali's family, not generic “Thailand”.",view:mali.view||"review",sysBuilt:true,tokens:mali.tokens||seedTokens()});
+  if(!(mali.design&&mali.design.html))mali.design=MALI_DESIGN();
   const coop=blankState({id:"p-coop",type:"ecommerce",name:"Riverbend Food Co-op",view:"research",brief:"Online ordering for pickup at a member-owned grocery in Duluth, MN. 3,100 members, many over 60. Weekly local produce changes; staff update stock by hand.",
     sources:[{id:"cs1",name:"member_survey_2026.csv",kind:"survey",star:true,text:"n=212. Shop online if available: 58%. Biggest worry: substitutions (41%), finding local items (33%). 64% are over 55."},{id:"cs2",name:"interview_produce_manager.pdf",kind:"interview",star:false,text:"'People want to know which farm it came from.' 'Stock changes Tuesday and Friday.'"},{id:"cs3",name:"project_brief.md",kind:"notes",star:false,text:"Online ordering for pickup; must work for older members; local farms first."}],
     themes:[{id:"ct1",name:"Where it's from",cards:[{id:"cc1",text:"Members choose by farm, not brand.",quote:"“People want to know which farm it came from” — produce manager",src:"cs2",conf:"high"}]},{id:"ct2",name:"Trust",cards:[{id:"cc2",text:"Substitutions are the top worry (41%); staff want flexibility.",quote:"member_survey_2026.csv · n=212",src:"cs1",conf:"medium"}]}],
@@ -86,14 +87,32 @@ function toastUndo(msg,fn){const t=$("#toast");t.innerHTML="";
   t.append(b);t.classList.add("on");clearTimeout(toast.t);
   toast.t=setTimeout(()=>{t.classList.remove("on");t.textContent=""},8000)}
 function storeRead(){try{const j=localStorage.getItem("traceform-projects");return j?JSON.parse(j):null}catch{return null}}
-function storeWrite(){try{localStorage.setItem("traceform-projects",JSON.stringify(STORE))}catch{}}
+var storeWriteWarned=false;
+function storeWrite(){try{localStorage.setItem("traceform-projects",JSON.stringify(STORE));storeWriteWarned=false}
+  catch(e){
+    // Silently swallowing this lost every later change without telling anyone.
+    if(!storeWriteWarned){storeWriteWarned=true;
+      try{toast(/quota/i.test(e.name||"")?"Out of browser storage \u2014 recent changes are not being saved":"Could not save to this browser")}catch{}
+      try{console.error("traceform: save failed",e)}catch{}}
+  }}
 function oldAssumeRe(){return /Mama's|Mom makes|Pad Thai|gingham|lotus|elephant|turmeric|Tone: warm|lifestyle carousel|“Shop now”|4-column|Newsletter pop-up|black, white, one accent|emoji in headlines|Left sidebar|four KPI|#3B82F6|Inter everywhere|donut|Dark-mode toggle|Dark background|Huge name|Masonry|work together|Cursor-follow|five tabs|Three-screen onboarding|Gradient splash|Floating action|Donate now|close-up of a child|10k\+|hand icon|gradient$|Three feature cards|Testimonials carousel/i}
 function migrateAssumptions(){if(!STORE||STORE.assumeV===2)return;PTYPES=PTYPES||_ptypes();const seed=SEED().assume;
   Object.values(STORE.states).forEach(st=>{if(!st||!Array.isArray(st.assume))return;const old=st.assume.filter(a=>oldAssumeRe().test(a.label));if(!old.length)return;const kept=st.assume.filter(a=>!oldAssumeRe().test(a.label));
     const fresh=st.pid==="p-mali"?seed:(PTYPES[st.type]||PTYPES.other).assume.map((a,i)=>({id:"g"+i+Math.random().toString(36).slice(2,5),label:a[0],from:a[1],rej:false}));st.assume=[...fresh,...kept]});
   STORE.assumeV=2;storeWrite()}
-function load(){PTYPES=PTYPES||_ptypes();STORE=storeRead()||makeSeedStore();migrateAssumptions();const id=STORE.states[STORE.current]?STORE.current:STORE.list[0].id;STORE.current=id;return JSON.parse(JSON.stringify(STORE.states[id]))}
-function save(){if(!STORE||!S)return;const c={...S,tiles:S.tiles.map(t=>({...t,img:undefined})),history:(S.history||[]).slice(-30)};STORE.states[S.pid]=c;const m=STORE.list.find(x=>x.id===S.pid);if(m){m.name=S.project;m.updated=Date.now()}storeWrite()}
+/* Saves made before Mali's Table shipped with a designed page get it too, so the
+   example opens on the current Review page. A design already there is kept. */
+function migrateMaliDesign(){const m=STORE&&STORE.states&&STORE.states["p-mali"];
+  if(m&&!(m.design&&m.design.html)){m.design=MALI_DESIGN();storeWrite()}}
+function load(){PTYPES=PTYPES||_ptypes();STORE=storeRead()||makeSeedStore();migrateAssumptions();migrateMaliDesign();const id=STORE.states[STORE.current]?STORE.current:STORE.list[0].id;STORE.current=id;return JSON.parse(JSON.stringify(STORE.states[id]))}
+function save(){if(!STORE||!S)return;
+  // Image data goes to IndexedDB (see 07-imagestore.js); localStorage keeps the key.
+  try{adoptLooseImages()}catch{}
+  const c={...S,
+    tiles:S.tiles.map(t=>({...t,img:undefined})),
+    userImgs:(S.userImgs||[]).map(u=>u.imgKey?{...u,src:undefined}:u),
+    history:(S.history||[]).slice(-30)};
+  STORE.states[S.pid]=c;const m=STORE.list.find(x=>x.id===S.pid);if(m){m.name=S.project;m.updated=Date.now()}storeWrite()}
 function ago(t){const d=(Date.now()-t)/1000;if(d<60)return"just now";if(d<3600)return Math.round(d/60)+" min ago";if(d<86400)return Math.round(d/3600)+" h ago";return Math.round(d/86400)+" d ago"}
 
 /* ---- landing ---- */
@@ -103,7 +122,7 @@ function renderLanding(){const list=[...STORE.list].sort((a,b)=>b.updated-a.upda
   $("#landFilters").innerHTML=`<span class="body-s osv">${list.length} projects · sorted by last edited</span>`;
   renderTrash();
   $("#projGrid").innerHTML=`<button class="pcard new" id="newProj2"><span class="ms" style="font-size:36px">add_circle</span><span class="title-m">New project</span><span class="body-s">Tell us what you're building</span></button>`+list.map(m=>{const st=STORE.states[m.id]||{};const t=PTYPES[m.type]||PTYPES.other;const vv=["trending","reference"].includes(st.view)?"inspiration":(st.view||"research");const si=STEP_ORDER.indexOf(vv);const cards=(st.themes||[]).reduce((n,x)=>n+x.cards.length,0);
-    return`<div class="pcard" data-open="${m.id}" tabindex="0" role="button" aria-label="Open ${esc(m.name)}"><div class="pth">${m.thumb&&IMG[m.thumb]?`<img src="${IMG[m.thumb]}" alt="">`:`<div class="ptile" style="background:linear-gradient(135deg,var(--primary-container),var(--tertiary-container));color:var(--on-primary-container)"><span class="ms" style="font-size:52px">${t.icon}</span></div>`}<span class="badge p ty"><span class="ms" style="font-size:14px;margin-right:4px">${t.icon}</span>${esc(t.name)}</span></div>
+    return`<div class="pcard" data-open="${m.id}" tabindex="0" role="button" aria-label="Open ${esc(m.name)}"><div class="pth">${m.thumb&&IMG[m.thumb]?`<img src="${IMG[m.thumb]}" alt="">`:`<div class="ptile" style="background:linear-gradient(135deg,var(--primary-container),var(--tertiary-container));color:var(--on-primary-container)"><span class="ms" style="font-size:52px">${t.icon}</span></div>`}<span class="badge p ty"><span class="ms" style="font-size:14px;margin-right:var(--sp-1)">${t.icon}</span>${esc(t.name)}</span></div>
       <div class="pb"><div class="row" style="flex-wrap:nowrap"><span class="title-m" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</span><div style="position:relative"><button class="icon-btn" data-pmenu="${m.id}" aria-label="Project options" style="width:32px;height:32px"><span class="ms">more_vert</span></button></div></div>
       <div class="body-s osv">${esc(m.client||"")}${m.client?" · ":""}edited ${ago(m.updated)}</div>
       <div class="steps5" aria-label="Step ${si+1} of 4">${STEP_ORDER.map((s,i)=>`<i class="${i<=si?"on":""}"></i>`).join("")}</div>
@@ -130,18 +149,18 @@ function renderTrash(){const t=trashList();const miss=missingSeeds();
   if(!t.length&&!miss.length){if(host)host.remove();return}
   if(!host){host=document.createElement("div");host.id="trashBar";host.className="trashbar";
     $("#projGrid").parentElement.appendChild(host)}
-  host.innerHTML=`${t.length?`<div class="row" style="flex-wrap:nowrap;gap:8px"><span class="ms">delete_outline</span><span class="title-s" style="flex:1">Recently deleted (${t.length})</span></div>
-    <div class="col" style="gap:0">${t.map(e=>`<div class="shelfrow"><span class="ms osv">folder</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.meta.name)}</span><span class="body-s osv" style="margin-right:8px">deleted ${ago(e.at)}</span><button class="btn text sm" data-undel="${esc(e.meta.id)}"><span class="ms">restore_from_trash</span>Put back</button><button class="x" data-purge="${esc(e.meta.id)}" aria-label="Delete ${esc(e.meta.name)} permanently"><span class="ms" style="font-size:18px">delete_forever</span></button></div>`).join("")}</div>`:""}
-    ${miss.length?`<div class="row" style="flex-wrap:nowrap;gap:8px;margin-top:${t.length?"10px":"0"}"><span class="ms">auto_awesome</span><span class="title-s" style="flex:1">Sample projects not in this browser</span></div>
+  host.innerHTML=`${t.length?`<div class="row" style="flex-wrap:nowrap;gap:var(--sp-2)"><span class="ms">delete_outline</span><span class="title-s" style="flex:1">Recently deleted (${t.length})</span></div>
+    <div class="col" style="gap:0">${t.map(e=>`<div class="shelfrow"><span class="ms osv">folder</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.meta.name)}</span><span class="body-s osv" style="margin-right:var(--sp-2)">deleted ${ago(e.at)}</span><button class="btn text sm" data-undel="${esc(e.meta.id)}"><span class="ms">restore_from_trash</span>Put back</button><button class="x" data-purge="${esc(e.meta.id)}" aria-label="Delete ${esc(e.meta.name)} permanently"><span class="ms" style="font-size:18px">delete_forever</span></button></div>`).join("")}</div>`:""}
+    ${miss.length?`<div class="row" style="flex-wrap:nowrap;gap:var(--sp-2);margin-top:${t.length?"10px":"0"}"><span class="ms">auto_awesome</span><span class="title-s" style="flex:1">Sample projects not in this browser</span></div>
     <div class="col" style="gap:0">${miss.map(m=>`<div class="shelfrow"><span class="ms osv">folder_special</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</span><button class="btn text sm" data-reseed="${esc(m.id)}"><span class="ms">refresh</span>Rebuild</button></div>`).join("")}</div>
-    <div class="body-s osv" style="margin-top:6px">Rebuilt from the sample data in the code, so any edits you made to them are not included.</div>`:""}`;
+    <div class="body-s osv" style="margin-top:var(--sp-2)">Rebuilt from the sample data in the code, so any edits you made to them are not included.</div>`:""}`;
   $$("[data-undel]",host).forEach(b=>b.onclick=()=>{restoreProject(b.dataset.undel);renderLanding()});
   $$("[data-reseed]",host).forEach(b=>b.onclick=()=>{rebuildSeed(b.dataset.reseed);renderLanding()});
   $$("[data-purge]",host).forEach(b=>b.onclick=()=>{const e=trashList().find(x=>x.meta.id===b.dataset.purge);
     dialog(`<span class="headline-s">Delete “${esc(e.meta.name)}” permanently?</span><div class="body-m">This removes it from this browser for good. It cannot be undone.</div>`,[["Cancel","text",()=>{}],["Delete permanently","filled",()=>{purgeProject(b.dataset.purge);renderLanding();toast("Deleted permanently")}]])});
 }
 function openProject(id){const sv=STORE.states[id];if(sv&&["trending","reference"].includes(sv.view))sv.view="inspiration";if(S&&S.pid&&S.pid!==id)save();STORE.current=id;S=JSON.parse(JSON.stringify(STORE.states[id]));if(!S.tokens&&S.type==="restaurant")S.tokens=seedTokens();
-  try{rTurns=[];pTurns=[];previewVer=null}catch{}storeWrite();showApp();setProjChip();go(S.view||"research")}
+  try{rTurns=[];pTurns=[];previewVer=null}catch{}storeWrite();showApp();setProjChip();go(S.view||"research");hydrateAndRender()}
 function setProjChip(){const t=PTYPES[S.type]||PTYPES.restaurant;$("#projChip").innerHTML=`<span class="ms" style="font-size:16px">${t.icon}</span>${esc(S.project)}`;$("#projChip").title="Switch project";}
 
 /* ---- new project wizard ---- */

@@ -10,6 +10,7 @@
 ## Conventions
 
 - **UI:** use the Material 3 tokens in `app.css` (`var(--primary)`, `var(--surface-container)` and so on). Don't hard-code colors. Icons are [Material Symbols](https://fonts.google.com/icons): `<span class="ms">icon_name</span>`.
+- **Spacing:** every gap, padding and margin uses a step from the scale at the top of `app.css` (`var(--sp-1)` 4px through `var(--sp-7)` 48px; the comment there says which step is for what). Don't write a raw px value for spacing. The generated website is separate: it takes its spacing from the project's own design system.
 - **State:** change `S`, then call `save()`, then call the page's render function (`renderResearch()`, `renderInspiration()`, `renderSystem()`, `renderReview()` or `renderAll()`). For anything a user might want to undo, call `snapshot("what changed")` first so it appears in version history.
 - **Escaping:** wrap any user text you put into HTML in `esc()`.
 - **AI:** call only through `sample` (see the README). Always handle `sample === null` (offline) with a useful fallback or message.

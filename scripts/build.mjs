@@ -29,6 +29,9 @@ async function buildDist() {
   await cp(path.join(ROOT, "index.html"), path.join(out, "index.html"));
   await cp(path.join(ROOT, "src", "styles"), path.join(out, "src", "styles"), { recursive: true });
   await cp(path.join(ROOT, "public"), out, { recursive: true });
+  // The accessibility audit runs axe-core in the browser; the static build carries its own copy.
+  await mkdir(path.join(out, "vendor"), { recursive: true });
+  await cp(path.join(ROOT, "node_modules", "axe-core", "axe.min.js"), path.join(out, "vendor", "axe.min.js"));
   console.log("Built dist/ (static; AI runs offline unless served by server/server.mjs)");
 }
 

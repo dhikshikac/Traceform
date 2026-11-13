@@ -24,13 +24,18 @@ async function photoResolve(q) {
   if (have) return have.miss ? null : have;
   if (photoPending[k]) return photoPending[k];
 
+  const pid = currentPid();
   photoPending[k] = (async () => {
     try {
-      const r = await fetch(`/api/images?q=${encodeURIComponent(k)}&n=3`);
+      // A lookup that hangs would block every one queued behind it.
+      const r = await fetch(`/api/images?q=${encodeURIComponent(k)}&n=3`, typeof AbortSignal !== "undefined" && AbortSignal.timeout ? { signal: AbortSignal.timeout(20000) } : {});
       if (r.status === 404) { PHOTOS_ON = false; return null; }
       if (!r.ok) return null;
       const d = await r.json();
       const p = (d.results || [])[0];
+      // The project may have been switched while this was in flight; its result
+      // belongs to the project that asked for it, not to whatever is open now.
+      if (!stillOnProject(pid)) return p || null;
       // Remember a miss too, so a hopeless subject isn't retried on every render.
       photoStore()[k] = p ? { ...p, q: k } : { miss: true, q: k };
       save();
@@ -46,14 +51,18 @@ async function photoResolveAll(list, after) {
   const qs = [...new Set((list || []).map(photoKey).filter(Boolean))].filter(q => !photoStore()[q]);
   if (!qs.length || !PHOTOS_ON) return 0;
   let n = 0;
+  const pid = currentPid();
   // Serial on purpose: Openverse is unauthenticated and rate-limits bursts.
-  for (const q of qs) { if (await photoResolve(q)) n++; }
+  for (const q of qs) { if (!stillOnProject(pid)) return n; if (await photoResolve(q)) n++; }
+  if (!stillOnProject(pid)) return n;
   if (n && typeof after === "function") after();
   return n;
 }
 
 /* Every subject phrase the current site copy refers to. */
 function sitePhotoSubjects() {
+  // A designed page shows only its own photographs.
+  if (S.design && S.design.html) return (S.design.photos || []).filter(q => !/^(user|img):/.test(q));
   const W = S.site; if (!W) return [];
   const out = [W.hero && W.hero.img, W.side && W.side.img, W.story && W.story.img,
                W.about && W.about.img, W.location && W.location.img];
