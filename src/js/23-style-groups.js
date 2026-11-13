@@ -147,6 +147,7 @@ function renderStyleItemRail() {
     ${pairs.map(pp => `<div class="row" style="gap:12px;flex-wrap:nowrap">${pp.map(ctl).join("")}</div>`).join("")}
     <div class="sg-prev" style="padding:14px;border:1px solid var(--outline-variant);border-radius:12px;background:${esc(tv("color.ground") || "#fff")}">${sgSampleWith(item, d)}</div>
     <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${why ? esc(why) : '<span class="osv">No explanation added.</span>'}</div>${cs.length ? `<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>` : ""}<span class="body-s osv">${esc(provLabel(sgEdited(item.id)))} · base: ${esc(baseShort())}</span></section>
+    ${relatedHTML({ button: ["comp.cta"], card: ["comp.dishCard"], heroPhoto: ["imagery"], cardPhoto: ["imagery"], mediaPhoto: ["imagery"], logo: ["motif"] }[item.id] || [])}
     <p class="body-s bad-t" id="sgErr" role="alert"></p>
     <div class="row sys-apply" id="sgActions" ${dirty ? "" : "hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="sgCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>
     ${sgEdited(item.id) ? `<div class="row"><button type="button" class="btn text sm" id="sgReset">Reset to follow ${esc(baseShort())}</button></div>` : ""}
@@ -170,6 +171,7 @@ function renderStyleItemRail() {
   $("#sgCancel").onclick = () => { delete sgDrafts[item.id]; renderStyleItemRail(); sysLivePreview(); };
   const rs = $("#sgReset"); if (rs) rs.onclick = () => { snapshot(`reset ${item.name.toLowerCase()} style`); S.compStyles = { ...(S.compStyles || {}) }; delete S.compStyles[item.id]; delete sgDrafts[item.id]; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${item.name} follows ${baseShort()} again`); };
   $("#sgPick").onchange = () => { select({ kind: "cstyle", id: $("#sgPick").value }); renderSystem(); };
+  wireRelated(r);
   wireCites(r);
   $$("[data-closesel]", r).forEach(x => x.onclick = clearSel);
 }
@@ -205,7 +207,10 @@ function renderScaleRail() {
   const dv = scDraft && scDraft.k === k && scDraft.i === i ? scDraft.v : cur;
   const steps = n.map((x, j) => `<button type="button" class="chip sm ${j === i ? "on" : ""}" data-step="${j}" aria-pressed="${j === i}">${x}px</button>`).join("");
   const cs = cites(t.why);
-  r.innerHTML = `<div class="rhead"><div class="title-m" style="min-width:0">${esc(info.name(i))}</div><span class="spacer"></span><button class="icon-btn" data-closesel aria-label="Clear selection"><span class="ms">close</span></button></div>
+  const refs = S.sel.pick && typeof SPACE_REFS !== "undefined" ? SPACE_REFS[S.sel.pick] || [] : [];
+  const part = S.sel.pick && typeof pickById === "function" ? pickById(S.sel.pick) : null;
+  r.innerHTML = `<div class="rhead"><div class="title-m" style="min-width:0">${esc(part ? part.name : info.name(i))}</div><span class="spacer"></span><button class="icon-btn" data-closesel aria-label="Clear selection"><span class="ms">close</span></button></div>
+  ${refs.length > 1 ? `<div class="field"><label for="scProp">Property</label><select id="scProp">${refs.map(([rk, ri]) => `<option value="${rk}:${ri}" ${rk === k && ri === i ? "selected" : ""}>${esc(SCALE_INFO[rk].name(ri))} · ${scaleNums(rk)[ri] ?? "–"}px</option>`).join("")}</select></div>` : part ? `<div class="body-s osv">${esc(info.name(i))}</div>` : ""}
   <div class="field"><span class="label-m osv">${k === "space.scale" ? "Spacing scale" : "Corner radii"}</span><div class="row" style="gap:6px;flex-wrap:wrap">${steps}</div></div>
   <form class="sys-editor" id="scForm" novalidate>
     <div class="field"><label for="scVal">${k === "space.scale" ? "Space" : "Radius"} (px)</label><input type="number" id="scVal" value="${esc(dv)}" min="0" max="${info.max}" step="1" inputmode="decimal"></div>
@@ -229,6 +234,7 @@ function renderScaleRail() {
   const ub = $("#scUseBase", r); if (ub) ub.onclick = () => { const bv = (String(baseTokenValue(k) || "").match(/\d+(?:\.\d+)?/g) || [])[i]; $("#scVal").value = bv; $("#scVal").oninput(); };
   wireOverriders(r);
   $$("[data-step]", r).forEach(b => b.onclick = () => { scDraft = null; select({ kind: "scale", id: k, i: +b.dataset.step }); renderSystem(); });
+  const sp = $("#scProp", r); if (sp) sp.onchange = () => { const [nk, ni] = sp.value.split(":"); scDraft = null; select({ kind: "scale", id: nk, i: +ni, pick: S.sel.pick }); renderSystem(); };
   wireCites(r);
   $$("[data-closesel]", r).forEach(x => x.onclick = clearSel);
 }

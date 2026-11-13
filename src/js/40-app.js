@@ -69,22 +69,22 @@ function wireCites(root){$$("[data-cite]",root).forEach(b=>b.onclick=e=>{e.preve
    so selecting one shows every other part that changes with the same decision.
    Ordered general → specific: when selectors overlap, the more specific part wins. */
 const SYS_PICK=[
-  {id:"page",name:"Page background",sel:"&",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"page",name:"Page background",sel:"&",ts:"body",tok:["color.ground","color.ink","type.body","space.scale"]},
     {id:"navbar",name:"Navigation bar",sel:".nav",tok:["color.ground","space.scale"]},
-  {id:"footer",name:"Footer",sel:".foot",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"footer",name:"Footer",sel:".foot",ts:"small",tok:["color.ground","color.ink","type.body","space.scale"]},
   {id:"heroBlock",name:"Hero section",sel:".hero",tok:["space.scale"]},
   {id:"cardGroup",name:"Item cards",sel:".cards",tok:["comp.dishCard","space.scale"]},
   {id:"bundleGroup",name:"Bundle cards",sel:".bund",tok:["comp.dishCard","space.scale"]},
   {id:"card",name:"Item card",sel:".card",tok:["color.ground","shape.radius","comp.dishCard"]},
-  {id:"brand",name:"Site name",sel:".brand",tok:["type.display","color.ink"]},
+  {id:"brand",name:"Site name",sel:".brand",ts:"h3",tok:["type.display","color.ink"]},
   {id:"brandMark",name:"Logo mark",sel:".brand i",tok:["color.accent","motif"]},
-  {id:"navLinks",name:"Navigation links",sel:".links>a:not(.btn)",tok:["type.body","color.ink"]},
+  {id:"navLinks",name:"Navigation links",sel:".links>a:not(.btn)",ts:"small",tok:["type.body","color.ink"]},
   {id:"action",name:"Primary action",sel:".btn",ts:"label",tok:["color.accent","shape.radius","comp.cta","type.body"]},
   {id:"heroPhoto",name:"Hero photo",sel:".hero .ph",tok:["imagery","shape.radius"]},
   {id:"heroHeadline",name:"Hero headline",sel:".hero .ov h1",ts:"display",tok:["type.display","type.scale"]},
   {id:"heroSub",name:"Hero description",sel:".hero .ov p",ts:"body",tok:["type.body","type.scale"]},
   {id:"sidePhoto",name:"Second photo",sel:".hero .side .im",tok:["imagery","shape.radius"]},
-  {id:"infoCard",name:"Info card",sel:".hcard",tok:["color.ground","color.ink","type.body","shape.radius"]},
+  {id:"infoCard",name:"Info card",sel:".hcard",ts:"small",tok:["color.ground","color.ink","type.body","shape.radius"]},
   {id:"lead",name:"Intro text",sel:".lead p",ts:"body",tok:["type.body","type.scale","color.ink"]},
   {id:"secHead",name:"Section heading",sel:"h2.sec",ts:"h2",tok:["type.display","type.scale","color.ink"]},
   {id:"secSub",name:"Section description",sel:"p.secsub",ts:"small",tok:["type.body","color.ink"]},
@@ -99,9 +99,14 @@ const SYS_PICK=[
   {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]},
   /* parts that only the design-system specimen has */
   {id:"secondary",name:"Secondary action",sel:".btn.sx-2nd",ts:"label",tok:["color.accent","shape.radius","type.body"]},
-  {id:"field",name:"Text field",sel:".sx-field",tok:["color.ink","color.accent","color.heat","shape.radius","type.body"]}
+  {id:"field",name:"Text field",sel:".sx-field",ts:"small",tok:["color.ink","color.accent","color.heat","shape.radius","type.body"]}
 ];
 const pickById=id=>SYS_PICK.find(p=>p.id===id);
+/* On Spacing & shape, the spacing steps and corner radii each part uses, as [token, index].
+   Clicking a part opens that step's editor, the same one the Tokens sheet opens. */
+const SPACE_REFS={page:[["space.scale",2]],navbar:[["space.scale",0]],heroBlock:[["space.scale",1]],cardGroup:[["space.scale",1]],footer:[["space.scale",1]],
+  action:[["shape.radius",1],["space.scale",0]],secondary:[["shape.radius",1],["space.scale",0]],field:[["shape.radius",1]],tag:[["shape.radius",0]],
+  card:[["shape.radius",2],["space.scale",1]],infoCard:[["shape.radius",2],["space.scale",1]],heroPhoto:[["shape.radius",2]],sidePhoto:[["shape.radius",2]]};
 /* Plain-language explanations for the System inspector. The stored "why" stays terse (it feeds the AI and other pages);
    here it is shown as a readable sentence, and research codes become named sources. */
 const SYS_PLAIN={
@@ -170,25 +175,27 @@ function sysPreviewHTML(){
 function wireSysPreview(c,sec){
   const frame=$(".sysprev-frame.inspect",c);if(!frame)return;
   const root=$(".site",frame);if(!root)return;
-  const selK=S.sel?.kind==="token"?S.sel.id:null;let selP=S.sel?.kind==="token"||S.sel?.kind==="tstyle"?S.sel.pick:null;
+  const selK=S.sel?.kind==="token"?S.sel.id:null;let selP=["token","tstyle","scale"].includes(S.sel?.kind)?S.sel.pick:null;
+  const selSC=S.sel?.kind==="scale"?S.sel.id+":"+S.sel.i:null;
   const selTS=S.sel?.kind==="tstyle"?S.sel.id:null,selCS=S.sel?.kind==="cstyle"?S.sel.id:null;
   if(S.sel?.kind==="cstyle")selP=S.sel.pick||null;
   /* tag the parts that use a decision from this section; specific parts overwrite general ones.
      On Text styles, a part that uses a text style is clickable even if it carries no type token. */
   const sgItem=id=>(SG_ITEMS[sec]||[]).find(x=>x.pick.includes(id));
-  SYS_PICK.forEach(p=>{if(!sysPickToks(p,sec).length&&!(sec==="type"&&p.ts)&&!sgItem(p.id))return;(p.sel==="&"?[root]:$$(p.sel,root)).forEach(el=>{el.dataset.sp=p.id})});
+  SYS_PICK.forEach(p=>{if(!sysPickToks(p,sec).length&&!(sec==="type"&&p.ts)&&!sgItem(p.id)&&!(sec==="space"&&SPACE_REFS[p.id]))return;(p.sel==="&"?[root]:$$(p.sel,root)).forEach(el=>{el.dataset.sp=p.id})});
   let n=0;
   $$("[data-sp]",frame).forEach(el=>{const p=pickById(el.dataset.sp);
     el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label","Inspect "+p.name);el.title=p.name+(sec==="type"&&p.ts?` · ${tsDef(p.ts).name} text style`:"");
-    const picked=selP===p.id,shared=(!!selK&&p.tok.includes(selK))||(!!selTS&&p.ts===selTS)||(!!selCS&&(sgDef(selCS)?.pick||[]).includes(p.id));if(picked||shared)n++;
+    const picked=selP===p.id,shared=(!!selK&&p.tok.includes(selK))||(!!selTS&&p.ts===selTS)||(!!selCS&&(sgDef(selCS)?.pick||[]).includes(p.id))||(!!selSC&&sec==="space"&&(SPACE_REFS[p.id]||[]).some(r=>r.join(":")===selSC));if(picked||shared)n++;
     el.classList.toggle("sp-sel",picked);el.classList.toggle("sp-shared",shared&&!picked)});
   const pick=id=>{const p=pickById(id);
     if(sec==="type"&&p.ts){select({kind:"tstyle",id:p.ts,pick:id});renderSystem();return}
     const it=sgItem(id);if(it){select({kind:"cstyle",id:it.id,pick:id});renderSystem();return}
+    if(sec==="space"&&SPACE_REFS[id]){const refs=SPACE_REFS[id];const r=refs.find(x=>x.join(":")===selSC)||refs[0];select({kind:"scale",id:r[0],i:r[1],pick:id});renderSystem();return}
     const keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id});renderSystem()};
   frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp)};
   frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}};
-  const st=$("#sysScopeText",c);if(st)st.textContent=selK||selTS||selCS?`${n} element${n===1?" uses":"s use"} this ${sec==="color"?"color":sec==="type"?"text style":"setting"}.`:sec==="type"?"Click any text to edit its text style.":"Click any element to edit it.";
+  const st=$("#sysScopeText",c);if(st)st.textContent=selK||selTS||selCS||selSC?`${n} element${n===1?" uses":"s use"} this ${sec==="color"?"color":sec==="type"?"text style":"setting"}.`:sec==="type"?"Click any text to edit its text style.":"Click any element to edit it.";
   sysPreviewExtras(c,sec);
 }
 /* Inspector: the selected element, its property, the value, and why. */

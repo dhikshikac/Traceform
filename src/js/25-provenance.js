@@ -58,6 +58,13 @@ function overridersHTML(key, idx) {
 }
 function wireOverriders(root) { $$("[data-ovsel]", root).forEach(b => b.onclick = e => { e.preventDefault(); select(JSON.parse(b.dataset.ovsel)); renderSystem(); }); }
 
+/* Links from a style panel to the system-wide settings behind it, so everything the
+   Tokens sheet can edit is also one click away from the Preview. */
+function relatedHTML(keys) {
+  const ts = keys.map(k => T(k)).filter(Boolean);
+  return ts.length ? `<div class="body-s osv rel-set">Related settings: ${ts.map(t => `<button type="button" class="linkish" data-relk="${esc(t.k)}">${esc(decName(t))}</button>`).join(" · ")}</div>` : "";
+}
+function wireRelated(root) { $$("[data-relk]", root).forEach(b => b.onclick = e => { e.preventDefault(); select({ kind: "token", id: b.dataset.relk }); renderSystem(); }); }
 /* Under a field in a style panel: does it follow the system, or override it? */
 function fieldNote(edited, sourceWord, baseShown) {
   if (!sourceWord) return edited ? `<div class="fnote own">Your value · default ${esc(baseShown)}</div>` : `<div class="fnote">Default</div>`;

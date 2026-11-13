@@ -36,7 +36,8 @@ function specimenCSS(d) {
 .s.spec .sx-blk{padding:var(--s2) 28px 0}
 .s.spec h2.sec{margin:0 0 2px}
 .s.spec p.secsub{margin:0 0 var(--s1)}
-.s.spec .cards{padding:0}
+.s.spec .cards{padding:0;gap:var(--s1)}
+.s.spec .hero{gap:var(--s1)}
 .s.spec .card .im{aspect-ratio:auto;height:72px}
 .s.spec .card .im .phs{min-height:0}
 .s.spec .card .b{padding:var(--s1)}
