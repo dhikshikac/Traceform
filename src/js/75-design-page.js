@@ -41,15 +41,7 @@ function dzVarMap() {
     ["space.scale", /var\(\s*--s[1-5]\b/], ["shape.radius", /var\(\s*--r-[sml]\b/],
   ];
 }
-/* The design tokens with the project's text-style edits applied (22-type-styles.js):
-   an edited size reaches every page through --t-*. */
 function designTokens() {
-  const d = designTokensBase();
-  const ed = S.typeStyles || {};
-  ["display", "h2", "h3", "body", "small"].forEach(k => { const v = ed[k] && +ed[k].size; if (v > 0) d.t[k] = v; });
-  return d;
-}
-function designTokensBase() {
   const col = (k, d) => dzHex(tv(k)) ? tv(k) : d;
   const ground = col("color.ground", "#FFFFFF"), ink = col("color.ink", "#111111");
   const accent = col("color.accent", "#333333"), signal = col("color.heat", accent);
@@ -520,8 +512,7 @@ ${dzAllCSS(d)}
 .pg [data-tf]{cursor:pointer}
 .tf-marks .pg [data-tf]:hover{outline-style:solid}
 .pg [data-tf].tf-sel{outline:2px solid var(--accent);outline-offset:-2px}
-</style>${typeof tsDesignCSS === "function" ? `<style>${tsDesignCSS()}
-${typeof sgDesignCSS === "function" ? sgDesignCSS() : ""}</style>` : ""}</head><body><div class="pg">${d.html || ""}</div></body></html>`;
+</style></head><body><div class="pg">${d.html || ""}</div></body></html>`;
 }
 
 /* Fit real photographs into the page's photo slots: the designer's own image

@@ -32,7 +32,7 @@ const DEC_NAME={"color.ground":"Background","color.accent":"Accent","color.heat"
   "type.display":"Display font","type.body":"Body font","type.scale":"Type scale","type.accentLine":"Accent line",
   "space.scale":"Spacing scale","shape.radius":"Corner radius","imagery":"Photography","motif":"Motifs & icons",
   "comp.dishCard":"Item card","comp.cta":"Primary action","comp.heat":"Heat indicator"};
-const SEC_NAME={base:"Base system",color:"Color",type:"Text styles",space:"Spacing & shape",imagery:"Imagery & motif",components:"Components"};
+const SEC_NAME={base:"Start from a base",color:"Color",type:"Text styles",space:"Spacing & shape",imagery:"Imagery & motif",components:"Components"};
 const SEC_ICON={imagery:"image",motif:"interests",components:"widgets"};
 const decName=t=>DEC_NAME[t.k]||t.k;
 /* research a decision cites: c# insight cards, s# sources, r# references, p# principles */
@@ -46,7 +46,6 @@ function citeInfo(code){
 function cites(text){const seen=new Set();return String(text||"").match(/\b[a-z]{1,3}\d{1,3}\b/g)?.filter(c=>{if(seen.has(c))return false;seen.add(c);return!!citeInfo(c)})||[]}
 function whyHTML(text){return esc(text).replace(/\b[a-z]{1,3}\d{1,3}\b/g,m=>{const i=citeInfo(m);return i?`<button class="cite" data-cite="${m}" title="${esc(i.kind)}: ${esc(i.text)}">${m}</button>`:m})}
 function origin(t){
-  if(t.user)return["Edited by you","p"];
   if(t.edited&&t.why==="imported")return["Imported","t"];
   if(t.edited&&/ default$/.test(t.why||""))return["From "+t.why.replace(/ default$/,""),"t"];
   if(t.edited)return["Edited by you","p"];
@@ -69,44 +68,36 @@ function wireCites(root){$$("[data-cite]",root).forEach(b=>b.onclick=e=>{e.preve
    so selecting one shows every other part that changes with the same decision.
    Ordered general → specific: when selectors overlap, the more specific part wins. */
 const SYS_PICK=[
-  {id:"page",name:"Page background",sel:"&",ts:"body",tok:["color.ground","color.ink","type.body","space.scale"]},
-    {id:"navbar",name:"Navigation bar",sel:".nav",tok:["color.ground","space.scale"]},
-  {id:"footer",name:"Footer",sel:".foot",ts:"small",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"page",name:"Page background",sel:"&",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"navbar",name:"Navigation bar",sel:".nav",tok:["color.ground","space.scale"]},
+  {id:"footer",name:"Footer",sel:".foot",tok:["color.ground","color.ink","type.body","space.scale"]},
   {id:"heroBlock",name:"Hero section",sel:".hero",tok:["space.scale"]},
   {id:"cardGroup",name:"Item cards",sel:".cards",tok:["comp.dishCard","space.scale"]},
   {id:"bundleGroup",name:"Bundle cards",sel:".bund",tok:["comp.dishCard","space.scale"]},
   {id:"card",name:"Item card",sel:".card",tok:["color.ground","shape.radius","comp.dishCard"]},
-  {id:"brand",name:"Site name",sel:".brand",ts:"h3",tok:["type.display","color.ink"]},
+  {id:"brand",name:"Site name",sel:".brand",tok:["type.display","color.ink"]},
   {id:"brandMark",name:"Logo mark",sel:".brand i",tok:["color.accent","motif"]},
-  {id:"navLinks",name:"Navigation links",sel:".links>a:not(.btn)",ts:"small",tok:["type.body","color.ink"]},
-  {id:"action",name:"Primary action",sel:".btn",ts:"label",tok:["color.accent","shape.radius","comp.cta","type.body"]},
+  {id:"navLinks",name:"Navigation links",sel:".links>a:not(.btn)",tok:["type.body","color.ink"]},
+  {id:"action",name:"Primary action",sel:".btn",tok:["color.accent","shape.radius","comp.cta","type.body"]},
   {id:"heroPhoto",name:"Hero photo",sel:".hero .ph",tok:["imagery","shape.radius"]},
-  {id:"heroHeadline",name:"Hero headline",sel:".hero .ov h1",ts:"display",tok:["type.display","type.scale"]},
-  {id:"heroSub",name:"Hero description",sel:".hero .ov p",ts:"body",tok:["type.body","type.scale"]},
+  {id:"heroHeadline",name:"Hero headline",sel:".hero .ov h1",tok:["type.display","type.scale"]},
+  {id:"heroSub",name:"Hero description",sel:".hero .ov p",tok:["type.body","type.scale"]},
   {id:"sidePhoto",name:"Second photo",sel:".hero .side .im",tok:["imagery","shape.radius"]},
-  {id:"infoCard",name:"Info card",sel:".hcard",ts:"small",tok:["color.ground","color.ink","type.body","shape.radius"]},
-  {id:"lead",name:"Intro text",sel:".lead p",ts:"body",tok:["type.body","type.scale","color.ink"]},
-  {id:"secHead",name:"Section heading",sel:"h2.sec",ts:"h2",tok:["type.display","type.scale","color.ink"]},
-  {id:"secSub",name:"Section description",sel:"p.secsub",ts:"small",tok:["type.body","color.ink"]},
+  {id:"infoCard",name:"Hours card",sel:".hcard",tok:["color.ground","color.ink","type.body","shape.radius"]},
+  {id:"lead",name:"Intro text",sel:".lead p",tok:["type.body","type.scale","color.ink"]},
+  {id:"secHead",name:"Section heading",sel:"h2.sec",tok:["type.display","type.scale","color.ink"]},
+  {id:"secSub",name:"Section description",sel:"p.secsub",tok:["type.body","color.ink"]},
   {id:"cardPhoto",name:"Card photo",sel:".card .im",tok:["imagery"]},
-  {id:"cardTitle",name:"Card title",sel:".card h3",ts:"h3",tok:["type.display","type.scale","color.ink"]},
-  {id:"cardText",name:"Card description",sel:".card .b>p",ts:"small",tok:["type.body","color.ink"]},
-  {id:"heat",name:"Signal indicator",sel:".heat",tok:["color.heat","comp.heat"]},
-  {id:"tag",name:"Chip",sel:".tag",tok:["shape.radius","color.ink"]},
-  {id:"storyPhoto",name:"Media image",sel:".story .im",tok:["imagery","shape.radius"]},
-  {id:"storyQuote",name:"Pull quote",sel:".story .q",ts:"h3",tok:["type.display","type.accentLine","color.ink"]},
-  {id:"storyBody",name:"Media text",sel:".story p:not(.q)",ts:"body",tok:["type.body","color.ink"]},
-  {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]},
-  /* parts that only the design-system specimen has */
-  {id:"secondary",name:"Secondary action",sel:".btn.sx-2nd",ts:"label",tok:["color.accent","shape.radius","type.body"]},
-  {id:"field",name:"Text field",sel:".sx-field",ts:"small",tok:["color.ink","color.accent","color.heat","shape.radius","type.body"]}
+  {id:"cardTitle",name:"Card title",sel:".card h3",tok:["type.display","type.scale","color.ink"]},
+  {id:"cardText",name:"Card description",sel:".card .b>p",tok:["type.body","color.ink"]},
+  {id:"heat",name:"Heat indicator",sel:".heat",tok:["color.heat","comp.heat"]},
+  {id:"tag",name:"Dietary tag",sel:".tag",tok:["shape.radius","color.ink"]},
+  {id:"storyPhoto",name:"Story photo",sel:".story .im",tok:["imagery","shape.radius"]},
+  {id:"storyQuote",name:"Story quote",sel:".story .q",tok:["type.display","type.accentLine","color.ink"]},
+  {id:"storyBody",name:"Story text",sel:".story p:not(.q)",tok:["type.body","color.ink"]},
+  {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]}
 ];
 const pickById=id=>SYS_PICK.find(p=>p.id===id);
-/* On Spacing & shape, the spacing steps and corner radii each part uses, as [token, index].
-   Clicking a part opens that step's editor, the same one the Tokens sheet opens. */
-const SPACE_REFS={page:[["space.scale",2]],navbar:[["space.scale",0]],heroBlock:[["space.scale",1]],cardGroup:[["space.scale",1]],footer:[["space.scale",1]],
-  action:[["shape.radius",1],["space.scale",0]],secondary:[["shape.radius",1],["space.scale",0]],field:[["shape.radius",1]],tag:[["shape.radius",0]],
-  card:[["shape.radius",2],["space.scale",1]],infoCard:[["shape.radius",2],["space.scale",1]],heroPhoto:[["shape.radius",2]],sidePhoto:[["shape.radius",2]]};
 /* Plain-language explanations for the System inspector. The stored "why" stays terse (it feeds the AI and other pages);
    here it is shown as a readable sentence, and research codes become named sources. */
 const SYS_PLAIN={
@@ -141,82 +132,50 @@ function sysPickToks(p,sec){return p.tok.filter(k=>{const t=T(k);return t&&t.sec
 function renderSystem(){
   if(!S.tokens)S.tokens=seedTokens();
   syncSysDrafts();
-  if(!SEC_NAME[S.sysSection])S.sysSection="color";
+  if(!SEC_NAME[S.sysSection]||S.sysSection==="base")S.sysSection="color";
   if(S.sel?.kind==="token"){const tk=T(S.sel.id);if(!tk)S.sel=null;else if(tk.sec!==S.sysSection)S.sysSection=tk.sec}
-  if(S.sel?.kind==="tstyle"){if(!tsDef(S.sel.id))S.sel=null;else S.sysSection="type"}
-  if(S.sel?.kind==="cstyle"){if(!sgDef(S.sel.id))S.sel=null;else S.sysSection=sgGroupOf(S.sel.id)}
-  if(S.sel?.kind==="scale"){if(!SCALE_INFO[S.sel.id])S.sel=null;else S.sysSection="space"}
   const sec=S.sysSection,view=S.sysView==="tokens"?"tokens":"preview";
   $$("#secnav button").forEach(b=>b.classList.toggle("on",b.dataset.s===sec));
-  if(sec==="base"){renderBaseSystem();return}
   const c=$("#sysCenter"),toks=sysSecToks(sec),name=SEC_NAME[sec];
-  c.innerHTML=`<div class="pane-hd sys-hd"><div><div class="row" style="gap:8px;align-items:center"><span class="title-l">${name}</span>${baseChipHTML()}</div></div></div>
+  c.innerHTML=`<div class="pane-hd sys-hd"><div><span class="title-l">${name}</span><div class="body-s osv">Select an element to edit its style. Highlighted elements share the same setting.</div></div></div>
   <div class="sys-toolbar"><div class="seg" role="group" aria-label="System view"><button data-sysview="preview" class="${view==="preview"?"on":""}" aria-pressed="${view==="preview"}">Preview</button><button data-sysview="tokens" class="${view==="tokens"?"on":""}" aria-pressed="${view==="tokens"}">Tokens</button></div></div>
-  ${view==="preview"?sysPreviewHTML():sysTokenSheets(sec,toks)}
+  ${view==="preview"?sysPreviewHTML():sysTokenGrid(toks)}
   <details class="sys-why"><summary><span class="title-s">About these ${esc(name.toLowerCase())} settings</span></summary><div class="sys-why-b"><div class="body-m">${whyHTML(reason(sec))}</div><form id="sysNotes" class="col" style="gap:8px"><div class="field"><label for="sysNotesTA">Category notes</label><textarea id="sysNotesTA" rows="4">${esc(reason(sec))}</textarea></div><button class="btn outlined sm" type="submit" style="align-self:flex-start">Save notes</button></form></div></details>`;
-  $$("[data-sysview]",c).forEach(b=>b.onclick=()=>{S.sysView=b.dataset.sysview;save();renderSystem()});wireBaseChip(c);
+  $$("[data-sysview]",c).forEach(b=>b.onclick=()=>{S.sysView=b.dataset.sysview;save();renderSystem()});
   $$("[data-tok]",c).forEach(r=>r.onclick=()=>{select({kind:"token",id:r.dataset.tok});renderSystem()});
   $("#sysNotes",c).onsubmit=e=>{e.preventDefault();S.reasons=S.reasons||{};S.reasons[sec]=$("#sysNotesTA").value.trim();snapshot(`${sec} notes`);save();renderSystem();$(".sys-why",c)?.setAttribute("open","");toast(`${name} notes saved`)};
   wireCites(c);wireSysPreview(c,sec);photoFill();
-  if(view==="tokens"){if(sec==="type")wireTypeStyleRows(c);wireStyleRows(c);if(sec==="imagery")wireUserImgs(c);if(typeof sysPhotoFill==="function")sysPhotoFill()}
   renderSystemRail();
 }
-/* Tokens view: the section's spec sheet (20/21-system specs: roles, ramps, contrast, type,
-   spacing, imagery, components) and the token reference table. Every swatch, row and sample
-   carries data-tok, so clicking one opens the same inspector in the side panel. */
-function sysTokenSheets(sec,toks){const selK=S.sel?.kind==="token"?S.sel.id:null;
-  return`${sec==="components"||sec==="imagery"?sgSheet(sec):""}${specSheet(sec)}
-  <details class="card" style="padding:8px 16px"><summary class="title-s" style="cursor:pointer">Token reference · ${toks.length}</summary><div class="toks" style="margin-top:8px"><div class="h">token</div><div class="h">value</div><div class="h">why (evidence)</div><div class="h">what it is NOT</div>${toks.map(t=>`<div class="tokrow ${selK===t.k?"sel":""}" data-tok="${t.k}" tabindex="0" role="button"><div class="k">${esc(t.k)}${t.edited?' <span class="osv">·edited</span>':""}${sysDirty(t)?' <span class="warn-t">·unapplied</span>':""}</div><div>${t.type==="color"?`<span class="sw" style="background:${esc(t.v)}"></span>`:""}${esc(t.v)}</div><div class="osv">${esc(t.why)}</div><div class="osv">${esc(t.not)}</div></div>`).join("")}</div></details>`}
-/* Design-system preview: a specimen with placeholder content, styled by the current tokens
-   (32-system-specimen.js); click a part to inspect the decisions it uses. */
+/* Tokens view: every decision in the section as a selectable card. */
+function sysTokenGrid(toks){const selK=S.sel?.kind==="token"?S.sel.id:null;
+  return`<section class="tokgrid" aria-label="Tokens">${toks.map(t=>`<button class="tokcard ${selK===t.k?"sel":""}" data-tok="${t.k}" aria-pressed="${selK===t.k}"><span class="tokcard-s">${decSample(t)}</span><span class="title-s">${esc(decName(t))}</span><span class="mono osv">${esc(t.k)}</span><span class="body-s tokcard-v">${esc(t.v)}</span>${sysDirty(t)?'<span class="body-s warn-t">Unapplied edits</span>':""}</button>`).join("")}</section>`}
+/* Live website preview: the homepage rendered from the current tokens; click a part to inspect it. */
 function sysPreviewHTML(){
-  return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview">${sysPreviewBar()}
-  <div class="sysprev-frame inspect">${withDrafts(()=>sysSpecimenHTML(S.sysSection))}</div></section>`}
-/* With something selected, fade everything that isn't the selected part, a part that
-   shares its setting, or a container of one: the top-most element of each unrelated
-   branch gets .sp-dim, so containers of a highlighted part keep full strength. */
-function sysFocusDim(frame,root){
-  $$(".sp-dim",root).forEach(e=>e.classList.remove("sp-dim"));
-  const hi=$$(".sp-sel,.sp-shared",frame);frame.classList.toggle("has-sel",hi.length>0);
-  if(!hi.length||hi.includes(root))return;
-  const keep=new Set();
-  hi.forEach(e=>{for(let a=e;a&&a!==frame;a=a.parentElement)keep.add(a);e.querySelectorAll("*").forEach(d=>keep.add(d))});
-  root.querySelectorAll("*").forEach(el=>{if(!keep.has(el)&&keep.has(el.parentElement))el.classList.add("sp-dim")});
-}
+  let site_="";const keep={page:S.page,sel:S.sel,device:S.device,overlays:S.overlays};
+  try{S.page="home";S.sel=null;S.device="desk";S.overlays={...S.overlays,receipts:false};if(typeof syncEL==="function")syncEL();site_=pageHTML()}
+  finally{Object.assign(S,keep)}
+  return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview"><div class="sysprev-hd"><span class="title-s">${esc(SEC_NAME[S.sysSection])} preview</span></div>
+  <div class="sys-scope" role="status" id="sysScopeText"></div>
+  <div class="sysprev-canvas"><div class="sysprev-frame inspect">${site_}</div></div></section>`}
 function wireSysPreview(c,sec){
   const frame=$(".sysprev-frame.inspect",c);if(!frame)return;
   const root=$(".site",frame);if(!root)return;
-  const selK=S.sel?.kind==="token"?S.sel.id:null;let selP=["token","tstyle","scale"].includes(S.sel?.kind)?S.sel.pick:null;
-  const selSC=S.sel?.kind==="scale"?S.sel.id+":"+S.sel.i:null;
-  const selTS=S.sel?.kind==="tstyle"?S.sel.id:null,selCS=S.sel?.kind==="cstyle"?S.sel.id:null;
-  if(S.sel?.kind==="cstyle")selP=S.sel.pick||null;
-  /* tag the parts that use a decision from this section; specific parts overwrite general ones.
-     On Text styles, a part that uses a text style is clickable even if it carries no type token. */
-  const sgItem=id=>(SG_ITEMS[sec]||[]).find(x=>x.pick.includes(id));
-  SYS_PICK.forEach(p=>{if(!sysPickToks(p,sec).length&&!(sec==="type"&&p.ts)&&!sgItem(p.id)&&!(sec==="space"&&SPACE_REFS[p.id]))return;(p.sel==="&"?[root]:$$(p.sel,root)).forEach(el=>{el.dataset.sp=p.id})});
+  const selK=S.sel?.kind==="token"?S.sel.id:null,selP=S.sel?.kind==="token"?S.sel.pick:null;
+  /* tag the parts that use a decision from this section; specific parts overwrite general ones */
+  SYS_PICK.forEach(p=>{if(!sysPickToks(p,sec).length)return;(p.sel==="&"?[root]:$$(p.sel,root)).forEach(el=>{el.dataset.sp=p.id})});
   let n=0;
   $$("[data-sp]",frame).forEach(el=>{const p=pickById(el.dataset.sp);
-    el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label","Inspect "+p.name);el.title=p.name+(sec==="type"&&p.ts?` · ${tsDef(p.ts).name} text style`:"");
-    const same=$$(`[data-sp="${p.id}"]`,frame),pi=Number.isInteger(S.sel?.pi)?S.sel.pi:0;
-    const picked=selP===p.id&&same.indexOf(el)===Math.min(pi,same.length-1),shared=(selP===p.id&&!picked)||(!!selK&&p.tok.includes(selK))||(!!selTS&&p.ts===selTS)||(!!selCS&&(sgDef(selCS)?.pick||[]).includes(p.id))||(!!selSC&&sec==="space"&&(SPACE_REFS[p.id]||[]).some(r=>r.join(":")===selSC));if(picked||shared)n++;
+    el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label","Inspect "+p.name);el.title=p.name;
+    const picked=selP===p.id,shared=!!selK&&p.tok.includes(selK);if(picked||shared)n++;
     el.classList.toggle("sp-sel",picked);el.classList.toggle("sp-shared",shared&&!picked)});
-  sysFocusDim(frame,root);
-  const pick=(id,pi)=>{const p=pickById(id);
-    if(sec==="type"&&p.ts){select({kind:"tstyle",id:p.ts,pick:id,pi});renderSystem();return}
-    const it=sgItem(id);if(it){select({kind:"cstyle",id:it.id,pick:id,pi});renderSystem();return}
-    if(sec==="space"&&SPACE_REFS[id]){const refs=SPACE_REFS[id];const r=refs.find(x=>x.join(":")===selSC)||refs[0];select({kind:"scale",id:r[0],i:r[1],pick:id,pi});renderSystem();return}
-    const keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id,pi});renderSystem()};
-  const idxOf=el=>$$(`[data-sp="${el.dataset.sp}"]`,frame).indexOf(el);
-  frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp,idxOf(el))};
-  frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp,idxOf(el))}};
-  const st=$("#sysScopeText",c);if(st)st.textContent=selK||selTS||selCS||selSC?`${n} element${n===1?" uses":"s use"} this ${sec==="color"?"color":sec==="type"?"text style":"setting"}.`:sec==="type"?"Click any text to edit its text style.":"Click any element to edit it.";
-  sysPreviewExtras(c,sec);
+  const pick=id=>{const p=pickById(id),keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id});renderSystem()};
+  frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp)};
+  frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}};
+  const st=$("#sysScopeText",c);if(st)st.textContent=selK?`Changes apply to ${n} element${n===1?"":"s"}.`:`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`;
 }
 /* Inspector: the selected element, its property, the value, and why. */
 function renderSystemRail(){
-  if(S.sel?.kind==="tstyle"){renderTypeStyleRail();return}
-  if(S.sel?.kind==="cstyle"){renderStyleItemRail();return}
-  if(S.sel?.kind==="scale"){renderScaleRail();return}
   const r=$("#rail-system"),sec=S.sysSection;
   const t=S.sel?.kind==="token"?T(S.sel.id):null;
   if(!t){
@@ -235,8 +194,6 @@ function renderSystemRail(){
   <form class="sys-editor" id="tkForm" novalidate>
     <div class="field"><label for="${isC?"tkHex":t.type==="font"?"tkFont":"tkVal"}">${isC?"Color":esc(decName(t))}</label><div class="row" style="flex-wrap:nowrap">${isC?`<input type="color" id="tkColor" value="${esc(valOk(d.v)?d.v:t.v)}" aria-label="Color picker" class="sys-color"><input type="text" id="tkHex" value="${esc(d.v)}" spellcheck="false" autocomplete="off">`:t.type==="font"?`<select id="tkFont">${(t.k==="type.display"?FONTS.display:FONTS.body).map(f=>`<option ${f===d.v?"selected":""}>${esc(f)}</option>`).join("")}</select>`:`<input type="text" id="tkVal" value="${esc(d.v)}">`}</div></div>
     <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${esc(plainWhy(t))||'<span class="osv">No explanation added.</span>'}</div>${cs.length?`<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>`:`<span class="body-s osv">${o[0]==="AI draft"?"Suggested by AI":esc(o[0])} · not linked to research yet</span>`}</section>
-    ${(()=>{const bv=baseTokenValue(t.k);const mine=t.user&&bv!=null&&String(bv)!==String(t.v);return mine?`<div class="fnote own">Edited by you · ${esc(baseShort())} sets ${esc(bv)} <button type="button" class="linkish" id="tkToBase">Reset to ${esc(baseShort())}</button></div>`:""})()}
-    ${overridersHTML(t.k,null)}
     <details class="sys-sub" id="tkMore"><summary>More details</summary><div class="col" style="gap:12px;padding-top:8px">
       <div class="col" style="gap:6px"><span class="title-s">Evidence</span>${cs.length?cs.map(code=>{const i=citeInfo(code);return`<button type="button" class="evi" data-cite="${code}"><span class="ms">${i.icon}</span><span class="evi-m"><span class="label-m osv">${esc(i.kind)} · ${code}</span><span class="body-s">${esc(i.text)}</span></span><span class="ms osv">open_in_new</span></button>`}).join(""):`<div class="body-s osv">No research cited.</div>`}</div>
       <div class="field"><label for="tkNot">What to avoid</label><textarea id="tkNot" rows="2">${esc(d.not)}</textarea></div>
@@ -247,15 +204,15 @@ function renderSystemRail(){
   </form>
   ${promptBox(t.k,`token ${t.k} = ${t.v} (why: ${t.why}; not: ${t.not})`)}`;
   const val=()=>isC?$("#tkHex").value.trim():t.type==="font"?$("#tkFont").value:$("#tkVal").value;
-  const draft=()=>{sysDrafts[t.k]={v:val(),why:t.why||"",not:$("#tkNot").value};$("#tkActions").hidden=!sysDirty(t);$("#tkErr").textContent="";sysLivePreview()};
+  const draft=()=>{sysDrafts[t.k]={v:val(),why:t.why||"",not:$("#tkNot").value};$("#tkActions").hidden=!sysDirty(t);$("#tkErr").textContent=""};
   if(isC){$("#tkColor").oninput=()=>{$("#tkHex").value=$("#tkColor").value.toUpperCase();draft()};$("#tkHex").oninput=()=>{const v=$("#tkHex").value.trim();if(valOk(v))$("#tkColor").value=v;draft()}}
   const f=$("#tkForm");f.addEventListener("input",draft);f.addEventListener("change",draft);
   f.onsubmit=e=>{e.preventDefault();const v=val();if(!valOk(v)){$("#tkErr").textContent="Use a six-digit hex color, such as #4F6F8F.";return}if(!v.trim()){$("#tkErr").textContent="Enter a value.";return}
-    snapshot(`token ${t.k} → ${v}`);t.v=isC?v.toUpperCase():v;t.not=$("#tkNot").value.trim();t.edited=true;t.user=true;t.mine=mineLabel(t);delete sysDrafts[t.k];save();renderSystem();if(S.view==="review")renderReview();toast(`${decName(t)} updated across the website`)};
-  $("#tkCancel").onclick=()=>{delete sysDrafts[t.k];renderSystemRail();sysLivePreview()};
+    snapshot(`token ${t.k} → ${v}`);t.v=isC?v.toUpperCase():v;t.not=$("#tkNot").value.trim();t.edited=true;t.mine=mineLabel(t);delete sysDrafts[t.k];save();renderSystem();if(S.view==="review")renderReview();toast(`${decName(t)} updated across the website`)};
+  $("#tkCancel").onclick=()=>{delete sysDrafts[t.k];renderSystemRail()};
   const prop=$("#tkProp");if(prop)prop.onchange=()=>{select({kind:"token",id:prop.value,pick:S.sel.pick});renderSystem()};
   wirePrompt(r,{kind:"token",id:t.k},`token ${t.k} = ${t.v} (why: ${t.why}; not: ${t.not})`);
-  wireCites(r);wireOverriders(r);const tb=$("#tkToBase",r);if(tb)tb.onclick=()=>resetTokenToBase(t.k);
+  wireCites(r);
   $$("[data-closesel]",r).forEach(b=>b.onclick=clearSel);
 }
 $$("#secnav button").forEach(b=>b.onclick=()=>{S.sysSection=b.dataset.s;select(null);save();renderSystem()});
@@ -396,10 +353,10 @@ $$("#trendSeg button,#baselinePill").forEach(b=>b.onclick=()=>{S.trend=b.dataset
 let previewVer=null;
 function verLabel(w){const m=String(w).match(/^element (\w+) (\{.*\})$/);if(!m)return w;let o={};try{o=JSON.parse(m[2])}catch{}const n=EL[m[1]]?.name||m[1];const parts=Object.entries(o).map(([k,v])=>k==="hidden"?(v?"removed":"restored"):k==="variant"?`→ ${v}`:k==="caption"?`copy → “${String(v).slice(0,28)}”`:k==="img"?(v?"image swapped":"image reset"):`${k} → ${v}`);return`${n} ${parts.join(", ")}`}
 // each history entry stores the state BEFORE its change; the state "at that point" (after the change) is the next entry, or current.
-function stateAfter(i){const n=S.history[i+1];const d=n?("designAt" in n?dzDesignAt(n.designAt):undefined):(S.design||null);const st=n?{tokens:n.tokens,elements:n.elements,site:n.site||S.site,review:"review" in n?n.review:S.review,typeStyles:"typeStyles" in n?n.typeStyles:S.typeStyles,compStyles:"compStyles" in n?n.compStyles:S.compStyles,baseSystem:n.baseSystem||S.baseSystem}:{tokens:S.tokens||seedTokens(),elements:S.elements,site:S.site,review:S.review,typeStyles:S.typeStyles,compStyles:S.compStyles,baseSystem:S.baseSystem};if(d!==undefined)st.design=d;return st}
+function stateAfter(i){const n=S.history[i+1];const d=n?("designAt" in n?dzDesignAt(n.designAt):undefined):(S.design||null);const st=n?{tokens:n.tokens,elements:n.elements,site:n.site||S.site,review:"review" in n?n.review:S.review}:{tokens:S.tokens||seedTokens(),elements:S.elements,site:S.site,review:S.review};if(d!==undefined)st.design=d;return st}
 function verList(){return S.history.length?[...S.history].reverse().slice(0,20).map((h,i)=>{const idx=S.history.length-1-i;const cur=idx===S.history.length-1;const on=previewVer===idx||(previewVer===null&&cur);return`<div class="ver ${on?"on":""}" data-ver="${idx}" tabindex="0" role="button" aria-pressed="${on}"><span class="d"></span><span style="flex:1;min-width:0">${esc(verLabel(h.what))}${cur?' <span class="badge p">current</span>':""}</span><span class="mono osv">${new Date(h.t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>${cur?"":`<button class="btn text sm" data-restore="${idx}">Restore</button>`}</div>`}).join(""):`<div class="note">No versions yet. Every change creates one.</div>`}
 function wireVer(r){$$("[data-ver]",r).forEach(v=>{const go=()=>{const i=+v.dataset.ver;previewVer=(i===S.history.length-1)?null:i;renderReview()};v.onclick=e=>{if(e.target.closest("[data-restore]"))return;go()};v.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}});
-  $$("[data-restore]",r).forEach(b=>b.onclick=e=>{e.stopPropagation();const i=+b.dataset.restore;const st=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(st.tokens));S.typeStyles=JSON.parse(JSON.stringify(st.typeStyles||{}));S.compStyles=JSON.parse(JSON.stringify(st.compStyles||{}));if(st.baseSystem)S.baseSystem=st.baseSystem;S.elements=JSON.parse(JSON.stringify(st.elements));S.site=st.site?JSON.parse(JSON.stringify(st.site)):S.site;S.review=st.review;applyVersionDesign(st);previewVer=null;save();renderAll();toast("Restored that version")})}
+  $$("[data-restore]",r).forEach(b=>b.onclick=e=>{e.stopPropagation();const i=+b.dataset.restore;const st=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(st.tokens));S.elements=JSON.parse(JSON.stringify(st.elements));S.site=st.site?JSON.parse(JSON.stringify(st.site)):S.site;S.review=st.review;applyVersionDesign(st);previewVer=null;save();renderAll();toast("Restored that version")})}
 
 /* ============================ REVIEW ============================ */
 const EL={
@@ -449,10 +406,10 @@ function renderReview(){syncEL();
     ?"Click a section to see the research, inspiration and design-system choices behind it. Token edits on the System page restyle this page straight away."
     :"Use the site's own navigation to move between pages. Click any part to see the decision behind it.";
   if(!designed&&typeof dzFrameKey!=="undefined")dzFrameKey=null;
-  if(previewVer!==null&&S.history[previewVer]){const keep={tokens:S.tokens,elements:S.elements,sel:S.sel,site:S.site,review:S.review,design:S.design,typeStyles:S.typeStyles,compStyles:S.compStyles,baseSystem:S.baseSystem};const at=stateAfter(previewVer);S.typeStyles=at.typeStyles||{};S.compStyles=at.compStyles||{};if("design" in at)S.design=at.design;S.tokens=at.tokens;S.elements=at.elements;S.site=at.site;S.review=at.review;S.sel=null;syncEL();
+  if(previewVer!==null&&S.history[previewVer]){const keep={tokens:S.tokens,elements:S.elements,sel:S.sel,site:S.site,review:S.review,design:S.design};const at=stateAfter(previewVer);if("design" in at)S.design=at.design;S.tokens=at.tokens;S.elements=at.elements;S.site=at.site;S.review=at.review;S.sel=null;syncEL();
     const h=S.history[previewVer];const pvDoc=S.design&&S.design.html?designFrameHTML():null;const pvBody=pvDoc?`<div class="designwrap"><iframe id="designPreview" class="designframe ${S.device==="phone"?"phone":""}" sandbox="allow-same-origin" title="Version preview"></iframe></div>`:`<div class="morph">${pageHTML()}</div>`;st.innerHTML=`<div class="verbar"><span class="ms">history</span><span style="flex:1;min-width:0"><b>Previewing</b> · ${esc(verLabel(h.what))} · ${new Date(h.t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span><button class="btn text sm" id="vbBack">Back to current</button><button class="btn filled sm" id="vbRestore">Restore this version</button></div>${pvBody}`;Object.assign(S,keep);
     if(pvDoc){const pf=$("#designPreview",st);pf.onload=()=>{const dd=pf.contentDocument;if(!dd||!dd.body)return;fillDesignPhotos(dd);const fit=()=>{pf.style.height=Math.max(320,dd.body.scrollHeight)+"px"};fit();try{new ResizeObserver(fit).observe(dd.body)}catch{}};pf.srcdoc=pvDoc}
-    $("#vbBack",st).onclick=()=>{previewVer=null;renderReview()};$("#vbRestore",st).onclick=()=>$(`[data-restore="${previewVer}"]`)?.click()||(()=>{const i=previewVer;const a=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(a.tokens));S.typeStyles=JSON.parse(JSON.stringify(a.typeStyles||{}));S.compStyles=JSON.parse(JSON.stringify(a.compStyles||{}));if(a.baseSystem)S.baseSystem=a.baseSystem;S.elements=JSON.parse(JSON.stringify(a.elements));S.site=a.site?JSON.parse(JSON.stringify(a.site)):S.site;S.review=a.review;applyVersionDesign(a);previewVer=null;save();renderAll();toast("Restored that version")})();
+    $("#vbBack",st).onclick=()=>{previewVer=null;renderReview()};$("#vbRestore",st).onclick=()=>$(`[data-restore="${previewVer}"]`)?.click()||(()=>{const i=previewVer;const a=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(a.tokens));S.elements=JSON.parse(JSON.stringify(a.elements));S.site=a.site?JSON.parse(JSON.stringify(a.site)):S.site;S.review=a.review;applyVersionDesign(a);previewVer=null;save();renderAll();toast("Restored that version")})();
     $$(".el",st).forEach(e=>{e.style.cursor="default"});renderReviewRail();return}
   /* Showing the empty scaffold as though it were a design is what made the Review
      page look unrelated to the project: stock nav labels and "[ITEM 1]" are the

@@ -84,21 +84,21 @@ function genSpecColor() {
 function genSpecType() {
   const d = designTokens(), k = systemKit();
   const fam = f => f === "display" ? `'${d.fontDisplay}',Georgia,serif` : `'${d.fontBody}',system-ui,sans-serif`;
-  const rows = tsSheetRows({ display: k.headline, h2: k.headline, h3: k.nav[0] || k.headline, body: k.body, small: k.body, label: k.label });
+  const styles = [["Display", "display", d.t.display, 600, k.headline], ["Heading", "display", d.t.h2, 600, k.headline], ["Subheading", "display", d.t.h3, 600, k.nav[0] || k.headline], ["Body", "body", d.t.body, 400, k.body], ["Small", "body", d.t.small, 400, k.body], ["Button label", "body", d.t.small, 600, k.label]];
+  const rows = styles.map(([n, f, sz, w, txt]) => `<div class="trow" ${tokBtn(n === "Button label" ? "comp.cta" : f === "display" ? "type.display" : "type.body")}><div class="tmeta"><div class="title-s">${n}</div><div class="body-s osv">${esc(f === "display" ? d.fontDisplay : d.fontBody)} · ${sz}px · weight ${w}</div></div><div class="tsample" style="font-family:${fam(f)};font-size:${sz}px;line-height:${f === "display" ? 1.15 : 1.5};font-weight:${w}">${esc(String(txt || S.project || "").slice(0, n === "Body" || n === "Small" ? 140 : 60))}</div></div>`).join("");
   const acc = T("type.accentLine"); const av = String((acc && acc.v) || "").trim();
   const accRow = acc && av && !/^none$/i.test(av) && !/^\[/.test(av) ? `<div class="trow" ${tokBtn("type.accentLine")}><div class="tmeta"><div class="title-s">Accent treatment</div><div class="body-s osv">${esc(sysVal(av))}</div>${sysWhy(acc) ? `<div class="body-s"><b>Why:</b> ${esc(sysWhy(acc))}</div>` : ""}</div><div class="tsample" style="font-family:${fam("body")};font-size:${d.t.small}px;${/caps|upper|track|letter/i.test(av) ? "text-transform:uppercase;letter-spacing:.08em;" : ""}${/underline/i.test(av) ? `text-decoration:underline;text-decoration-color:${d.accent};text-underline-offset:5px;` : ""}${/rule|bar|line/i.test(av) && !/underline/i.test(av) ? `border-left:3px solid ${d.accent};padding-left:10px;` : ""}font-weight:600">${esc(k.chips[0] || k.nav[0] || k.label)}</div></div>` : "";
   const sc = T("type.scale"), fd = T("type.display"), fb = T("type.body");
   const whys = [[fd, "Headings"], [fb, "Body text"], [sc, "Sizes"]].filter(x => x[0] && sysWhy(x[0])).map(([t, n]) => `<div class="body-s"><b>${n}:</b> ${esc(sysWhy(t))}${t.not ? ` <span class="osv">Not: ${esc(t.not)}</span>` : ""}</div>`).join("");
-  return SHEET(SH("Text styles", `sizes start from the scale ${esc(tv("type.scale") || "")} · click a style to edit its font, size, weight and spacing`) + rows + accRow) + (whys ? SHEET(SH("Why these", "") + whys) : "") + sysNoKitNote();
+  return SHEET(SH("Text styles", `sizes come from the scale ${esc(tv("type.scale") || "")} · click a row to change the font`) + rows + accRow) + (whys ? SHEET(SH("Why these", "") + whys) : "") + sysNoKitNote();
 }
 
 function genSpecSpace() {
   const d = designTokens();
   const use = ["inside small parts, between an icon and its label", "inside cards and buttons", "between cards", "padding inside a section", "between sections"];
-  const spN = scaleNums("space.scale").filter(n => n > 0), rN = scaleNums("shape.radius");
-  const sp = (spN.length ? spN : d.s).map((s, i) => `<div class="srow pick ${S.sel?.kind==="scale"&&S.sel.id==="space.scale"&&S.sel.i===i?"sel":""}" data-scale="space.scale:${i}" tabindex="0" role="button"><div class="sbox"><i style="width:${Math.min(s, 72)}px;height:${Math.min(s, 72)}px"></i></div><div class="mono">step ${i + 1}</div><div class="body-s">${s}px</div><div class="body-s osv">${use[i] || ""}</div></div>`).join("");
+  const sp = d.s.map((s, i) => `<div class="srow" ${tokBtn("space.scale")}><div class="sbox"><i style="width:${Math.min(s, 72)}px;height:${Math.min(s, 72)}px"></i></div><div class="mono">step ${i + 1}</div><div class="body-s">${s}px</div><div class="body-s osv">${use[i] || ""}</div></div>`).join("");
   const ru = ["tags and small parts", "buttons and inputs", "cards and images"], rn = ["small", "medium", "large"];
-  const rad = (rN.length ? rN : d.r).map((r, i) => `<div class="srow pick ${S.sel?.kind==="scale"&&S.sel.id==="shape.radius"&&S.sel.i===i?"sel":""}" data-scale="shape.radius:${i}" tabindex="0" role="button"><div class="sbox"><i style="width:44px;height:44px;border-radius:${r}px;background:transparent;border:2px solid var(--primary)"></i></div><div class="mono">${rn[i] || "step " + (i + 1)}</div><div class="body-s">${r}px</div><div class="body-s osv">${ru[i] || ""}</div></div>`).join("");
+  const rad = d.r.map((r, i) => `<div class="srow" ${tokBtn("shape.radius")}><div class="sbox"><i style="width:44px;height:44px;border-radius:${r}px;background:transparent;border:2px solid var(--primary)"></i></div><div class="mono">${rn[i]}</div><div class="body-s">${r}px</div><div class="body-s osv">${ru[i]}</div></div>`).join("");
   const why = k => { const t = T(k); return t && sysWhy(t) ? `<div class="body-s"><b>Why:</b> ${esc(sysWhy(t))}${t.not ? ` <span class="osv">Not: ${esc(t.not)}</span>` : ""}</div>` : ""; };
   return SHEET(SH("Spacing", "every margin, padding and gap on the page uses one of these steps") + sp + why("space.scale")) + SHEET(SH("Corner radius", "") + rad + why("shape.radius"));
 }

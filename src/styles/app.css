@@ -556,11 +556,11 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .evi.none{cursor:default;background:var(--warn-container);border-color:transparent}
 .evi.none:hover{border-color:transparent}
 /* system page · live website preview */
-.sysprev{flex:none;display:flex;flex-direction:column;gap:8px}
+.sysprev{flex:none;border:1px solid var(--outline-variant);border-radius:16px;overflow:hidden;background:var(--surface-container-lowest);box-shadow:var(--e1)}
 .sysprev-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--outline-variant)}
 .sysprev-eyebrow{color:var(--primary);text-transform:uppercase;letter-spacing:.12em;font-size:11px}
-.sysprev-canvas{background:var(--surface-container);padding:20px;max-height:max(520px,calc(100vh - 260px));overflow:auto}
-.sysprev-frame .site{max-width:900px;margin:0;box-shadow:none;border:1px solid var(--outline-variant)}
+.sysprev-canvas{background:var(--surface-container);padding:20px;max-height:520px;overflow:auto}
+.sysprev-frame .site{max-width:900px}
 .sysprev-frame .site.phone{max-width:390px}
 .sysprev-foot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 16px;border-top:1px solid var(--outline-variant);font-size:12px;color:var(--on-surface-variant)}
 @media (max-width:780px){.sysprev-canvas{padding:10px;max-height:440px}}
@@ -568,18 +568,12 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .sysprev-frame .el:hover{outline:none}
 /* system page · preview / tokens switch, inspectable preview */
 .sys-toolbar{flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.sys-scope{font-size:13px;color:var(--on-surface-variant)}
+.sys-scope{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--outline-variant);background:var(--surface-container-low);font-size:13px;color:var(--on-surface-variant)}
 .sysprev-frame.inspect [data-sp]{cursor:pointer}
-.sysprev-frame.inspect [data-sp]:not(.sp-sel):not(.sp-shared):hover{outline:1px solid var(--primary);outline-offset:-1px}
+.sysprev-frame.inspect [data-sp]:hover{outline:1px solid var(--primary);outline-offset:-1px}
 .sysprev-frame.inspect [data-sp]:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
-/* selected: thick ring outside the part with a white halo, so images and dark
-   backgrounds can't hide it; related: thinner dashed ring, same halo */
-.sysprev-frame.inspect .sp-shared{outline:2px dashed var(--primary);outline-offset:3px;box-shadow:0 0 0 7px rgba(255,255,255,.75);position:relative;z-index:1}
-.sysprev-frame.inspect .sp-sel{outline:3px solid var(--primary);outline-offset:3px;box-shadow:0 0 0 9px rgba(255,255,255,.9);position:relative;z-index:2}
-/* everything unrelated fades back */
-.sysprev-frame .sp-dim{opacity:.28 !important;filter:saturate(.3);transition:opacity .18s,filter .18s}
-.sysprev-frame.has-sel .card,.sysprev-frame.has-sel .hero .ph{overflow:visible}
-.sysprev-frame .s.spec .card{min-width:0}
+.sysprev-frame.inspect .sp-shared{outline:2px dashed var(--primary);outline-offset:-2px}
+.sysprev-frame.inspect .sp-sel{outline:2px solid var(--primary);outline-offset:-2px}
 .tokgrid{flex:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
 .tokcard{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:14px;border:1px solid var(--outline-variant);border-radius:12px;background:var(--surface-container-lowest);color:var(--on-surface);text-align:left;cursor:pointer}
 .tokcard:hover{background:var(--surface-container-low)}
@@ -768,15 +762,3 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .insp-site>.ms{flex:none;color:var(--primary)}
 .insp-site>.badge{flex:none}
 .cedit .row{margin-top:var(--sp-3)}
-
-/* Where values come from (25-provenance.js) */
-.base-chip{gap:4px}
-.fnote{font-size:12px;line-height:1.35;color:var(--on-surface-variant);margin-top:4px}
-.fnote.own{color:var(--primary)}
-.linkish{background:none;border:0;padding:0;color:var(--primary);text-decoration:underline;cursor:pointer;font:inherit}
-.ov-note{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--secondary-container);color:var(--on-secondary-container)}
-.ov-note .ms{font-size:18px}
-.sys-editor .row>.field{flex:1 1 0;min-width:0}
-
-/* System Preview: live edits (26-preview-extras.js) */
-.live-t{color:var(--primary);font-weight:600}
