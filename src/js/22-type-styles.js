@@ -91,7 +91,7 @@ function tsSheetRows(sample) {
     const r = tsResolved(s.id); const ed = tsEdited(s.id);
     const wn = (TS_WEIGHTS.find(x => x[0] === r.w) || [r.w, String(r.w)])[1];
     const txt = (sample && sample[s.id]) || s.name;
-    return `<div class="trow pick ${sel === s.id ? "sel" : ""}" data-tstyle="${s.id}" tabindex="0" role="button" aria-label="Edit ${esc(s.name)} text style"><div class="tmeta"><div class="title-s">${esc(s.name)}${ed ? ' <span class="badge p">edited</span>' : ""}</div><div class="body-s osv">${esc(s.role)}</div><div class="body-s osv">${esc(r.font)} · ${r.size}px · ${wn} ${r.w} · line ${r.lh} · tracking ${r.tr}px</div></div><div class="tsample" style="${tsDecl(s.id)};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(txt).slice(0, s.id === "body" || s.id === "small" ? 140 : 60))}</div></div>`;
+    return `<div class="trow pick ${sel === s.id ? "sel" : ""}" data-tstyle="${s.id}" tabindex="0" role="button" aria-label="Edit ${esc(s.name)} text style"><div class="tmeta"><div class="title-s">${esc(s.name)}</div><div>${provBadge(ed)}</div><div class="body-s osv">${esc(s.role)}</div><div class="body-s osv">${esc(r.font)} · ${r.size}px · ${wn} ${r.w} · line ${r.lh} · tracking ${r.tr}px</div></div><div class="tsample" style="${tsDecl(s.id)};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(txt).slice(0, s.id === "body" || s.id === "small" ? 140 : 60))}</div></div>`;
   }).join("");
 }
 function wireTypeStyleRows(root) {
@@ -112,20 +112,23 @@ function renderTypeStyleRail() {
   const dirty = ["font", "size", "lh", "w", "tr"].some(k => String(d[k]) !== String(cur[k]));
   const famTok = T(s.fam === "display" ? "type.display" : "type.body");
   const fonts = [...new Set([b.font, ...(FONTS.display || []), ...(FONTS.body || []), cur.font, d.font].filter(Boolean))];
-  const why = [famTok && plainWhy(famTok), T("type.scale") && plainWhy(T("type.scale"))].filter(Boolean);
+  const why = [...new Set([famTok && plainWhy(famTok), T("type.scale") && plainWhy(T("type.scale"))].filter(Boolean))];
   const cs = [...new Set([...(famTok ? cites(famTok.why) : []), ...(T("type.scale") ? cites(T("type.scale").why) : [])])];
-  const num = (k, lbl, step, min, max, unit) => `<div class="field"><label for="ts_${k}">${lbl}${unit ? ` (${unit})` : ""}</label><input type="number" id="ts_${k}" value="${esc(d[k])}" step="${step}" min="${min}" max="${max}" inputmode="decimal"></div>`;
+  const e0 = tsEdits(id) || {};
+  const shown = { font: b.font, size: b.size + "px", lh: String(b.lh), w: String(b.w), tr: b.tr + "px" };
+  const note = k => fieldNote(k in e0, tsSourceWord(k, s), shown[k]);
+  const num = (k, lbl, step, min, max, unit) => `<div class="field"><label for="ts_${k}">${lbl}${unit ? ` (${unit})` : ""}</label><input type="number" id="ts_${k}" value="${esc(d[k])}" step="${step}" min="${min}" max="${max}" inputmode="decimal">${note(k)}</div>`;
   r.innerHTML = `<div class="rhead"><div class="title-m" style="min-width:0">${esc(s.name)}</div><span class="spacer"></span><button class="icon-btn" data-closesel aria-label="Clear selection"><span class="ms">close</span></button></div>
   <div class="field"><label for="tsPick">Text style</label><select id="tsPick">${TS_LIST.map(x => `<option value="${x.id}" ${x.id === id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></div>
   <form class="sys-editor" id="tsForm" novalidate>
-    <div class="field"><label for="ts_font">Font family</label><select id="ts_font">${fonts.map(f => `<option value="${esc(f)}" ${f === d.font ? "selected" : ""}>${esc(f)}${f === b.font ? ` (${s.fam === "display" ? "display" : "body"} font)` : ""}</option>`).join("")}</select></div>
+    <div class="field"><label for="ts_font">Font family</label><select id="ts_font">${fonts.map(f => `<option value="${esc(f)}" ${f === d.font ? "selected" : ""}>${esc(f)}${f === b.font ? ` (${s.fam === "display" ? "display" : "body"} font)` : ""}</option>`).join("")}</select>${note("font")}</div>
     <div class="row" style="gap:12px;flex-wrap:nowrap">${num("size", "Size", 1, 8, 160, "px")}${num("lh", "Line height", 0.05, 0.8, 3, "")}</div>
-    <div class="row" style="gap:12px;flex-wrap:nowrap"><div class="field"><label for="ts_w">Weight</label><select id="ts_w">${TS_WEIGHTS.map(([w, n]) => `<option value="${w}" ${+d.w === w ? "selected" : ""}>${n} · ${w}</option>`).join("")}</select></div>${num("tr", "Letter spacing", 0.1, -5, 10, "px")}</div>
+    <div class="row" style="gap:12px;flex-wrap:nowrap"><div class="field"><label for="ts_w">Weight</label><select id="ts_w">${TS_WEIGHTS.map(([w, n]) => `<option value="${w}" ${+d.w === w ? "selected" : ""}>${n} · ${w}</option>`).join("")}</select>${note("w")}</div>${num("tr", "Letter spacing", 0.1, -5, 10, "px")}</div>
     <div class="ts-prev" style="${tsDeclFrom(d, s.fam)};padding:12px;border:1px solid var(--outline-variant);border-radius:12px;background:${esc(tv("color.ground") || "#fff")};color:${esc(tv("color.ink") || "#111")};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.id === "label" ? "Primary action" : s.id === "body" || s.id === "small" ? "The quick brown fox jumps over the lazy dog." : s.name + " sample")}</div>
-    <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${why.length ? esc(why.join(" ")) : '<span class="osv">No explanation added.</span>'}</div>${cs.length ? `<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>` : ""}<span class="body-s osv">${tsEdited(id) ? "Edited by you · " : ""}Starts from the ${s.fam === "display" ? "display" : "body"} font and the type scale</span></section>
+    <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${why.length ? esc(why.join(" ")) : '<span class="osv">No explanation added.</span>'}</div>${cs.length ? `<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>` : ""}<span class="body-s osv">${esc(provLabel(tsEdited(id)))} · base: ${esc(baseShort())}</span></section>
     <p class="body-s bad-t" id="tsErr" role="alert"></p>
     <div class="row sys-apply" id="tsActions" ${dirty ? "" : "hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="tsCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>
-    ${tsEdited(id) ? `<div class="row"><button type="button" class="btn text sm" id="tsReset">Reset to the design system</button></div>` : ""}
+    ${tsEdited(id) ? `<div class="row"><button type="button" class="btn text sm" id="tsReset">Reset to follow ${esc(baseShort())}</button></div>` : ""}
   </form>`;
   const read = () => ({ font: $("#ts_font").value, size: $("#ts_size").value, lh: $("#ts_lh").value, w: +$("#ts_w").value, tr: $("#ts_tr").value });
   const f = $("#tsForm");
@@ -138,7 +141,7 @@ function renderTypeStyleRail() {
   f.addEventListener("input", draft); f.addEventListener("change", draft);
   f.onsubmit = e => {
     e.preventDefault(); const v = read();
-    const bad = [["size", 8, 160, "Size"], ["lh", 0.8, 3, "Line height"], ["tr", -5, 10, "Letter spacing"]].find(([k, lo, hi]) => v[k] === "" || !Number.isFinite(+v[k]) || +v[k] < lo || +v[k] > hi);
+    const bad = [["size", 8, 160, "Size"], ["lh", 0.8, 3, "Line height"], ["tr", -5, 10, "Letter spacing"]].find(([k, lo, hi]) => String(v[k]) !== String(cur[k]) && (v[k] === "" || !Number.isFinite(+v[k]) || +v[k] < lo || +v[k] > hi));
     if (bad) { $("#tsErr").textContent = `${bad[3]} must be a number from ${bad[1]} to ${bad[2]}.`; return; }
     snapshot(`text style ${s.name} → ${v.font} ${v.size}px ${v.w}`);
     const out = {};
@@ -153,7 +156,7 @@ function renderTypeStyleRail() {
     toast(`${s.name} updated across the website`);
   };
   $("#tsCancel").onclick = () => { delete tsDrafts[id]; renderTypeStyleRail(); };
-  const rs = $("#tsReset"); if (rs) rs.onclick = () => { snapshot(`reset text style ${s.name}`); S.typeStyles = { ...(S.typeStyles || {}) }; delete S.typeStyles[id]; delete tsDrafts[id]; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${s.name} follows the design system again`); };
+  const rs = $("#tsReset"); if (rs) rs.onclick = () => { snapshot(`reset text style ${s.name}`); S.typeStyles = { ...(S.typeStyles || {}) }; delete S.typeStyles[id]; delete tsDrafts[id]; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${s.name} follows ${baseShort()} again`); };
   $("#tsPick").onchange = () => { select({ kind: "tstyle", id: $("#tsPick").value }); renderSystem(); };
   wireCites(r);
   $$("[data-closesel]", r).forEach(x => x.onclick = clearSel);

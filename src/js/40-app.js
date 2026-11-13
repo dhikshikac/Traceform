@@ -145,11 +145,11 @@ function renderSystem(){
   $$("#secnav button").forEach(b=>b.classList.toggle("on",b.dataset.s===sec));
   if(sec==="base"){renderBaseSystem();return}
   const c=$("#sysCenter"),toks=sysSecToks(sec),name=SEC_NAME[sec];
-  c.innerHTML=`<div class="pane-hd sys-hd"><div><span class="title-l">${name}</span><div class="body-s osv">Select an element to edit its style. Highlighted elements share the same setting.</div></div></div>
+  c.innerHTML=`<div class="pane-hd sys-hd"><div><div class="row" style="gap:8px;align-items:center"><span class="title-l">${name}</span>${baseChipHTML()}</div><div class="body-s osv">Select an element to edit its style. Highlighted elements share the same setting.</div></div></div>
   <div class="sys-toolbar"><div class="seg" role="group" aria-label="System view"><button data-sysview="preview" class="${view==="preview"?"on":""}" aria-pressed="${view==="preview"}">Preview</button><button data-sysview="tokens" class="${view==="tokens"?"on":""}" aria-pressed="${view==="tokens"}">Tokens</button></div></div>
   ${view==="preview"?sysPreviewHTML():sysTokenSheets(sec,toks)}
   <details class="sys-why"><summary><span class="title-s">About these ${esc(name.toLowerCase())} settings</span></summary><div class="sys-why-b"><div class="body-m">${whyHTML(reason(sec))}</div><form id="sysNotes" class="col" style="gap:8px"><div class="field"><label for="sysNotesTA">Category notes</label><textarea id="sysNotesTA" rows="4">${esc(reason(sec))}</textarea></div><button class="btn outlined sm" type="submit" style="align-self:flex-start">Save notes</button></form></div></details>`;
-  $$("[data-sysview]",c).forEach(b=>b.onclick=()=>{S.sysView=b.dataset.sysview;save();renderSystem()});
+  $$("[data-sysview]",c).forEach(b=>b.onclick=()=>{S.sysView=b.dataset.sysview;save();renderSystem()});wireBaseChip(c);
   $$("[data-tok]",c).forEach(r=>r.onclick=()=>{select({kind:"token",id:r.dataset.tok});renderSystem()});
   $("#sysNotes",c).onsubmit=e=>{e.preventDefault();S.reasons=S.reasons||{};S.reasons[sec]=$("#sysNotesTA").value.trim();snapshot(`${sec} notes`);save();renderSystem();$(".sys-why",c)?.setAttribute("open","");toast(`${name} notes saved`)};
   wireCites(c);wireSysPreview(c,sec);photoFill();
@@ -160,7 +160,7 @@ function renderSystem(){
    spacing, imagery, components) and the token reference table. Every swatch, row and sample
    carries data-tok, so clicking one opens the same inspector in the side panel. */
 function sysTokenSheets(sec,toks){const selK=S.sel?.kind==="token"?S.sel.id:null;
-  return`${sec==="components"||sec==="imagery"?sgSheet(sec):""}${specSheet(sec)}
+  return`<div class="sys-legend body-s osv"><span class="ms" style="font-size:16px">ads_click</span><span>Anything with a dashed outline on hover can be edited. <span class="auto-tag">auto</span> marks values worked out from other settings: change those settings to update them.</span></div>${sec==="components"||sec==="imagery"?sgSheet(sec):""}${specSheet(sec)}
   <details class="card" style="padding:8px 16px"><summary class="title-s" style="cursor:pointer">Token reference · ${toks.length}</summary><div class="toks" style="margin-top:8px"><div class="h">token</div><div class="h">value</div><div class="h">why (evidence)</div><div class="h">what it is NOT</div>${toks.map(t=>`<div class="tokrow ${selK===t.k?"sel":""}" data-tok="${t.k}" tabindex="0" role="button"><div class="k">${esc(t.k)}${t.edited?' <span class="osv">·edited</span>':""}${sysDirty(t)?' <span class="warn-t">·unapplied</span>':""}</div><div>${t.type==="color"?`<span class="sw" style="background:${esc(t.v)}"></span>`:""}${esc(t.v)}</div><div class="osv">${esc(t.why)}</div><div class="osv">${esc(t.not)}</div></div>`).join("")}</div></details>`}
 /* Design-system preview: a specimen with placeholder content, styled by the current tokens
    (32-system-specimen.js); click a part to inspect the decisions it uses. */
@@ -214,6 +214,8 @@ function renderSystemRail(){
   <form class="sys-editor" id="tkForm" novalidate>
     <div class="field"><label for="${isC?"tkHex":t.type==="font"?"tkFont":"tkVal"}">${isC?"Color":esc(decName(t))}</label><div class="row" style="flex-wrap:nowrap">${isC?`<input type="color" id="tkColor" value="${esc(valOk(d.v)?d.v:t.v)}" aria-label="Color picker" class="sys-color"><input type="text" id="tkHex" value="${esc(d.v)}" spellcheck="false" autocomplete="off">`:t.type==="font"?`<select id="tkFont">${(t.k==="type.display"?FONTS.display:FONTS.body).map(f=>`<option ${f===d.v?"selected":""}>${esc(f)}</option>`).join("")}</select>`:`<input type="text" id="tkVal" value="${esc(d.v)}">`}</div></div>
     <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${esc(plainWhy(t))||'<span class="osv">No explanation added.</span>'}</div>${cs.length?`<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>`:`<span class="body-s osv">${o[0]==="AI draft"?"Suggested by AI":esc(o[0])} · not linked to research yet</span>`}</section>
+    ${(()=>{const bv=baseTokenValue(t.k);const mine=t.user&&bv!=null&&String(bv)!==String(t.v);return mine?`<div class="fnote own">Edited by you · ${esc(baseShort())} sets ${esc(bv)} <button type="button" class="linkish" id="tkToBase">Reset to ${esc(baseShort())}</button></div>`:""})()}
+    ${overridersHTML(t.k,null)}
     <details class="sys-sub" id="tkMore"><summary>More details</summary><div class="col" style="gap:12px;padding-top:8px">
       <div class="col" style="gap:6px"><span class="title-s">Evidence</span>${cs.length?cs.map(code=>{const i=citeInfo(code);return`<button type="button" class="evi" data-cite="${code}"><span class="ms">${i.icon}</span><span class="evi-m"><span class="label-m osv">${esc(i.kind)} · ${code}</span><span class="body-s">${esc(i.text)}</span></span><span class="ms osv">open_in_new</span></button>`}).join(""):`<div class="body-s osv">No research cited.</div>`}</div>
       <div class="field"><label for="tkNot">What to avoid</label><textarea id="tkNot" rows="2">${esc(d.not)}</textarea></div>
@@ -232,7 +234,7 @@ function renderSystemRail(){
   $("#tkCancel").onclick=()=>{delete sysDrafts[t.k];renderSystemRail()};
   const prop=$("#tkProp");if(prop)prop.onchange=()=>{select({kind:"token",id:prop.value,pick:S.sel.pick});renderSystem()};
   wirePrompt(r,{kind:"token",id:t.k},`token ${t.k} = ${t.v} (why: ${t.why}; not: ${t.not})`);
-  wireCites(r);
+  wireCites(r);wireOverriders(r);const tb=$("#tkToBase",r);if(tb)tb.onclick=()=>resetTokenToBase(t.k);
   $$("[data-closesel]",r).forEach(b=>b.onclick=clearSel);
 }
 $$("#secnav button").forEach(b=>b.onclick=()=>{S.sysSection=b.dataset.s;select(null);save();renderSystem()});

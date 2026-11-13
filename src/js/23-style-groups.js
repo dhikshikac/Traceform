@@ -28,7 +28,7 @@ const SG_LOGO = [["50%", "Circle"], ["6px", "Rounded square"], ["0px", "Square"]
 const SG_ITEMS = {
   components: [
     { id: "button", name: "Buttons", role: "Primary, secondary and outlined actions", pick: ["action", "secondary"], props: [
-      { k: "h", label: "Height", unit: "px", min: 24, max: 72, step: 1, base: () => sgUnit() * 5, site: [[".btn:not(.s)", v => `height:${v}px`]], design: [[".pg .btn,.pg button,.pg a[class*='btn']", v => `min-height:${v}px`]] },
+      { k: "h", label: "Height", unit: "px", min: 16, max: 96, step: 1, base: () => sgUnit() * 5, site: [[".btn:not(.s)", v => `height:${v}px`]], design: [[".pg .btn,.pg button,.pg a[class*='btn']", v => `min-height:${v}px`]] },
       { k: "px", label: "Side padding", unit: "px", min: 4, max: 64, step: 1, base: () => sgUnit() * 2, site: [[".btn:not(.s)", v => `padding-left:${v}px;padding-right:${v}px`]], design: [[".pg .btn,.pg button,.pg a[class*='btn']", v => `padding-left:${v}px;padding-right:${v}px`]] },
       { k: "r", label: "Corner radius", unit: "px", min: 0, max: 999, step: 1, base: () => designTokens().r[1], site: [[".btn", v => `border-radius:${v}px`]], design: [[".pg .btn,.pg button,.pg a[class*='btn']", v => `border-radius:${v}px`]] },
       { k: "bw", label: "Outline width", unit: "px", min: 0, max: 6, step: 0.5, base: () => 1.5, site: [[".btn.o", v => `border-width:${v}px`]] },
@@ -106,7 +106,7 @@ function sgSample(item) {
 }
 function sgSheet(group) {
   const sel = S.sel && S.sel.kind === "cstyle" ? S.sel.id : null;
-  const rows = SG_ITEMS[group].map(item => `<div class="trow pick ${sel === item.id ? "sel" : ""}" data-cstyle="${item.id}" tabindex="0" role="button" aria-label="Edit ${esc(item.name)}"><div class="tmeta"><div class="title-s">${esc(item.name)}${sgEdited(item.id) ? ' <span class="badge p">edited</span>' : ""}</div><div class="body-s osv">${esc(item.role)}</div><div class="body-s osv">${item.props.map(p => `${esc(p.label)} ${esc(sgShow(p, sgVal(item, p)))}`).join(" · ")}</div></div><div class="tsample" style="background:${esc(tv("color.ground") || "#fff")};padding:12px;border-radius:12px">${sgSample(item)}</div></div>`).join("");
+  const rows = SG_ITEMS[group].map(item => `<div class="trow pick ${sel === item.id ? "sel" : ""}" data-cstyle="${item.id}" tabindex="0" role="button" aria-label="Edit ${esc(item.name)}"><div class="tmeta"><div class="title-s">${esc(item.name)}</div><div>${provBadge(sgEdited(item.id))}</div><div class="body-s osv">${esc(item.role)}</div><div class="body-s osv">${item.props.map(p => `${esc(p.label)} ${esc(sgShow(p, sgVal(item, p)))}`).join(" · ")}</div></div><div class="tsample" style="background:${esc(tv("color.ground") || "#fff")};padding:12px;border-radius:12px">${sgSample(item)}</div></div>`).join("");
   return SHEET(SH(group === "components" ? "Component styles" : "Photo and logo styles", "click one to edit its properties") + rows);
 }
 function wireStyleRows(root) {
@@ -134,22 +134,22 @@ function renderStyleItemRail() {
   const d = sgDrafts[item.id] || { ...cur };
   const dirty = item.props.some(p => String(d[p.k]) !== String(cur[p.k]));
   const ctl = p => p.opts
-    ? `<div class="field"><label for="sg_${p.k}">${esc(p.label)}</label><select id="sg_${p.k}">${p.opts.map(([v, n]) => `<option value="${esc(v)}" ${String(v) === String(d[p.k]) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>`
-    : `<div class="field"><label for="sg_${p.k}">${esc(p.label)}${p.unit ? ` (${p.unit})` : ""}</label><input type="number" id="sg_${p.k}" value="${esc(d[p.k])}" step="${p.step}" min="${p.min}" max="${p.max}" inputmode="decimal"></div>`;
+    ? `<div class="field"><label for="sg_${p.k}">${esc(p.label)}</label><select id="sg_${p.k}">${p.opts.map(([v, n]) => `<option value="${esc(v)}" ${String(v) === String(d[p.k]) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>${sgNote(item, p)}</div>`
+    : `<div class="field"><label for="sg_${p.k}">${esc(p.label)}${p.unit ? ` (${p.unit})` : ""}</label><input type="number" id="sg_${p.k}" value="${esc(d[p.k])}" step="${p.step}" min="${p.min}" max="${p.max}" inputmode="decimal">${sgNote(item, p)}</div>`;
   const pairs = []; for (let i = 0; i < item.props.length; i += 2) pairs.push(item.props.slice(i, i + 2));
   const toks = group === "components" ? ["shape.radius", "space.scale", "comp.cta", "comp.dishCard"] : ["imagery", "motif", "shape.radius"];
   const tw = toks.map(T).filter(t => t && plainWhy(t));
-  const why = tw.slice(0, 2).map(t => plainWhy(t)).join(" ");
+  const why = [...new Set(tw.slice(0, 2).map(t => plainWhy(t)))].join(" ");
   const cs = [...new Set(tw.flatMap(t => cites(t.why)))];
   r.innerHTML = `<div class="rhead"><div class="title-m" style="min-width:0">${esc(item.name)}</div><span class="spacer"></span><button class="icon-btn" data-closesel aria-label="Clear selection"><span class="ms">close</span></button></div>
   <div class="field"><label for="sgPick">${group === "components" ? "Component" : "Photo or logo"}</label><select id="sgPick">${SG_ITEMS[group].map(x => `<option value="${x.id}" ${x.id === item.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></div>
   <form class="sys-editor" id="sgForm" novalidate>
     ${pairs.map(pp => `<div class="row" style="gap:12px;flex-wrap:nowrap">${pp.map(ctl).join("")}</div>`).join("")}
     <div class="sg-prev" style="padding:14px;border:1px solid var(--outline-variant);border-radius:12px;background:${esc(tv("color.ground") || "#fff")}">${sgSampleWith(item, d)}</div>
-    <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${why ? esc(why) : '<span class="osv">No explanation added.</span>'}</div>${cs.length ? `<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>` : ""}<span class="body-s osv">${sgEdited(item.id) ? "Edited by you · " : ""}Starts from the design system's spacing, corner radius and colours</span></section>
+    <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${why ? esc(why) : '<span class="osv">No explanation added.</span>'}</div>${cs.length ? `<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>` : ""}<span class="body-s osv">${esc(provLabel(sgEdited(item.id)))} · base: ${esc(baseShort())}</span></section>
     <p class="body-s bad-t" id="sgErr" role="alert"></p>
     <div class="row sys-apply" id="sgActions" ${dirty ? "" : "hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="sgCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>
-    ${sgEdited(item.id) ? `<div class="row"><button type="button" class="btn text sm" id="sgReset">Reset to the design system</button></div>` : ""}
+    ${sgEdited(item.id) ? `<div class="row"><button type="button" class="btn text sm" id="sgReset">Reset to follow ${esc(baseShort())}</button></div>` : ""}
   </form>`;
   const read = () => Object.fromEntries(item.props.map(p => [p.k, p.opts ? $("#sg_" + p.k).value : $("#sg_" + p.k).value]));
   const f = $("#sgForm");
@@ -157,7 +157,7 @@ function renderStyleItemRail() {
   f.addEventListener("input", draft); f.addEventListener("change", draft);
   f.onsubmit = e => {
     e.preventDefault(); const v = read();
-    const bad = item.props.find(p => !p.opts && (v[p.k] === "" || !Number.isFinite(+v[p.k]) || +v[p.k] < p.min || +v[p.k] > p.max));
+    const bad = item.props.find(p => !p.opts && String(v[p.k]) !== String(cur[p.k]) && (v[p.k] === "" || !Number.isFinite(+v[p.k]) || +v[p.k] < p.min || +v[p.k] > p.max));
     if (bad) { $("#sgErr").textContent = `${bad.label} must be a number from ${bad.min} to ${bad.max}.`; return; }
     snapshot(`${item.name.toLowerCase()} style`);
     const out = {};
@@ -168,10 +168,14 @@ function renderStyleItemRail() {
     toast(`${item.name} updated across the website`);
   };
   $("#sgCancel").onclick = () => { delete sgDrafts[item.id]; renderStyleItemRail(); };
-  const rs = $("#sgReset"); if (rs) rs.onclick = () => { snapshot(`reset ${item.name.toLowerCase()} style`); S.compStyles = { ...(S.compStyles || {}) }; delete S.compStyles[item.id]; delete sgDrafts[item.id]; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${item.name} follows the design system again`); };
+  const rs = $("#sgReset"); if (rs) rs.onclick = () => { snapshot(`reset ${item.name.toLowerCase()} style`); S.compStyles = { ...(S.compStyles || {}) }; delete S.compStyles[item.id]; delete sgDrafts[item.id]; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${item.name} follows ${baseShort()} again`); };
   $("#sgPick").onchange = () => { select({ kind: "cstyle", id: $("#sgPick").value }); renderSystem(); };
   wireCites(r);
   $$("[data-closesel]", r).forEach(x => x.onclick = clearSel);
+}
+function sgNote(item, p) {
+  const f = sgFrom(item, p), edited = p.k in sgEdits(item.id);
+  return fieldNote(edited, f ? sysSourceWord(f) : "", sgShow(p, sgBase(item, p)));
 }
 /* The sample drawn from draft values, so the panel previews before Apply. */
 function sgSampleWith(item, vals) {
@@ -206,6 +210,8 @@ function renderScaleRail() {
   <form class="sys-editor" id="scForm" novalidate>
     <div class="field"><label for="scVal">${k === "space.scale" ? "Space" : "Radius"} (px)</label><input type="number" id="scVal" value="${esc(dv)}" min="0" max="${info.max}" step="1" inputmode="decimal"></div>
     <div class="body-s osv">Used for ${esc(info.use[i] || "larger layouts")}.</div>
+    ${(() => { const bn = (String(baseTokenValue(k) || "").match(/\d+(?:\.\d+)?/g) || []).map(Number); const bv = bn[i]; const mine = t.user && bv != null && bv !== cur; return `<div class="fnote ${mine ? "own" : ""}">${mine ? `Edited by you · ${esc(baseShort())} sets ${bv}px <button type="button" class="linkish" id="scUseBase">use ${bv}px</button>` : `From ${esc(baseShort())}`}</div>`; })()}
+    ${overridersHTML(k, i)}
     <div class="sc-prev" style="padding:14px;border:1px solid var(--outline-variant);border-radius:12px;display:flex;align-items:center;gap:12px">${scSample(k, dv)}</div>
     <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${esc(plainWhy(t)) || '<span class="osv">No explanation added.</span>'}</div>${cs.length ? `<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>` : ""}</section>
     <p class="body-s bad-t" id="scErr" role="alert"></p>
@@ -220,6 +226,8 @@ function renderScaleRail() {
     scDraft = null; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${info.name(i)} updated across the website`);
   };
   $("#scCancel").onclick = () => { scDraft = null; renderScaleRail(); };
+  const ub = $("#scUseBase", r); if (ub) ub.onclick = () => { const bv = (String(baseTokenValue(k) || "").match(/\d+(?:\.\d+)?/g) || [])[i]; $("#scVal").value = bv; $("#scVal").oninput(); };
+  wireOverriders(r);
   $$("[data-step]", r).forEach(b => b.onclick = () => { scDraft = null; select({ kind: "scale", id: k, i: +b.dataset.step }); renderSystem(); });
   wireCites(r);
   $$("[data-closesel]", r).forEach(x => x.onclick = clearSel);

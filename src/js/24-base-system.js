@@ -55,7 +55,7 @@ function applyBase(k, keep, imported) {
   else { S.typeStyles = {}; S.compStyles = {}; }
   if (typeof keepLocked === "function") keepLocked(old);
   S.tokens.forEach(t => { if (typeof mineLabel === "function") t.mine = mineLabel(t); });
-  S.baseSystem = k; S.sysBuilt = true;
+  S.baseSystem = k; S.sysBuilt = true; if (k === "upload") S.baseImport = imported || S.baseImport; else delete S.baseImport;
   save(); renderSystem(); if (S.view === "review") renderReview();
   toast(`Base: ${baseName(k)}${keep ? " · your customizations kept" : ""}`);
 }

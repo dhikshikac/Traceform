@@ -71,14 +71,14 @@ function genSpecColor() {
   const g = tv("color.ground");
   const rows = roles.map(([k, n, u]) => {
     const t = T(k); if (!t) return ""; const on = onColor(t.v); const why = sysWhy(t);
-    return `<div class="crow" ${tokBtn(k)}><div class="cinfo"><div class="title-s">${n}</div><div class="body-s osv">${esc(u)}</div>${why ? `<div class="body-s" style="margin-top:var(--sp-1)"><b>Why:</b> ${esc(why)}</div>` : ""}${t.not ? `<div class="body-s osv"><b>Not:</b> ${esc(t.not)}</div>` : ""}</div>
-    <div class="cmain"><div class="cswatch" style="background:${esc(t.v)};color:${on}"><span>${n}</span><span class="mono">${esc(String(t.v).toUpperCase())}</span></div><div class="cswatch sm" style="background:${on};color:${esc(t.v)};border:1px solid var(--outline-variant)"><span>Text on ${n.toLowerCase()}</span><span class="mono">${on}</span></div></div>
-    <div class="cramp">${ramp(t.v).map(([s, h]) => `<div style="background:${h};color:${onColor(h)}" title="${h.toUpperCase()}"><span>${s}</span></div>`).join("")}<div class="mono osv" style="grid-column:1/-1">${k} · lighter and darker steps</div></div></div>`;
+    return `<div class="crow"><div ${tokBtn(k,"cinfo")}><div class="title-s">${n}</div><div class="body-s osv">${esc(u)}</div>${why ? `<div class="body-s" style="margin-top:var(--sp-1)"><b>Why:</b> ${esc(why)}</div>` : ""}${t.not ? `<div class="body-s osv"><b>Not:</b> ${esc(t.not)}</div>` : ""}</div>
+    <div class="cmain"><div ${tokBtn(k,"cswatch")} style="background:${esc(t.v)};color:${on}"><span>${n}</span><span class="mono">${esc(String(t.v).toUpperCase())}</span></div><div class="cswatch sm derived" title="Worked out from ${n}: white or near-black, whichever reads better" style="background:${on};color:${esc(t.v)};border:1px solid var(--outline-variant)"><span>Text on ${n.toLowerCase()}</span><span class="mono">${on}</span></div></div>
+    <div class="cramp derived" title="Worked out from ${n}">${ramp(t.v).map(([s, h]) => `<div style="background:${h};color:${onColor(h)}" title="${h.toUpperCase()}"><span>${s}</span></div>`).join("")}<div class="mono osv" style="grid-column:1/-1"><span class="auto-tag">auto</span> shades worked out from ${n}</div></div></div>`;
   }).join("");
   const d = designTokens();
   const pairs = [["Text on the page background", tv("color.ink"), g, 4.5], ["Button text on the accent colour", d.onAccent, tv("color.accent"), 4.5], ["Accent against the background (buttons, focus)", tv("color.accent"), g, 3], ["Signal against the background", tv("color.heat"), g, 3]];
   return SHEET(SH("Colour roles", "click a role to change its colour") + rows) +
-    SHEET(SH("Contrast", "WCAG 2.2 AA: 4.5 to 1 for text, 3 to 1 for buttons and icons") + `<div class="ctab">${pairs.map(([n, a, b, m]) => `<div class="kv"><span>${n}</span><b class="${ratio(a, b) >= m ? "ok-t" : "bad-t"}">${r1(ratio(a, b))}:1 ${ratio(a, b) >= m ? "✓" : "✗ needs " + m + ":1"}</b></div>`).join("")}</div>`);
+    SHEET(SH("Contrast", `<span class="auto-tag">auto</span> checked automatically · WCAG 2.2 AA: 4.5 to 1 for text, 3 to 1 for buttons and icons`) + `<div class="ctab">${pairs.map(([n, a, b, m]) => `<div class="kv"><span>${n}</span><b class="${ratio(a, b) >= m ? "ok-t" : "bad-t"}">${r1(ratio(a, b))}:1 ${ratio(a, b) >= m ? "✓" : "✗ needs " + m + ":1"}</b></div>`).join("")}</div>`);
 }
 
 function genSpecType() {
@@ -156,11 +156,12 @@ function genSpecComponents() {
   const chips = k.chips.length ? `<div class="row" style="gap:var(--sp-2);flex-wrap:wrap">${k.chips.map((c, x) => `<span style="display:inline-flex;align-items:center;min-height:32px;padding:0 var(--sp-3);border-radius:${d.r[0]}px;font-size:${d.t.small}px;border:1px solid ${x === 0 ? "transparent" : `color-mix(in srgb,${i} 40%,transparent)`};background:${x === 0 ? mix(a, g, .82) : "transparent"};color:${x === 0 ? a : i}">${x === 0 ? "✓ " : ""}${esc(c)}</span>`).join("")}</div>` : "";
   // The samples are drawn on the project's own background colour, as they will
   // appear on the page; the explanation under them stays in the app's colours.
-  const wrap = (t, sub, demo, notes) => demo || notes ? SHEET(SH(t, sub) + (demo ? `<div class="sysdemo" style="${scope};background:${g}">${demo}</div>` : "") + (notes || "")) : "";
-  return wrap("Buttons", "the primary action, in every state", buttons, buttonWhy) +
-    wrap("Item card", "how one of the main things on offer is shown", cards, specRow("comp.dishCard")) +
+  // An example a component style controls opens that style; other examples are marked as drawn from colours and type.
+  const wrap = (t, sub, demo, notes, cs) => demo || notes ? SHEET(SH(t, [sub, cs ? `click the example to edit ${sgDef(cs).name.toLowerCase()}` : demo ? `<span class="auto-tag">auto</span> example drawn from your colours and type` : ""].filter(Boolean).join(" · ")) + (demo ? `<div class="sysdemo ${cs ? `pick ${S.sel?.kind === "cstyle" && S.sel.id === cs ? "sel" : ""}` : "derived"}" ${cs ? `data-cstyle="${cs}" tabindex="0" role="button"` : ""} style="${scope};background:${g}">${demo}</div>` : "") + (notes || "")) : "";
+  return wrap("Buttons", "the primary action, in every state", buttons, buttonWhy, "button") +
+    wrap("Item card", "how one of the main things on offer is shown", cards, specRow("comp.dishCard"), "card") +
     wrap("Signal", "where the second colour is allowed", "", specRow("comp.heat")) +
-    wrap("Navigation", "", tabs) + wrap("Form field", "", fields) + wrap("Tags and filters", "", chips) + sysNoKitNote();
+    wrap("Navigation", "", tabs) + wrap("Form field", "", fields, "", "field") + wrap("Tags and filters", "", chips, "", "chip") + sysNoKitNote();
 }
 
 /* ---------- your own photographs ---------- */
