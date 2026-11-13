@@ -25,24 +25,22 @@ function specimenCSS(d) {
   return `
 .s.spec{--sd:${s[0]}px;--s1:${s[1]}px;--s2:${s[2]}px;font-family:var(--fb);background:var(--g);color:var(--i);font-size:${t.body}px;line-height:1.5}
 .s.spec .hero{padding:var(--s1) 28px 0;grid-template-columns:1.7fr 1fr}
-.s.spec .hero .ph{aspect-ratio:auto;min-height:210px}
+.s.spec .hero .ph{aspect-ratio:auto;min-height:210px;display:flex;align-items:flex-end}
+.s.spec .hero .ph>.ov{position:relative;width:100%}
 .s.spec .hero .ph>.phs{position:absolute;inset:0;justify-content:flex-start;align-items:flex-end;padding:10px 12px}
-.s.spec .hero .ov h1{font-size:${t.display}px}
-.s.spec .hero .ov p{font-size:${t.body}px}
 .s.spec .hero .side .im{min-height:80px}
 .s.spec .hcard{padding:var(--s1)}
 .s.spec .sx-cta{display:flex;flex-wrap:wrap;gap:var(--sd);align-items:center;margin-top:var(--s1)}
 .s.spec .sx-cta .btn{color:#fff}
 .s.spec .btn.o{background:transparent}
 .s.spec .sx-blk{padding:var(--s2) 28px 0}
-.s.spec h2.sec{font-size:${t.h2}px;margin:0 0 2px}
-.s.spec p.secsub{margin:0 0 var(--s1);font-size:${t.small}px}
+.s.spec h2.sec{margin:0 0 2px}
+.s.spec p.secsub{margin:0 0 var(--s1)}
 .s.spec .cards{padding:0}
 .s.spec .card .im{aspect-ratio:auto;height:72px}
 .s.spec .card .im .phs{min-height:0}
 .s.spec .card .b{padding:var(--s1)}
-.s.spec .card h3{font-size:${t.h3}px}
-.s.spec .card p{font-size:${t.small}px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s.spec .card p{flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s.spec .card .m{flex-wrap:nowrap}
 .s.spec .card{padding:0;gap:0}
 .s.spec .card .tags{flex-wrap:nowrap;align-items:center;gap:6px}
@@ -50,8 +48,6 @@ function specimenCSS(d) {
 .s.spec .btn.sx-2nd{background:color-mix(in srgb,var(--a) 18%,var(--g));color:var(--i)}
 .s.spec .story{padding:0;grid-template-columns:1fr 1.3fr;gap:var(--s2);align-items:start}
 .s.spec .story .q{margin:0 0 6px}
-.s.spec .story .q{font-size:${t.h3}px}
-.s.spec .story p{font-size:${t.small}px}
 .s.spec .sx-form{display:grid;grid-template-columns:1fr 1fr;gap:var(--sd) var(--s1);align-items:start}
 .s.spec .sx-field{display:flex;flex-direction:column;gap:3px;font-size:${t.small}px}
 .s.spec .sx-field i{height:38px;border:1px solid color-mix(in srgb,var(--i) 30%,transparent);border-radius:var(--r2);display:flex;align-items:center;padding:0 10px;font-style:normal;background:color-mix(in srgb,var(--g) 60%,#fff)}
@@ -63,6 +59,7 @@ function specimenCSS(d) {
 .s.spec .foot .sx-fl{display:flex;gap:var(--s1);flex:1}
 .s.spec .foot .sx-cp{opacity:.6;font-size:12px}
 @media (max-width:700px){.s.spec .story,.s.spec .sx-form{grid-template-columns:1fr}}
+${typeof tsSpecimenCSS==="function"?tsSpecimenCSS(".s.spec"):""}
 `;
 }
 

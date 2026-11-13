@@ -78,26 +78,26 @@ const SYS_PICK=[
   {id:"brand",name:"Site name",sel:".brand",tok:["type.display","color.ink"]},
   {id:"brandMark",name:"Logo mark",sel:".brand i",tok:["color.accent","motif"]},
   {id:"navLinks",name:"Navigation links",sel:".links>a:not(.btn)",tok:["type.body","color.ink"]},
-  {id:"action",name:"Primary action",sel:".btn",tok:["color.accent","shape.radius","comp.cta","type.body"]},
+  {id:"action",name:"Primary action",sel:".btn",ts:"label",tok:["color.accent","shape.radius","comp.cta","type.body"]},
   {id:"heroPhoto",name:"Hero photo",sel:".hero .ph",tok:["imagery","shape.radius"]},
-  {id:"heroHeadline",name:"Hero headline",sel:".hero .ov h1",tok:["type.display","type.scale"]},
-  {id:"heroSub",name:"Hero description",sel:".hero .ov p",tok:["type.body","type.scale"]},
+  {id:"heroHeadline",name:"Hero headline",sel:".hero .ov h1",ts:"display",tok:["type.display","type.scale"]},
+  {id:"heroSub",name:"Hero description",sel:".hero .ov p",ts:"body",tok:["type.body","type.scale"]},
   {id:"sidePhoto",name:"Second photo",sel:".hero .side .im",tok:["imagery","shape.radius"]},
   {id:"infoCard",name:"Info card",sel:".hcard",tok:["color.ground","color.ink","type.body","shape.radius"]},
-  {id:"lead",name:"Intro text",sel:".lead p",tok:["type.body","type.scale","color.ink"]},
-  {id:"secHead",name:"Section heading",sel:"h2.sec",tok:["type.display","type.scale","color.ink"]},
-  {id:"secSub",name:"Section description",sel:"p.secsub",tok:["type.body","color.ink"]},
+  {id:"lead",name:"Intro text",sel:".lead p",ts:"body",tok:["type.body","type.scale","color.ink"]},
+  {id:"secHead",name:"Section heading",sel:"h2.sec",ts:"h2",tok:["type.display","type.scale","color.ink"]},
+  {id:"secSub",name:"Section description",sel:"p.secsub",ts:"small",tok:["type.body","color.ink"]},
   {id:"cardPhoto",name:"Card photo",sel:".card .im",tok:["imagery"]},
-  {id:"cardTitle",name:"Card title",sel:".card h3",tok:["type.display","type.scale","color.ink"]},
-  {id:"cardText",name:"Card description",sel:".card .b>p",tok:["type.body","color.ink"]},
+  {id:"cardTitle",name:"Card title",sel:".card h3",ts:"h3",tok:["type.display","type.scale","color.ink"]},
+  {id:"cardText",name:"Card description",sel:".card .b>p",ts:"small",tok:["type.body","color.ink"]},
   {id:"heat",name:"Signal indicator",sel:".heat",tok:["color.heat","comp.heat"]},
   {id:"tag",name:"Chip",sel:".tag",tok:["shape.radius","color.ink"]},
   {id:"storyPhoto",name:"Media image",sel:".story .im",tok:["imagery","shape.radius"]},
-  {id:"storyQuote",name:"Pull quote",sel:".story .q",tok:["type.display","type.accentLine","color.ink"]},
-  {id:"storyBody",name:"Media text",sel:".story p:not(.q)",tok:["type.body","color.ink"]},
+  {id:"storyQuote",name:"Pull quote",sel:".story .q",ts:"h3",tok:["type.display","type.accentLine","color.ink"]},
+  {id:"storyBody",name:"Media text",sel:".story p:not(.q)",ts:"body",tok:["type.body","color.ink"]},
   {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]},
   /* parts that only the design-system specimen has */
-  {id:"secondary",name:"Secondary action",sel:".btn.sx-2nd",tok:["color.accent","shape.radius","type.body"]},
+  {id:"secondary",name:"Secondary action",sel:".btn.sx-2nd",ts:"label",tok:["color.accent","shape.radius","type.body"]},
   {id:"field",name:"Text field",sel:".sx-field",tok:["color.ink","color.accent","color.heat","shape.radius","type.body"]}
 ];
 const pickById=id=>SYS_PICK.find(p=>p.id===id);
@@ -137,6 +137,7 @@ function renderSystem(){
   syncSysDrafts();
   if(!SEC_NAME[S.sysSection]||S.sysSection==="base")S.sysSection="color";
   if(S.sel?.kind==="token"){const tk=T(S.sel.id);if(!tk)S.sel=null;else if(tk.sec!==S.sysSection)S.sysSection=tk.sec}
+  if(S.sel?.kind==="tstyle"){if(!tsDef(S.sel.id))S.sel=null;else S.sysSection="type"}
   const sec=S.sysSection,view=S.sysView==="tokens"?"tokens":"preview";
   $$("#secnav button").forEach(b=>b.classList.toggle("on",b.dataset.s===sec));
   const c=$("#sysCenter"),toks=sysSecToks(sec),name=SEC_NAME[sec];
@@ -148,7 +149,7 @@ function renderSystem(){
   $$("[data-tok]",c).forEach(r=>r.onclick=()=>{select({kind:"token",id:r.dataset.tok});renderSystem()});
   $("#sysNotes",c).onsubmit=e=>{e.preventDefault();S.reasons=S.reasons||{};S.reasons[sec]=$("#sysNotesTA").value.trim();snapshot(`${sec} notes`);save();renderSystem();$(".sys-why",c)?.setAttribute("open","");toast(`${name} notes saved`)};
   wireCites(c);wireSysPreview(c,sec);photoFill();
-  if(view==="tokens"){if(sec==="imagery")wireUserImgs(c);if(typeof sysPhotoFill==="function")sysPhotoFill()}
+  if(view==="tokens"){if(sec==="type")wireTypeStyleRows(c);if(sec==="imagery")wireUserImgs(c);if(typeof sysPhotoFill==="function")sysPhotoFill()}
   renderSystemRail();
 }
 /* Tokens view: the section's spec sheet (20/21-system specs: roles, ramps, contrast, type,
@@ -166,21 +167,26 @@ function sysPreviewHTML(){
 function wireSysPreview(c,sec){
   const frame=$(".sysprev-frame.inspect",c);if(!frame)return;
   const root=$(".site",frame);if(!root)return;
-  const selK=S.sel?.kind==="token"?S.sel.id:null,selP=S.sel?.kind==="token"?S.sel.pick:null;
-  /* tag the parts that use a decision from this section; specific parts overwrite general ones */
-  SYS_PICK.forEach(p=>{if(!sysPickToks(p,sec).length)return;(p.sel==="&"?[root]:$$(p.sel,root)).forEach(el=>{el.dataset.sp=p.id})});
+  const selK=S.sel?.kind==="token"?S.sel.id:null,selP=S.sel?.kind==="token"||S.sel?.kind==="tstyle"?S.sel.pick:null;
+  const selTS=S.sel?.kind==="tstyle"?S.sel.id:null;
+  /* tag the parts that use a decision from this section; specific parts overwrite general ones.
+     On Text styles, a part that uses a text style is clickable even if it carries no type token. */
+  SYS_PICK.forEach(p=>{if(!sysPickToks(p,sec).length&&!(sec==="type"&&p.ts))return;(p.sel==="&"?[root]:$$(p.sel,root)).forEach(el=>{el.dataset.sp=p.id})});
   let n=0;
   $$("[data-sp]",frame).forEach(el=>{const p=pickById(el.dataset.sp);
-    el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label","Inspect "+p.name);el.title=p.name;
-    const picked=selP===p.id,shared=!!selK&&p.tok.includes(selK);if(picked||shared)n++;
+    el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label","Inspect "+p.name);el.title=p.name+(sec==="type"&&p.ts?` · ${tsDef(p.ts).name} text style`:"");
+    const picked=selP===p.id,shared=(!!selK&&p.tok.includes(selK))||(!!selTS&&p.ts===selTS);if(picked||shared)n++;
     el.classList.toggle("sp-sel",picked);el.classList.toggle("sp-shared",shared&&!picked)});
-  const pick=id=>{const p=pickById(id),keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id});renderSystem()};
+  const pick=id=>{const p=pickById(id);
+    if(sec==="type"&&p.ts){select({kind:"tstyle",id:p.ts,pick:id});renderSystem();return}
+    const keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id});renderSystem()};
   frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp)};
   frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}};
-  const st=$("#sysScopeText",c);if(st)st.textContent=selK?`Changes apply to ${n} element${n===1?"":"s"}.`:`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`;
+  const st=$("#sysScopeText",c);if(st)st.textContent=selK||selTS?`Changes apply to ${n} element${n===1?"":"s"}.`:sec==="type"?"Click any text to edit its text style: font, size, weight and spacing.":`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`;
 }
 /* Inspector: the selected element, its property, the value, and why. */
 function renderSystemRail(){
+  if(S.sel?.kind==="tstyle"){renderTypeStyleRail();return}
   const r=$("#rail-system"),sec=S.sysSection;
   const t=S.sel?.kind==="token"?T(S.sel.id):null;
   if(!t){
@@ -358,10 +364,10 @@ $$("#trendSeg button,#baselinePill").forEach(b=>b.onclick=()=>{S.trend=b.dataset
 let previewVer=null;
 function verLabel(w){const m=String(w).match(/^element (\w+) (\{.*\})$/);if(!m)return w;let o={};try{o=JSON.parse(m[2])}catch{}const n=EL[m[1]]?.name||m[1];const parts=Object.entries(o).map(([k,v])=>k==="hidden"?(v?"removed":"restored"):k==="variant"?`→ ${v}`:k==="caption"?`copy → “${String(v).slice(0,28)}”`:k==="img"?(v?"image swapped":"image reset"):`${k} → ${v}`);return`${n} ${parts.join(", ")}`}
 // each history entry stores the state BEFORE its change; the state "at that point" (after the change) is the next entry, or current.
-function stateAfter(i){const n=S.history[i+1];const d=n?("designAt" in n?dzDesignAt(n.designAt):undefined):(S.design||null);const st=n?{tokens:n.tokens,elements:n.elements,site:n.site||S.site,review:"review" in n?n.review:S.review}:{tokens:S.tokens||seedTokens(),elements:S.elements,site:S.site,review:S.review};if(d!==undefined)st.design=d;return st}
+function stateAfter(i){const n=S.history[i+1];const d=n?("designAt" in n?dzDesignAt(n.designAt):undefined):(S.design||null);const st=n?{tokens:n.tokens,elements:n.elements,site:n.site||S.site,review:"review" in n?n.review:S.review,typeStyles:"typeStyles" in n?n.typeStyles:S.typeStyles}:{tokens:S.tokens||seedTokens(),elements:S.elements,site:S.site,review:S.review,typeStyles:S.typeStyles};if(d!==undefined)st.design=d;return st}
 function verList(){return S.history.length?[...S.history].reverse().slice(0,20).map((h,i)=>{const idx=S.history.length-1-i;const cur=idx===S.history.length-1;const on=previewVer===idx||(previewVer===null&&cur);return`<div class="ver ${on?"on":""}" data-ver="${idx}" tabindex="0" role="button" aria-pressed="${on}"><span class="d"></span><span style="flex:1;min-width:0">${esc(verLabel(h.what))}${cur?' <span class="badge p">current</span>':""}</span><span class="mono osv">${new Date(h.t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>${cur?"":`<button class="btn text sm" data-restore="${idx}">Restore</button>`}</div>`}).join(""):`<div class="note">No versions yet. Every change creates one.</div>`}
 function wireVer(r){$$("[data-ver]",r).forEach(v=>{const go=()=>{const i=+v.dataset.ver;previewVer=(i===S.history.length-1)?null:i;renderReview()};v.onclick=e=>{if(e.target.closest("[data-restore]"))return;go()};v.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}});
-  $$("[data-restore]",r).forEach(b=>b.onclick=e=>{e.stopPropagation();const i=+b.dataset.restore;const st=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(st.tokens));S.elements=JSON.parse(JSON.stringify(st.elements));S.site=st.site?JSON.parse(JSON.stringify(st.site)):S.site;S.review=st.review;applyVersionDesign(st);previewVer=null;save();renderAll();toast("Restored that version")})}
+  $$("[data-restore]",r).forEach(b=>b.onclick=e=>{e.stopPropagation();const i=+b.dataset.restore;const st=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(st.tokens));S.typeStyles=JSON.parse(JSON.stringify(st.typeStyles||{}));S.elements=JSON.parse(JSON.stringify(st.elements));S.site=st.site?JSON.parse(JSON.stringify(st.site)):S.site;S.review=st.review;applyVersionDesign(st);previewVer=null;save();renderAll();toast("Restored that version")})}
 
 /* ============================ REVIEW ============================ */
 const EL={
@@ -411,10 +417,10 @@ function renderReview(){syncEL();
     ?"Click a section to see the research, inspiration and design-system choices behind it. Token edits on the System page restyle this page straight away."
     :"Use the site's own navigation to move between pages. Click any part to see the decision behind it.";
   if(!designed&&typeof dzFrameKey!=="undefined")dzFrameKey=null;
-  if(previewVer!==null&&S.history[previewVer]){const keep={tokens:S.tokens,elements:S.elements,sel:S.sel,site:S.site,review:S.review,design:S.design};const at=stateAfter(previewVer);if("design" in at)S.design=at.design;S.tokens=at.tokens;S.elements=at.elements;S.site=at.site;S.review=at.review;S.sel=null;syncEL();
+  if(previewVer!==null&&S.history[previewVer]){const keep={tokens:S.tokens,elements:S.elements,sel:S.sel,site:S.site,review:S.review,design:S.design,typeStyles:S.typeStyles};const at=stateAfter(previewVer);S.typeStyles=at.typeStyles||{};if("design" in at)S.design=at.design;S.tokens=at.tokens;S.elements=at.elements;S.site=at.site;S.review=at.review;S.sel=null;syncEL();
     const h=S.history[previewVer];const pvDoc=S.design&&S.design.html?designFrameHTML():null;const pvBody=pvDoc?`<div class="designwrap"><iframe id="designPreview" class="designframe ${S.device==="phone"?"phone":""}" sandbox="allow-same-origin" title="Version preview"></iframe></div>`:`<div class="morph">${pageHTML()}</div>`;st.innerHTML=`<div class="verbar"><span class="ms">history</span><span style="flex:1;min-width:0"><b>Previewing</b> · ${esc(verLabel(h.what))} · ${new Date(h.t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span><button class="btn text sm" id="vbBack">Back to current</button><button class="btn filled sm" id="vbRestore">Restore this version</button></div>${pvBody}`;Object.assign(S,keep);
     if(pvDoc){const pf=$("#designPreview",st);pf.onload=()=>{const dd=pf.contentDocument;if(!dd||!dd.body)return;fillDesignPhotos(dd);const fit=()=>{pf.style.height=Math.max(320,dd.body.scrollHeight)+"px"};fit();try{new ResizeObserver(fit).observe(dd.body)}catch{}};pf.srcdoc=pvDoc}
-    $("#vbBack",st).onclick=()=>{previewVer=null;renderReview()};$("#vbRestore",st).onclick=()=>$(`[data-restore="${previewVer}"]`)?.click()||(()=>{const i=previewVer;const a=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(a.tokens));S.elements=JSON.parse(JSON.stringify(a.elements));S.site=a.site?JSON.parse(JSON.stringify(a.site)):S.site;S.review=a.review;applyVersionDesign(a);previewVer=null;save();renderAll();toast("Restored that version")})();
+    $("#vbBack",st).onclick=()=>{previewVer=null;renderReview()};$("#vbRestore",st).onclick=()=>$(`[data-restore="${previewVer}"]`)?.click()||(()=>{const i=previewVer;const a=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(a.tokens));S.typeStyles=JSON.parse(JSON.stringify(a.typeStyles||{}));S.elements=JSON.parse(JSON.stringify(a.elements));S.site=a.site?JSON.parse(JSON.stringify(a.site)):S.site;S.review=a.review;applyVersionDesign(a);previewVer=null;save();renderAll();toast("Restored that version")})();
     $$(".el",st).forEach(e=>{e.style.cursor="default"});renderReviewRail();return}
   /* Showing the empty scaffold as though it were a design is what made the Review
      page look unrelated to the project: stock nav labels and "[ITEM 1]" are the

@@ -13,7 +13,7 @@ const BUNDLES=[{n:"For two",p:"38",i:"Khao soi, som tam, sticky rice",img:"khaos
 const HEAT=(n,v)=>{if(!n)return"";const t=["mild","medium","hot"][n-1];const mode=v||"pips";return`<span class="heat" aria-label="${t}">${mode==="text only"?t:"●".repeat(n)+"○".repeat(3-n)+(mode==="pips + label"?` <small>${t}</small>`:"")}</span>`};
 const MAPSVG=()=>`<svg viewBox="0 0 400 220" width="100%" height="100%" role="img" aria-label="Map: 412 Lyndale Ave S"><rect width="400" height="220" fill="#e9e6df"/><g stroke="#fff" stroke-width="10"><path d="M0 60H400M0 150H400M80 0V220M200 0V220M320 0V220"/></g><g stroke="#d8d4ca" stroke-width="3"><path d="M0 105H400M140 0V220M260 0V220"/></g><rect x="150" y="70" width="40" height="28" fill="#cfd9c8"/><rect x="330" y="160" width="60" height="50" fill="#cfd9c8"/><circle cx="200" cy="105" r="9" fill="var(--a)" stroke="#fff" stroke-width="3"/><text x="212" y="100" font-size="11" fill="#333" font-family="system-ui">Mali's Table</text><text x="86" y="52" font-size="9" fill="#777" font-family="system-ui">Lyndale Ave S</text><text x="206" y="146" font-size="9" fill="#777" font-family="system-ui">W 34th St</text></svg>`;
 var SITE_ACCENT_CSS="";
-function accentRules(){return SITE_ACCENT_CSS}
+function accentRules(){return SITE_ACCENT_CSS+(typeof tsSiteCSS==="function"?tsSiteCSS(".s"):"")}
 /* The page used only four colours, two fonts and the radius, so every project
    rendered at the same size, rhythm and weight however the design system was
    drafted. The scale, spacing and heading treatment now reach the page too. */
