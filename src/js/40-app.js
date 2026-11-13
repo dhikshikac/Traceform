@@ -424,6 +424,12 @@ function renderReview(){syncEL();
     renderReviewRail();return;
   }
   if(S.design&&S.design.html){st.onclick=null;mountDesignFrame(st);renderReviewRail();return}
+  /* A site from before the page designer: design it rather than show the old template. */
+  if(typeof needsDesignUpgrade==="function"&&needsDesignUpgrade()){st.onclick=null;
+    st.innerHTML=upgradeStateHTML();$("#dzUpgradeBtn",st)&&($("#dzUpgradeBtn",st).onclick=()=>upgradeToDesign(true));
+    /* The old element rail describes the old template, so it is not shown beside this; history still is. */
+    const rr=$("#rail-review");rr.innerHTML=`<div class="pane-hd" style="padding:var(--sp-4) var(--sp-4) 0"><span class="title-m">Version history</span><span class="spacer"></span><span class="badge">${S.history.length}</span></div><div class="col" style="padding:0 var(--sp-4) var(--sp-4)">${verList()}</div>`;wireVer(rr);
+    if(sample&&!dzUp()[S.pid])setTimeout(()=>upgradeToDesign(false),0);return}
   st.innerHTML=`<div class="morph">${pageHTML()}</div>${photoCreditBar()}`;
   photoFill();
   axLegacyKey=legacyAuditDoc();axRun(axLegacyKey);

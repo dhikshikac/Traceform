@@ -21,6 +21,7 @@ function blankState(m,fixed){PTYPES=PTYPES||_ptypes();const k=fixed||"";const ba
   return st}
 function makeSeedStore(){let mali=null;try{const j=localStorage.getItem("traceform-v1");mali=j?JSON.parse(j):null}catch{}
   mali=mali||SEED();Object.assign(mali,{pid:"p-mali",type:"restaurant",brief:mali.brief||"Website for Mali's Table, a family-run northern Thai restaurant in Minneapolis. Menu, ordering for pickup and delivery, and the family's story. Must feel like Mali's family, not generic “Thailand”.",view:mali.view||"review",sysBuilt:true,tokens:mali.tokens||seedTokens()});
+  if(!(mali.design&&mali.design.html))mali.design=MALI_DESIGN();
   const coop=blankState({id:"p-coop",type:"ecommerce",name:"Riverbend Food Co-op",view:"research",brief:"Online ordering for pickup at a member-owned grocery in Duluth, MN. 3,100 members, many over 60. Weekly local produce changes; staff update stock by hand.",
     sources:[{id:"cs1",name:"member_survey_2026.csv",kind:"survey",star:true,text:"n=212. Shop online if available: 58%. Biggest worry: substitutions (41%), finding local items (33%). 64% are over 55."},{id:"cs2",name:"interview_produce_manager.pdf",kind:"interview",star:false,text:"'People want to know which farm it came from.' 'Stock changes Tuesday and Friday.'"},{id:"cs3",name:"project_brief.md",kind:"notes",star:false,text:"Online ordering for pickup; must work for older members; local farms first."}],
     themes:[{id:"ct1",name:"Where it's from",cards:[{id:"cc1",text:"Members choose by farm, not brand.",quote:"“People want to know which farm it came from” — produce manager",src:"cs2",conf:"high"}]},{id:"ct2",name:"Trust",cards:[{id:"cc2",text:"Substitutions are the top worry (41%); staff want flexibility.",quote:"member_survey_2026.csv · n=212",src:"cs1",conf:"medium"}]}],
@@ -99,7 +100,11 @@ function migrateAssumptions(){if(!STORE||STORE.assumeV===2)return;PTYPES=PTYPES|
   Object.values(STORE.states).forEach(st=>{if(!st||!Array.isArray(st.assume))return;const old=st.assume.filter(a=>oldAssumeRe().test(a.label));if(!old.length)return;const kept=st.assume.filter(a=>!oldAssumeRe().test(a.label));
     const fresh=st.pid==="p-mali"?seed:(PTYPES[st.type]||PTYPES.other).assume.map((a,i)=>({id:"g"+i+Math.random().toString(36).slice(2,5),label:a[0],from:a[1],rej:false}));st.assume=[...fresh,...kept]});
   STORE.assumeV=2;storeWrite()}
-function load(){PTYPES=PTYPES||_ptypes();STORE=storeRead()||makeSeedStore();migrateAssumptions();const id=STORE.states[STORE.current]?STORE.current:STORE.list[0].id;STORE.current=id;return JSON.parse(JSON.stringify(STORE.states[id]))}
+/* Saves made before Mali's Table shipped with a designed page get it too, so the
+   example opens on the current Review page. A design already there is kept. */
+function migrateMaliDesign(){const m=STORE&&STORE.states&&STORE.states["p-mali"];
+  if(m&&!(m.design&&m.design.html)){m.design=MALI_DESIGN();storeWrite()}}
+function load(){PTYPES=PTYPES||_ptypes();STORE=storeRead()||makeSeedStore();migrateAssumptions();migrateMaliDesign();const id=STORE.states[STORE.current]?STORE.current:STORE.list[0].id;STORE.current=id;return JSON.parse(JSON.stringify(STORE.states[id]))}
 function save(){if(!STORE||!S)return;
   // Image data goes to IndexedDB (see 07-imagestore.js); localStorage keeps the key.
   try{adoptLooseImages()}catch{}
