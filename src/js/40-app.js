@@ -160,7 +160,7 @@ function renderSystem(){
    spacing, imagery, components) and the token reference table. Every swatch, row and sample
    carries data-tok, so clicking one opens the same inspector in the side panel. */
 function sysTokenSheets(sec,toks){const selK=S.sel?.kind==="token"?S.sel.id:null;
-  return`<div class="sys-legend body-s osv"><span class="ms" style="font-size:16px">ads_click</span><span>Anything with a dashed outline on hover can be edited. <span class="auto-tag">auto</span> marks values worked out from other settings: change those settings to update them.</span></div>${sec==="components"||sec==="imagery"?sgSheet(sec):""}${specSheet(sec)}
+  return`${sec==="components"||sec==="imagery"?sgSheet(sec):""}${specSheet(sec)}
   <details class="card" style="padding:8px 16px"><summary class="title-s" style="cursor:pointer">Token reference · ${toks.length}</summary><div class="toks" style="margin-top:8px"><div class="h">token</div><div class="h">value</div><div class="h">why (evidence)</div><div class="h">what it is NOT</div>${toks.map(t=>`<div class="tokrow ${selK===t.k?"sel":""}" data-tok="${t.k}" tabindex="0" role="button"><div class="k">${esc(t.k)}${t.edited?' <span class="osv">·edited</span>':""}${sysDirty(t)?' <span class="warn-t">·unapplied</span>':""}</div><div>${t.type==="color"?`<span class="sw" style="background:${esc(t.v)}"></span>`:""}${esc(t.v)}</div><div class="osv">${esc(t.why)}</div><div class="osv">${esc(t.not)}</div></div>`).join("")}</div></details>`}
 /* Design-system preview: a specimen with placeholder content, styled by the current tokens
    (32-system-specimen.js); click a part to inspect the decisions it uses. */
