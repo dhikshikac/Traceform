@@ -112,7 +112,7 @@ const SECTION_REASON={
 };
 function T(k){return(S.tokens||seedTokens()).find(t=>t.k===k)}
 function tv(k){return T(k)?.v}
-function setToken(k,v,why,not){if(!S.tokens)S.tokens=seedTokens();const t=S.tokens.find(x=>x.k===k);if(!t)return;snapshot(`token ${k} → ${v}`);t.v=v;if(why)t.why=why;if(not)t.not=not;t.edited=true;if(typeof mineLabel==="function")t.mine=mineLabel(t);save();renderSystem();if(S.view==="review")renderReview()}
+function setToken(k,v,why,not){if(!S.tokens)S.tokens=seedTokens();const t=S.tokens.find(x=>x.k===k);if(!t)return;snapshot(`token ${k} → ${v}`);t.v=v;if(why)t.why=why;if(not)t.not=not;t.edited=true;t.user=true;if(typeof mineLabel==="function")t.mine=mineLabel(t);save();renderSystem();if(S.view==="review")renderReview()}
 
 /* ============================ AI ============================ */
 let sample=null;
