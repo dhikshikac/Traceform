@@ -95,9 +95,10 @@ function genSpecType() {
 function genSpecSpace() {
   const d = designTokens();
   const use = ["inside small parts, between an icon and its label", "inside cards and buttons", "between cards", "padding inside a section", "between sections"];
-  const sp = d.s.map((s, i) => `<div class="srow" ${tokBtn("space.scale")}><div class="sbox"><i style="width:${Math.min(s, 72)}px;height:${Math.min(s, 72)}px"></i></div><div class="mono">step ${i + 1}</div><div class="body-s">${s}px</div><div class="body-s osv">${use[i] || ""}</div></div>`).join("");
+  const spN = scaleNums("space.scale").filter(n => n > 0), rN = scaleNums("shape.radius");
+  const sp = (spN.length ? spN : d.s).map((s, i) => `<div class="srow pick ${S.sel?.kind==="scale"&&S.sel.id==="space.scale"&&S.sel.i===i?"sel":""}" data-scale="space.scale:${i}" tabindex="0" role="button"><div class="sbox"><i style="width:${Math.min(s, 72)}px;height:${Math.min(s, 72)}px"></i></div><div class="mono">step ${i + 1}</div><div class="body-s">${s}px</div><div class="body-s osv">${use[i] || ""}</div></div>`).join("");
   const ru = ["tags and small parts", "buttons and inputs", "cards and images"], rn = ["small", "medium", "large"];
-  const rad = d.r.map((r, i) => `<div class="srow" ${tokBtn("shape.radius")}><div class="sbox"><i style="width:44px;height:44px;border-radius:${r}px;background:transparent;border:2px solid var(--primary)"></i></div><div class="mono">${rn[i]}</div><div class="body-s">${r}px</div><div class="body-s osv">${ru[i]}</div></div>`).join("");
+  const rad = (rN.length ? rN : d.r).map((r, i) => `<div class="srow pick ${S.sel?.kind==="scale"&&S.sel.id==="shape.radius"&&S.sel.i===i?"sel":""}" data-scale="shape.radius:${i}" tabindex="0" role="button"><div class="sbox"><i style="width:44px;height:44px;border-radius:${r}px;background:transparent;border:2px solid var(--primary)"></i></div><div class="mono">${rn[i] || "step " + (i + 1)}</div><div class="body-s">${r}px</div><div class="body-s osv">${ru[i] || ""}</div></div>`).join("");
   const why = k => { const t = T(k); return t && sysWhy(t) ? `<div class="body-s"><b>Why:</b> ${esc(sysWhy(t))}${t.not ? ` <span class="osv">Not: ${esc(t.not)}</span>` : ""}</div>` : ""; };
   return SHEET(SH("Spacing", "every margin, padding and gap on the page uses one of these steps") + sp + why("space.scale")) + SHEET(SH("Corner radius", "") + rad + why("shape.radius"));
 }

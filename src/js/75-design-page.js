@@ -520,7 +520,8 @@ ${dzAllCSS(d)}
 .pg [data-tf]{cursor:pointer}
 .tf-marks .pg [data-tf]:hover{outline-style:solid}
 .pg [data-tf].tf-sel{outline:2px solid var(--accent);outline-offset:-2px}
-</style>${typeof tsDesignCSS === "function" ? `<style>${tsDesignCSS()}</style>` : ""}</head><body><div class="pg">${d.html || ""}</div></body></html>`;
+</style>${typeof tsDesignCSS === "function" ? `<style>${tsDesignCSS()}
+${typeof sgDesignCSS === "function" ? sgDesignCSS() : ""}</style>` : ""}</head><body><div class="pg">${d.html || ""}</div></body></html>`;
 }
 
 /* Fit real photographs into the page's photo slots: the designer's own image

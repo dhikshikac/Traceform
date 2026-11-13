@@ -60,6 +60,7 @@ function specimenCSS(d) {
 .s.spec .foot .sx-cp{opacity:.6;font-size:12px}
 @media (max-width:700px){.s.spec .story,.s.spec .sx-form{grid-template-columns:1fr}}
 ${typeof tsSpecimenCSS==="function"?tsSpecimenCSS(".s.spec"):""}
+${typeof sgCSS==="function"?sgCSS(".s.spec",true):""}
 `;
 }
 
