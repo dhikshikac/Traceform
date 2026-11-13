@@ -142,17 +142,21 @@ function renderSystem(){
   const c=$("#sysCenter"),toks=sysSecToks(sec),name=SEC_NAME[sec];
   c.innerHTML=`<div class="pane-hd sys-hd"><div><span class="title-l">${name}</span><div class="body-s osv">Select an element to edit its style. Highlighted elements share the same setting.</div></div></div>
   <div class="sys-toolbar"><div class="seg" role="group" aria-label="System view"><button data-sysview="preview" class="${view==="preview"?"on":""}" aria-pressed="${view==="preview"}">Preview</button><button data-sysview="tokens" class="${view==="tokens"?"on":""}" aria-pressed="${view==="tokens"}">Tokens</button></div></div>
-  ${view==="preview"?sysPreviewHTML():sysTokenGrid(toks)}
+  ${view==="preview"?sysPreviewHTML():sysTokenSheets(sec,toks)}
   <details class="sys-why"><summary><span class="title-s">About these ${esc(name.toLowerCase())} settings</span></summary><div class="sys-why-b"><div class="body-m">${whyHTML(reason(sec))}</div><form id="sysNotes" class="col" style="gap:8px"><div class="field"><label for="sysNotesTA">Category notes</label><textarea id="sysNotesTA" rows="4">${esc(reason(sec))}</textarea></div><button class="btn outlined sm" type="submit" style="align-self:flex-start">Save notes</button></form></div></details>`;
   $$("[data-sysview]",c).forEach(b=>b.onclick=()=>{S.sysView=b.dataset.sysview;save();renderSystem()});
   $$("[data-tok]",c).forEach(r=>r.onclick=()=>{select({kind:"token",id:r.dataset.tok});renderSystem()});
   $("#sysNotes",c).onsubmit=e=>{e.preventDefault();S.reasons=S.reasons||{};S.reasons[sec]=$("#sysNotesTA").value.trim();snapshot(`${sec} notes`);save();renderSystem();$(".sys-why",c)?.setAttribute("open","");toast(`${name} notes saved`)};
   wireCites(c);wireSysPreview(c,sec);photoFill();
+  if(view==="tokens"){if(sec==="imagery")wireUserImgs(c);if(typeof sysPhotoFill==="function")sysPhotoFill()}
   renderSystemRail();
 }
-/* Tokens view: every decision in the section as a selectable card. */
-function sysTokenGrid(toks){const selK=S.sel?.kind==="token"?S.sel.id:null;
-  return`<section class="tokgrid" aria-label="Tokens">${toks.map(t=>`<button class="tokcard ${selK===t.k?"sel":""}" data-tok="${t.k}" aria-pressed="${selK===t.k}"><span class="tokcard-s">${decSample(t)}</span><span class="title-s">${esc(decName(t))}</span><span class="mono osv">${esc(t.k)}</span><span class="body-s tokcard-v">${esc(t.v)}</span>${sysDirty(t)?'<span class="body-s warn-t">Unapplied edits</span>':""}</button>`).join("")}</section>`}
+/* Tokens view: the section's spec sheet (20/21-system specs: roles, ramps, contrast, type,
+   spacing, imagery, components) and the token reference table. Every swatch, row and sample
+   carries data-tok, so clicking one opens the same inspector in the side panel. */
+function sysTokenSheets(sec,toks){const selK=S.sel?.kind==="token"?S.sel.id:null;
+  return`${specSheet(sec)}
+  <details class="card" style="padding:8px 16px"><summary class="title-s" style="cursor:pointer">Token reference · ${toks.length}</summary><div class="toks" style="margin-top:8px"><div class="h">token</div><div class="h">value</div><div class="h">why (evidence)</div><div class="h">what it is NOT</div>${toks.map(t=>`<div class="tokrow ${selK===t.k?"sel":""}" data-tok="${t.k}" tabindex="0" role="button"><div class="k">${esc(t.k)}${t.edited?' <span class="osv">·edited</span>':""}${sysDirty(t)?' <span class="warn-t">·unapplied</span>':""}</div><div>${t.type==="color"?`<span class="sw" style="background:${esc(t.v)}"></span>`:""}${esc(t.v)}</div><div class="osv">${esc(t.why)}</div><div class="osv">${esc(t.not)}</div></div>`).join("")}</div></details>`}
 /* Design-system preview: a specimen with placeholder content, styled by the current tokens
    (32-system-specimen.js); click a part to inspect the decisions it uses. */
 function sysPreviewHTML(){
