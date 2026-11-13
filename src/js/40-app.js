@@ -69,8 +69,7 @@ function wireCites(root){$$("[data-cite]",root).forEach(b=>b.onclick=e=>{e.preve
    Ordered general → specific: when selectors overlap, the more specific part wins. */
 const SYS_PICK=[
   {id:"page",name:"Page background",sel:"&",tok:["color.ground","color.ink","type.body","space.scale"]},
-  {id:"block",name:"Section spacing",sel:".sx-blk",tok:["space.scale"]},
-  {id:"navbar",name:"Navigation bar",sel:".nav",tok:["color.ground","space.scale"]},
+    {id:"navbar",name:"Navigation bar",sel:".nav",tok:["color.ground","space.scale"]},
   {id:"footer",name:"Footer",sel:".foot",tok:["color.ground","color.ink","type.body","space.scale"]},
   {id:"heroBlock",name:"Hero section",sel:".hero",tok:["space.scale"]},
   {id:"cardGroup",name:"Item cards",sel:".cards",tok:["comp.dishCard","space.scale"]},
@@ -98,16 +97,8 @@ const SYS_PICK=[
   {id:"storyBody",name:"Media text",sel:".story p:not(.q)",tok:["type.body","color.ink"]},
   {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]},
   /* parts that only the design-system specimen has */
-  {id:"swGround",name:"Background swatch",sel:".sx-sw-g",tok:["color.ground"]},
-  {id:"swAccent",name:"Accent swatch",sel:".sx-sw-a",tok:["color.accent"]},
-  {id:"swSignal",name:"Signal swatch",sel:".sx-sw-h",tok:["color.heat"]},
-  {id:"swInk",name:"Text swatch",sel:".sx-sw-i",tok:["color.ink"]},
-  {id:"rampDisplay",name:"Heading styles",sel:".sx-tr-d",tok:["type.display","type.scale"]},
-  {id:"rampBody",name:"Body styles",sel:".sx-tr-b",tok:["type.body","type.scale"]},
   {id:"secondary",name:"Secondary action",sel:".btn.sx-2nd",tok:["color.accent","shape.radius","type.body"]},
-  {id:"field",name:"Text field",sel:".sx-field",tok:["color.ink","color.accent","color.heat","shape.radius","type.body"]},
-  {id:"spaceSteps",name:"Spacing steps",sel:".sx-steps",tok:["space.scale"]},
-  {id:"radii",name:"Corner radius samples",sel:".sx-radii",tok:["shape.radius"]}
+  {id:"field",name:"Text field",sel:".sx-field",tok:["color.ink","color.accent","color.heat","shape.radius","type.body"]}
 ];
 const pickById=id=>SYS_PICK.find(p=>p.id===id);
 /* Plain-language explanations for the System inspector. The stored "why" stays terse (it feeds the AI and other pages);
