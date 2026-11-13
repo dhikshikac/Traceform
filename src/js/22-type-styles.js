@@ -130,7 +130,8 @@ function renderTypeStyleRail() {
     <p class="body-s bad-t" id="tsErr" role="alert"></p>
     <div class="row sys-apply" id="tsActions" ${dirty ? "" : "hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="tsCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>
     ${tsEdited(id) ? `<div class="row"><button type="button" class="btn text sm" id="tsReset">Reset to follow ${esc(baseShort())}</button></div>` : ""}
-  </form>`;
+  </form>
+  ${promptBox(s.name, "")}`;
   const read = () => ({ font: $("#ts_font").value, size: $("#ts_size").value, lh: $("#ts_lh").value, w: +$("#ts_w").value, tr: $("#ts_tr").value });
   const f = $("#tsForm");
   const draft = () => {
@@ -161,6 +162,8 @@ function renderTypeStyleRail() {
   const rs = $("#tsReset"); if (rs) rs.onclick = () => { snapshot(`reset text style ${s.name}`); S.typeStyles = { ...(S.typeStyles || {}) }; delete S.typeStyles[id]; delete tsDrafts[id]; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${s.name} follows ${baseShort()} again`); };
   $("#tsPick").onchange = () => { select({ kind: "tstyle", id: $("#tsPick").value }); renderSystem(); };
   wireRelated(r);
+  wireStylePrompt(r, "tstyle:" + id, [{ id: "ts_font", k: "font", label: "Font family", opts: fonts }, { id: "ts_size", k: "size", label: "Size in px", min: 8, max: 160 }, { id: "ts_lh", k: "lh", label: "Line height", min: 0.8, max: 3 }, { id: "ts_w", k: "w", label: "Weight", opts: TS_WEIGHTS.map(x => String(x[0])) }, { id: "ts_tr", k: "tr", label: "Letter spacing in px", min: -5, max: 10 }],
+    `text style "${s.name}" (${s.role}): ${cur.font}, ${cur.size}px, line height ${cur.lh}, weight ${cur.w}, letter spacing ${cur.tr}px. Why: ${why.join(" ") || "no explanation"}`);
   wireCites(r);
   $$("[data-closesel]", r).forEach(x => x.onclick = clearSel);
 }

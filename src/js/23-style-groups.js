@@ -151,7 +151,8 @@ function renderStyleItemRail() {
     <p class="body-s bad-t" id="sgErr" role="alert"></p>
     <div class="row sys-apply" id="sgActions" ${dirty ? "" : "hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="sgCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>
     ${sgEdited(item.id) ? `<div class="row"><button type="button" class="btn text sm" id="sgReset">Reset to follow ${esc(baseShort())}</button></div>` : ""}
-  </form>`;
+  </form>
+  ${promptBox(item.name, "")}`;
   const read = () => Object.fromEntries(item.props.map(p => [p.k, p.opts ? $("#sg_" + p.k).value : $("#sg_" + p.k).value]));
   const f = $("#sgForm");
   const draft = () => { const v = read(); sgDrafts[item.id] = v; $("#sgActions").hidden = item.props.every(p => String(v[p.k]) === String(cur[p.k])); $("#sgErr").textContent = ""; $(".sg-prev", r).innerHTML = sgSampleWith(item, v); sysLivePreview(); };
@@ -172,6 +173,8 @@ function renderStyleItemRail() {
   const rs = $("#sgReset"); if (rs) rs.onclick = () => { snapshot(`reset ${item.name.toLowerCase()} style`); S.compStyles = { ...(S.compStyles || {}) }; delete S.compStyles[item.id]; delete sgDrafts[item.id]; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${item.name} follows ${baseShort()} again`); };
   $("#sgPick").onchange = () => { select({ kind: "cstyle", id: $("#sgPick").value }); renderSystem(); };
   wireRelated(r);
+  wireStylePrompt(r, "cstyle:" + item.id, item.props.map(p => p.opts ? { id: "sg_" + p.k, k: p.k, label: p.label, opts: p.opts.map(o => String(o[0])) } : { id: "sg_" + p.k, k: p.k, label: p.label + (p.unit ? " in " + p.unit : ""), min: p.min, max: p.max }),
+    `${item.name} (${item.role}): ${item.props.map(p => `${p.label} ${sgShow(p, cur[p.k])}`).join(", ")}. Why: ${why || "no explanation"}`);
   wireCites(r);
   $$("[data-closesel]", r).forEach(x => x.onclick = clearSel);
 }
@@ -221,7 +224,8 @@ function renderScaleRail() {
     <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${esc(plainWhy(t)) || '<span class="osv">No explanation added.</span>'}</div>${cs.length ? `<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>` : ""}</section>
     <p class="body-s bad-t" id="scErr" role="alert"></p>
     <div class="row sys-apply" id="scActions" ${String(dv) !== String(cur) ? "" : "hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="scCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>
-  </form>`;
+  </form>
+  ${promptBox(info.name(i), "")}`;
   $("#scVal").oninput = () => { const v = $("#scVal").value; scDraft = { k, i, v }; $("#scActions").hidden = String(v) === String(cur); $("#scErr").textContent = ""; $(".sc-prev", r).innerHTML = scSample(k, v); sysLivePreview(); };
   $("#scForm").onsubmit = e => {
     e.preventDefault(); const v = $("#scVal").value;
@@ -233,6 +237,8 @@ function renderScaleRail() {
   $("#scCancel").onclick = () => { scDraft = null; renderScaleRail(); sysLivePreview(); };
   const ub = $("#scUseBase", r); if (ub) ub.onclick = () => { const bv = (String(baseTokenValue(k) || "").match(/\d+(?:\.\d+)?/g) || [])[i]; $("#scVal").value = bv; $("#scVal").oninput(); };
   wireOverriders(r);
+  wireStylePrompt(r, "scale:" + k + ":" + i, [{ id: "scVal", k: "val", label: k === "space.scale" ? "Space" : "Radius", min: 0, max: info.max }],
+    `${info.name(i)}, currently ${cur}px, used for ${info.use[i] || "larger layouts"}. The whole scale is ${tv(k)}. Why: ${plainWhy(t) || "no explanation"}`);
   $$("[data-step]", r).forEach(b => b.onclick = () => { scDraft = null; select({ kind: "scale", id: k, i: +b.dataset.step }); renderSystem(); });
   const sp = $("#scProp", r); if (sp) sp.onchange = () => { const [nk, ni] = sp.value.split(":"); scDraft = null; select({ kind: "scale", id: nk, i: +ni, pick: S.sel.pick }); renderSystem(); };
   wireCites(r);
