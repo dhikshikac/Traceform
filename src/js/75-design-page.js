@@ -148,10 +148,17 @@ function designRules() {
 WHAT TO MAKE
 A complete, production-quality home page for this project: the page a good studio
 would hand over, not a wireframe and not a template with the words swapped.
+It is the home page of a multi-page site: the pages in its nav are designed too,
+each holding its own content. So the home page does only what a home page does
+(say what this is, show the core thing, point onward) and leaves the detail of
+each other page to that page instead of cramming it all in here.
 
 IT MUST FOLLOW THE THREE SOURCES ABOVE
-- Research decides structure and copy. Every section exists because of an insight
-  card; the strongest (high-confidence) findings get the most prominent sections.
+- Research decides structure and copy. Every section traces to an insight card, a
+  saved reference or a design-system decision; one finding may need several small
+  sections (a headline, the feature itself, how it works, the action), so split it
+  rather than packing it into one. The strongest (high-confidence) findings get the
+  most prominent sections.
   Nothing on the page may contradict a card or do anything on the rejected list.
 - Inspiration decides the borrowed moves. Every borrowed part listed under
   INSPIRATION must be visibly honoured somewhere on the page - the layout idea,
@@ -196,6 +203,12 @@ any (data-photo="user:0"). Give each .ph a size (aspect-ratio or height); the
 real photograph is fitted into it. Follow the imagery spec for what the photos
 show. No emoji or icon fonts as decoration.
 
+PHONES
+The page must work on a 390px-wide phone as well as desktop: include
+@media (max-width:640px) rules that stack multi-column layouts into one column,
+let the nav and button rows wrap, scale the largest headings down so long words
+fit, and never set a fixed width wider than the screen. Nothing may scroll sideways.
+
 NAV
 The nav names the other pages this product would have, chosen from the research
 (3-5 of them, the home one marked current). They are not links yet: render them
@@ -203,6 +216,10 @@ as plain spans. Do not write href attributes.
 
 TRACEABILITY - this is the point of the tool
 Put data-tf="<short-id>" on every top-level section (e.g. data-tf="hero").
+Break the page into small sections, each doing one job: 6 to 9 of them, for
+example header/nav, hero, a short value strip, the main feature, a secondary
+feature, proof or social signal, a how-it-works row, a call to action, footer.
+Never fold two jobs into one section; each is reviewed on its own.
 Return exactly one decision record per data-tf section - same count, same ids.
 A receipt is a sentence in the form "<what was decided> <- <the evidence>",
 quoting the research or naming the saved reference:
@@ -256,6 +273,15 @@ async function aiHomePage() {
   // and the images are dropped in case they were what the provider choked on.
   if (!usable(out)) { try { out = await ask([]); } catch (e) { if (!err) err = e; } }
   if (!usable(out) && err) throw err;
+  /* Smaller models keep packing the page into 3-5 big sections, which leaves the
+     Review panel with a few long records. One more ask, told what to split. */
+  const count = o => usable(o) ? (o.html.match(/data-tf="/g) || []).length : 0;
+  if (count(out) && count(out) < 6) {
+    try {
+      const again = await aiRetry(() => sample.json(`${prompt}\n\nYOUR LAST PAGE HAD ONLY ${count(out)} SECTIONS (${(out.sections || []).map(s => s.name).join(", ")}). Split it into 6 to 9 smaller data-tf sections, each doing one job (for example pull the value strip, how-it-works, proof and call to action out of the bigger ones). Keep the same design, copy and evidence.`, { modelTier: "default" }));
+      if (count(again) > count(out)) out = again;
+    } catch (e) { }
+  }
   return out;
 }
 
@@ -305,8 +331,21 @@ function enforceTokens(css) {
     const exact = sys.find(([, v]) => v.toLowerCase() === hex.toLowerCase());
     if (exact && alpha >= 1) return `var(${exact[0]})`;
     if (exact) return `color-mix(in srgb,var(${exact[0]}) ${Math.round(alpha * 100)}%,transparent)`;
-    if (chroma(rgb) <= 24) return null;                                      // a neutral: white, black, greys
-    if (sysHues.some(h => hueGap(h, dzHue(...rgb)) <= 28)) return null;       // a tint or shade of a system colour
+    const wrap = v => alpha >= 1 ? v : `color-mix(in srgb,${v} ${Math.round(alpha * 100)}%,transparent)`;
+    /* A tint or shade of a system colour is written as a mix of that colour, so it
+       follows the palette when the design system changes instead of keeping the old one. */
+    const toward = ([, sv], name) => { const s = hexToRgb(sv); const lighter = rgb.reduce((a, c, i) => a + c - s[i], 0) > 0;
+      const t = rgb.map((c, i) => lighter ? (s[i] >= 255 ? 1 : (c - s[i]) / (255 - s[i])) : (s[i] <= 0 ? 1 : (s[i] - c) / s[i])).reduce((a, b) => a + b, 0) / 3;
+      const keep = Math.max(0, Math.min(100, Math.round((1 - t) * 100)));
+      return wrap(keep >= 98 ? `var(${name})` : `color-mix(in srgb,var(${name}) ${keep}%,${lighter ? "#ffffff" : "#000000"})`); };
+    const lumOf = lum(hex);
+    if (chroma(rgb) <= 24) {                                                 // a neutral
+      if (lumOf > 0.97 || lumOf < 0.01) return null;                         // pure white / black stay
+      const near = sys.filter(([n]) => n === "--ground" || n === "--ink").map(x => [x, Math.abs(lum(x[1]) - lumOf)]).sort((a, b) => a[1] - b[1])[0];
+      return near && near[1] < 0.12 ? toward(near[0], near[0][0]) : null;
+    }
+    const hueMatch = sys.map(x => [x, hexToRgb(x[1])]).filter(([, c]) => chroma(c) > 24).map(([x, c]) => [x, hueGap(dzHue(...c), dzHue(...rgb))]).sort((a, b) => a[1] - b[1])[0];
+    if (hueMatch && hueMatch[1] <= 28) return toward(hueMatch[0], hueMatch[0][0]);
     fixed.colors++;
     const l = lum(hex);
     const base = l > 0.55 ? "color-mix(in srgb,var(--accent) 12%,var(--ground))" : l < 0.08 ? "var(--ink)" : "var(--accent)";
@@ -490,9 +529,11 @@ function designCoverage() {
 function designFrameHTML() {
   const d = S.design || {};
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(S.project || "Home")}</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Nunito+Sans:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="${tokenFontsHref()}">
 <style>
 ${designVarsCSS()}
+${typeof sgDesignCSS === "function" ? sgDesignCSS() : ""}
+${typeof tsDesignCSS === "function" ? tsDesignCSS() : ""}
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{background:var(--ground);color:var(--ink);font-family:var(--font-body);font-size:var(--t-body);line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -505,13 +546,36 @@ body{background:var(--ground);color:var(--ink);font-family:var(--font-body);font
   color:color-mix(in srgb,var(--ink) 70%,transparent);font-size:13px;line-height:1.4}
 ${dzAllCSS(d)}
 .pg .ph.filled{position:relative;padding:0;border:0;overflow:hidden;background:color-mix(in srgb,var(--ink) 8%,var(--ground))}
+/* Phones: whatever the page's own CSS did, nothing scrolls sideways. Rows wrap,
+   multi-column layouts stack, media and long words fit the screen. */
+@media (max-width:640px){
+  html,body{overflow-x:hidden}
+  .pg{overflow-wrap:anywhere}
+  .pg img,.pg video,.pg svg,.pg iframe,.pg .ph,.pg table{max-width:100% !important}
+  .pg nav,.pg header,.pg nav ul,.pg header ul{flex-wrap:wrap !important;row-gap:8px}
+  .pg nav,.pg nav ul{column-gap:14px}
+  .pg [style*="display:flex"],.pg [class*="row"],.pg [class*="actions"],.pg [class*="buttons"],.pg [class*="cta"]{flex-wrap:wrap}
+  .pg [class*="grid"],.pg [class*="cols"],.pg [class*="columns"],.pg [class*="split"]{grid-template-columns:minmax(0,1fr) !important}
+  .pg *{min-width:0}
+  .pg h1{font-size:clamp(28px,9vw,var(--t-display,44px)) !important;line-height:1.1}
+  .pg h2{font-size:clamp(22px,7vw,var(--t-h2,32px)) !important}
+  .pg section,.pg header,.pg footer,.pg main>*{max-width:100vw}
+}
 .pg .ph.filled>img{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;display:block}
-.tf-marks .pg [data-tf]{position:relative;outline:1px dashed color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:-1px}
-.tf-marks .pg [data-tf]::before{content:attr(data-n);position:absolute;left:6px;top:6px;z-index:50;width:20px;height:20px;border-radius:50%;
-  background:var(--accent);color:var(--on-accent);font:600 11px/20px system-ui;text-align:center}
+/* Review chrome, not the site: Traceform's own purple, so markers never read as part
+   of the design, and a faint solid line instead of a dashed one that cut through it. */
+.pg{--tf-mark:#6750A4}
+/* Outside the section, never across its content: a dotted line just beyond its
+   edge and the number sitting on that line's corner. The page gets a little room
+   while markers are on so the lines at the edges aren't cut off. */
+.tf-marks body{padding:16px}
+.tf-marks .pg [data-tf]{position:relative;outline:1.5px dotted color-mix(in srgb,var(--tf-mark) 55%,transparent);outline-offset:3px}
+.tf-marks .pg [data-tf]::before{content:attr(data-n);position:absolute;left:-14px;top:-14px;z-index:50;min-width:22px;height:22px;padding:0 6px;border-radius:11px;
+  background:var(--tf-mark);color:#fff;font:600 11px/22px system-ui,sans-serif;text-align:center;letter-spacing:0;
+  box-shadow:0 0 0 2px #fff,0 2px 6px rgba(0,0,0,.18);pointer-events:none}
 .pg [data-tf]{cursor:pointer}
-.tf-marks .pg [data-tf]:hover{outline-style:solid}
-.pg [data-tf].tf-sel{outline:2px solid var(--accent);outline-offset:-2px}
+.tf-marks .pg [data-tf]:hover{outline:2px dotted var(--tf-mark);outline-offset:3px}
+.pg [data-tf].tf-sel{outline:2px solid var(--tf-mark);outline-offset:3px}
 </style></head><body><div class="pg">${d.html || ""}</div></body></html>`;
 }
 
@@ -569,6 +633,13 @@ function wireDesignFrame(f) {
     });
   });
   doc.addEventListener("click", () => { if (S.sel && S.sel.kind === "sec") { select(null); syncDesignFrame(); renderReviewRail(); } });
+  /* The site's own nav moves between its pages, as it would on the real site. */
+  const pages = dzPages();
+  if (pages.length > 1) [...doc.querySelectorAll("nav a, nav span, nav li, header a, header span")].forEach(el => {
+    const p = pages.find(x => x.label.toLowerCase() === el.textContent.trim().toLowerCase()); if (!p) return;
+    el.style.cursor = "pointer";
+    el.addEventListener("click", ev => { ev.preventDefault(); ev.stopPropagation(); dzShowPage(p.key); }, true);
+  });
   const fit = () => { try { f.style.height = Math.max(320, doc.body.scrollHeight) + "px"; } catch { } };
   f._fit = fit;
   try { new ResizeObserver(fit).observe(doc.body); } catch { }
@@ -622,7 +693,7 @@ function dzKeepDesign(d) {
   if (!d || !d.html || !d.at) return;
   S.designs = S.designs || {};
   S.designs[d.at] = d;
-  Object.keys(S.designs).map(Number).sort((a, b) => b - a).slice(8).forEach(k => { delete S.designs[k]; });
+  Object.keys(S.designs).map(Number).sort((a, b) => b - a).slice(5).forEach(k => { delete S.designs[k]; });
 }
 /* The design a history entry points at: null when there was none, undefined
    when it is no longer kept (the caller then leaves the current design alone). */
@@ -836,4 +907,81 @@ function wireSectionPrompt(r, id) {
     if (dzAsk) dzAsk.turns.forEach(t => { if (t.ver === i) delete t.ver; });
     dzScrollAfter = id; restore(i);
   });
+}
+
+
+/* ---------- the whole site: every page in the nav ----------
+   S.design is the page on screen (everything else reads it); S.design.pages holds
+   every page, and dzShowPage swaps one in. The other pages are designed after the
+   home page, in the background, reusing its CSS, header and footer so the site
+   stays one design. */
+function dzKey(label) { return String(label || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "page"; }
+function dzPages() { const d = S.design; return d && Array.isArray(d.pages) ? d.pages : []; }
+function dzStash() {
+  const d = S.design; if (!d || !Array.isArray(d.pages)) return;
+  const cur = d.pages.find(p => p.key === d.page); if (!cur) return;
+  Object.assign(cur, { html: d.html, css: d.css, extra: d.extra || {}, sections: d.sections, photos: d.photos, reasoning: d.reasoning, ready: true });
+}
+function dzShowPage(key) {
+  const d = S.design; const pg = dzPages().find(p => p.key === key); if (!d || !pg) return;
+  if (pg.failed) { retrySitePage(key); return; }
+  if (!pg.ready) { toast(`${pg.label} is still being designed…`); return; }
+  dzStash();
+  Object.assign(d, { page: key, html: pg.html, css: pg.css, extra: pg.extra || {}, sections: pg.sections || [], photos: pg.photos || [], reasoning: pg.reasoning || "" });
+  if (S.sel && S.sel.kind === "sec") S.sel = null;
+  save(); if (S.view === "review") renderReview(); if (S.view === "system") renderSystem();
+}
+/* Header and footer markup of the home page, so every page shares them. */
+function dzChrome(html) {
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const pick = sel => { const el = doc.querySelector(sel); return el ? el.outerHTML : ""; };
+  return { header: pick("header") || pick("nav"), footer: pick("footer") };
+}
+async function aiSitePage(label, home) {
+  const ch = dzChrome(home.html);
+  const prompt = `${designBrief()}\n${designRules()}\n\n` +
+    `THIS IS NOT THE HOME PAGE. Design the "${label}" page of the same site.\n` +
+    `- Its content is what the "${label}" page of this product would actually hold, taken from the research; do not repeat the home page's sections.\n` +
+    `- Reuse the home page's design: its CSS below is already loaded on this page, so use its classes; put only rules for NEW classes in "css".\n` +
+    `- Use exactly this header (with "${label}" marked as the current page instead of Home) and this footer:\n${ch.header}\n${ch.footer}\n` +
+    `- Prefix every data-tf id with "${dzKey(label)}-".\n\nHOME PAGE CSS (already loaded):\n${String(home.css || "").slice(0, 7000)}\n\n` +
+    `JSON (no extra keys, no markdown fences): ${designSchema()}\n"reasoning" is 1-2 sentences on why this page is shaped this way.`;
+  return aiRetry(() => sample.json(prompt, { modelTier: "default" }), 4);
+}
+/* Built the way applyHomePage builds the home page, without replacing it. */
+function dzPageFrom(out) {
+  const keep = S.design, keepDesigns = S.designs, keepSel = S.sel, keepPrev = S.designPrev;
+  try { applyHomePage(out); return S.design; } finally { S.design = keep; S.designs = keepDesigns; S.sel = keepSel; S.designPrev = keepPrev; }
+}
+async function designOtherPages() {
+  const d = S.design; if (!d || !d.html || !sample) return;
+  const pid = S.pid, at = d.at;
+  const labels = (d.nav || []).filter(n => !n.current).map(n => n.label).filter(l => l && dzKey(l) !== "home").slice(0, 4);
+  d.page = "home";
+  d.pages = [{ key: "home", label: (d.nav || []).find(n => n.current)?.label || "Home", ready: true }, ...labels.map(l => ({ key: dzKey(l), label: l, ready: false }))];
+  dzStash(); save(); if (S.view === "review") renderReview();
+  const home = { html: d.html, css: d.css };
+  for (const label of labels) {
+    let pg = null;
+    /* The provider fails in bursts; a page that failed waits and gets one more try. */
+    for (let k = 0; k < 2 && !pg; k++) { if (k) await new Promise(r => setTimeout(r, 8000)); try { pg = dzPageFrom(await aiSitePage(label, home)); } catch (e) { } }
+    if (S.pid !== pid || !S.design || S.design.at !== at) return;     // another project, or a newer design
+    const slot = dzPages().find(p => p.key === dzKey(label)); if (!slot) continue;
+    if (pg) { Object.assign(slot, { html: pg.html, css: `${home.css}\n${pg.css}`, extra: {}, sections: pg.sections, photos: pg.photos, reasoning: pg.reasoning, ready: true }); toast(`${label} page designed`); }
+    else { slot.failed = true; toast(`Couldn't design the ${label} page`); }
+    save(); if (S.view === "review") renderReview();
+  }
+}
+
+/* Clicking a page that failed designs it again. */
+async function retrySitePage(key) {
+  const d = S.design; const slot = dzPages().find(p => p.key === key); if (!d || !slot || slot.busy) return;
+  const pid = S.pid, at = d.at, home = dzPages().find(p => p.key === "home") || {};
+  slot.busy = true; slot.failed = false; toast(`Designing the ${slot.label} page…`); if (S.view === "review") renderReview();
+  let pg = null; try { pg = dzPageFrom(await aiSitePage(slot.label, { html: home.html || d.html, css: home.css || d.css })); } catch (e) { }
+  if (S.pid !== pid || !S.design || S.design.at !== at) return;
+  slot.busy = false;
+  if (pg) { Object.assign(slot, { html: pg.html, css: `${home.css || d.css}\n${pg.css}`, extra: {}, sections: pg.sections, photos: pg.photos, reasoning: pg.reasoning, ready: true }); toast(`${slot.label} page designed`); }
+  else { slot.failed = true; toast(`Couldn't design the ${slot.label} page · click it to try again`); }
+  save(); if (S.view === "review") renderReview();
 }

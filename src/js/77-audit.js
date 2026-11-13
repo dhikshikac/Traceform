@@ -286,6 +286,6 @@ function wireAxTab(r, onShow) {
 function legacyAuditDoc() {
   const html = pageHTML().replace(/<span class="pin[^"]*"[^>]*>[^<]*<\/span>/g, "");
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(S.project || "Site")}</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Nunito+Sans:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="${tokenFontsHref()}">
 <style>html,body{margin:0}</style></head><body>${html}</body></html>`;
 }

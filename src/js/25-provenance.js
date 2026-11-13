@@ -67,8 +67,9 @@ function relatedHTML(keys) {
 function wireRelated(root) { $$("[data-relk]", root).forEach(b => b.onclick = e => { e.preventDefault(); select({ kind: "token", id: b.dataset.relk }); renderSystem(); }); }
 /* Under a field in a style panel: does it follow the system, or override it? */
 function fieldNote(edited, sourceWord, baseShown) {
-  if (!sourceWord) return edited ? `<div class="fnote own">Your value · default ${esc(baseShown)}</div>` : `<div class="fnote">Default</div>`;
+  /* Kept to a few words: it sits under a small field. */
+  if (!sourceWord) return edited ? `<div class="fnote own">Edited · default ${esc(baseShown)}</div>` : "";
   return edited
-    ? `<div class="fnote own">Your value · overrides ${esc(sourceWord)} (${esc(baseShown)}), so changing that won't move it</div>`
-    : `<div class="fnote">Follows ${esc(sourceWord)}</div>`;
+    ? `<div class="fnote own" title="Overrides ${esc(sourceWord)} (${esc(baseShown)}), so changing that won't move it">Edited · was ${esc(baseShown)}</div>`
+    : `<div class="fnote">From ${esc(sourceWord.replace(/^the /, ""))}</div>`;
 }

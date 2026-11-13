@@ -37,6 +37,7 @@ function baseTokens(k, imported) {
   const fresh = sysDraft();
   if (k === "custom") return fresh;
   const vals = k === "upload" ? (imported || {}) : { ...(BASE_TOKENS[k] || {}), ...(BASE_EXTRA[k] || {}) };
+  delete vals["comp.cta"];   // "Order" / "Add to cart" is restaurant and shop wording, not part of a design language
   const label = k === "upload" ? "imported" : `${BASES[k].name} default`;
   Object.entries(vals).forEach(([key, val]) => {
     const t = fresh.find(x => x.k === key); if (!t) return;
@@ -93,19 +94,15 @@ function renderBaseSystem() {
     const b = BASE_TOKENS[k]; return [`${b["type.display"]}${b["type.body"] !== b["type.display"] ? " / " + b["type.body"] : ""}`, `radius ${b["shape.radius"]}`];
   };
   const desc = { custom: "Drafted from your research and saved inspiration. Every setting has a why and a what-not.", upload: "Paste a tokens.json or a Figma variables export." };
-  c.innerHTML = `<div class="pane-hd sys-hd"><div><span class="title-l">Base system</span><div class="body-s osv">Choose what your design system starts from. Everything you customize in the other sections is applied on top of it.</div></div></div>
-  <div class="dsgrid" role="radiogroup" aria-label="Base system">${BASE_ORDER.map(k => `<div class="ds ${cur === k ? "on" : ""}" data-base="${k}" tabindex="0" role="radio" aria-checked="${cur === k}">
-    <div class="row" style="gap:6px"><span class="title-s">${esc(baseName(k))}</span>${k === "upload" ? '<span class="ms" style="margin-left:auto">upload</span>' : cur === k ? '<span class="badge p" style="margin-left:auto">In use</span>' : ""}</div>
-    <div class="sws">${sw(k).map(s => `<i style="background:${esc(s || "#ccc")}"></i>`).join("")}</div>
-    <div class="body-s">${esc(desc[k] || BASES[k].desc)}</div>
-    <div class="body-s osv">${facts(k).map(esc).join(" · ")}</div>
-    ${k !== "custom" && k !== "upload" ? `<div class="body-s osv">${esc(BASES[k].note)}</div>` : ""}
-  </div>`).join("")}</div>
-  <section class="sheet"><div class="sheet-hd"><span class="title-s">What the base sets</span><span class="body-s osv">${esc(baseName(cur))}</span></div>
-    <div class="toks" style="grid-template-columns:150px 1.2fr 1fr"><div class="h">setting</div><div class="h">value</div><div class="h">from</div>${(S.tokens || []).filter(t => ["color", "type", "space"].includes(t.sec) || t.k === "comp.cta").map(t => { const o = origin(t); return `<div class="tokrow" data-tok="${t.k}" tabindex="0" role="button"><div>${esc(decName(t))}</div><div>${t.type === "color" ? `<span class="sw" style="background:${esc(t.v)}"></span>` : ""}${esc(t.v)}</div><div class="osv">${esc(o[0] === "AI draft" || o[0] === "Template" ? (cur === "custom" ? o[0] : "AI draft (kept)") : o[0])}</div></div>`; }).join("")}</div></section>
-  <div class="note">Imagery, motif, item cards and signal use always come from your research, whichever base you pick.</div>`;
+  /* The cards as they were before the redesign: name, swatches, what it is, when to use it.
+     Choosing one goes through chooseBase, which asks before replacing your edits. */
+  const why = cur === "custom" || !BASE_TOKENS[cur] ? reason("base") : `${BASES[cur].name} is now the base: its colour, type scale, spacing and radius replaced the research draft. That gives you a proven component set, but it also moves you toward what AI tools produce on top of it; select any setting to see how common its value is in AI output. Imagery, motif and components still come from your research.`;
+  c.innerHTML = `<div class="pane-hd"><span class="title-l">Base system</span><span class="body-s osv">choose a prebuilt system as a reference, or keep the custom one drafted from research</span></div>
+  <div class="dsgrid" role="radiogroup" aria-label="Base system">${BASE_ORDER.map(k => `<div class="ds ${cur === k ? "on" : ""}" data-base="${k}" tabindex="0" role="radio" aria-checked="${cur === k}"><div class="row"><span class="title-s">${esc(BASES[k].name)}</span>${k === "upload" ? '<span class="ms" style="margin-left:auto">upload</span>' : ""}</div><div class="sws">${(k === "custom" ? [tv("color.ground"), tv("color.accent"), tv("color.heat"), tv("color.ink")].filter(Boolean) : BASES[k].sws).map(s => `<i style="background:${esc(s)}"></i>`).join("")}</div><div class="body-s">${esc(BASES[k].desc)}</div><div class="body-s osv">${esc(BASES[k].note)}</div></div>`).join("")}</div>
+  <div class="reason"><span class="ms">auto_awesome</span><div><div class="title-s">AI reasoning · base</div><div class="body-m">${whyHTML(why)}</div></div></div>`;
   $$("[data-base]", c).forEach(d => { const go = () => d.dataset.base === "upload" ? uploadBase() : chooseBase(d.dataset.base); d.onclick = go; d.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } }; });
   $$("[data-tok]", c).forEach(r => r.onclick = () => { select({ kind: "token", id: r.dataset.tok }); renderSystem(); });
+  wireCites(c);
   renderBaseRail(mine);
 }
 function renderBaseRail(mine) {

@@ -34,10 +34,10 @@ const SG_ITEMS = {
       { k: "bw", label: "Outline width", unit: "px", min: 0, max: 6, step: 0.5, base: () => 1.5, site: [[".btn.o", v => `border-width:${v}px`]] },
     ] },
     { id: "card", name: "Cards", role: "Item cards and info cards", pick: ["card", "infoCard"], props: [
-      { k: "r", label: "Corner radius", unit: "px", min: 0, max: 48, step: 1, base: () => designTokens().r[2], site: [[".card,.hcard,.box", v => `border-radius:${v}px`]] },
-      { k: "pad", label: "Inner padding", unit: "px", min: 4, max: 48, step: 1, base: () => designTokens().s[1], site: [[".card .b,.hcard,.box", v => `padding:${v}px`]] },
-      { k: "bw", label: "Border width", unit: "px", min: 0, max: 4, step: 0.5, base: () => 1, site: [[".card,.hcard,.box", v => `border-width:${v}px;border-style:${+v ? "solid" : "none"}`]] },
-      { k: "sh", label: "Shadow", opts: SG_SHADOWS, base: () => "none", site: [[".card,.hcard,.box", v => `box-shadow:${SG_SHADOW_CSS[v] || "none"}`]] },
+      { k: "r", label: "Corner radius", unit: "px", min: 0, max: 48, step: 1, base: () => designTokens().r[2], site: [[".card,.hcard,.box", v => `border-radius:${v}px`]], design: [[".pg [class*='card']:not([class*='card-']):not([class*='cards'])", v => `border-radius:${v}px`]] },
+      { k: "pad", label: "Inner padding", unit: "px", min: 4, max: 48, step: 1, base: () => designTokens().s[1], site: [[".card .b,.hcard,.box", v => `padding:${v}px`]], design: [[".pg [class*='card']:not([class*='card-']):not([class*='cards'])", v => `padding:${v}px`]] },
+      { k: "bw", label: "Border width", unit: "px", min: 0, max: 4, step: 0.5, base: () => 1, site: [[".card,.hcard,.box", v => `border-width:${v}px;border-style:${+v ? "solid" : "none"}`]], design: [[".pg [class*='card']:not([class*='card-']):not([class*='cards'])", v => `border-width:${v}px;border-style:${+v ? "solid" : "none"}`]] },
+      { k: "sh", label: "Shadow", opts: SG_SHADOWS, base: () => "none", site: [[".card,.hcard,.box", v => `box-shadow:${SG_SHADOW_CSS[v] || "none"}`]], design: [[".pg [class*='card']:not([class*='card-']):not([class*='cards'])", v => `box-shadow:${SG_SHADOW_CSS[v] || "none"}`]] },
     ] },
     { id: "field", name: "Text fields", role: "Inputs in forms", pick: ["field"], props: [
       { k: "h", label: "Height", unit: "px", min: 28, max: 64, step: 1, base: () => 38, site: [[".sx-field i,.field i", v => `height:${v}px`]], design: [[".pg input:not([type=checkbox]):not([type=radio]),.pg select", v => `min-height:${v}px`]] },
@@ -45,9 +45,9 @@ const SG_ITEMS = {
       { k: "bw", label: "Border width", unit: "px", min: 0, max: 4, step: 0.5, base: () => 1, site: [[".sx-field:not(.sx-focus):not(.sx-err) i,.field i", v => `border-width:${v}px`]], design: [[".pg input,.pg select,.pg textarea", v => `border-width:${v}px`]] },
     ] },
     { id: "chip", name: "Tags & chips", role: "Labels on cards, filters", pick: ["tag"], props: [
-      { k: "r", label: "Corner radius", unit: "px", min: 0, max: 999, step: 1, base: () => designTokens().r[0], site: [[".tag", v => `border-radius:${v}px`]] },
-      { k: "px", label: "Side padding", unit: "px", min: 2, max: 24, step: 1, base: () => 6, site: [[".tag", v => `padding-left:${v}px;padding-right:${v}px`]] },
-      { k: "fs", label: "Text size", unit: "px", min: 9, max: 18, step: 1, base: () => 11, site: [[".tag", v => `font-size:${v}px`]] },
+      { k: "r", label: "Corner radius", unit: "px", min: 0, max: 999, step: 1, base: () => designTokens().r[0], site: [[".tag", v => `border-radius:${v}px`]], design: [[".pg [class*='tag']:not([class*='tag-']):not([class*='tags']),.pg [class*='chip']:not([class*='chip-']):not([class*='chips'])", v => `border-radius:${v}px`]] },
+      { k: "px", label: "Side padding", unit: "px", min: 2, max: 24, step: 1, base: () => 6, site: [[".tag", v => `padding-left:${v}px;padding-right:${v}px`]], design: [[".pg [class*='tag']:not([class*='tag-']):not([class*='tags']),.pg [class*='chip']:not([class*='chip-']):not([class*='chips'])", v => `padding-left:${v}px;padding-right:${v}px`]] },
+      { k: "fs", label: "Text size", unit: "px", min: 9, max: 18, step: 1, base: () => 11, site: [[".tag", v => `font-size:${v}px`]], design: [[".pg [class*='tag']:not([class*='tag-']):not([class*='tags']),.pg [class*='chip']:not([class*='chip-']):not([class*='chips'])", v => `font-size:${v}px`]] },
     ] },
   ],
   imagery: [
@@ -136,7 +136,6 @@ function renderStyleItemRail() {
   const ctl = p => p.opts
     ? `<div class="field"><label for="sg_${p.k}">${esc(p.label)}</label><select id="sg_${p.k}">${p.opts.map(([v, n]) => `<option value="${esc(v)}" ${String(v) === String(d[p.k]) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>${sgNote(item, p)}</div>`
     : `<div class="field"><label for="sg_${p.k}">${esc(p.label)}${p.unit ? ` (${p.unit})` : ""}</label><input type="number" id="sg_${p.k}" value="${esc(d[p.k])}" step="${p.step}" min="${p.min}" max="${p.max}" inputmode="decimal">${sgNote(item, p)}</div>`;
-  const pairs = []; for (let i = 0; i < item.props.length; i += 2) pairs.push(item.props.slice(i, i + 2));
   const toks = group === "components" ? ["shape.radius", "space.scale", "comp.cta", "comp.dishCard"] : ["imagery", "motif", "shape.radius"];
   const tw = toks.map(T).filter(t => t && plainWhy(t));
   const why = [...new Set(tw.slice(0, 2).map(t => plainWhy(t)))].join(" ");
@@ -144,9 +143,9 @@ function renderStyleItemRail() {
   r.innerHTML = `<div class="rhead"><div class="title-m" style="min-width:0">${esc(item.name)}</div><span class="spacer"></span><button class="icon-btn" data-closesel aria-label="Clear selection"><span class="ms">close</span></button></div>
   <div class="field"><label for="sgPick">${group === "components" ? "Component" : "Photo or logo"}</label><select id="sgPick">${SG_ITEMS[group].map(x => `<option value="${x.id}" ${x.id === item.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></div>
   <form class="sys-editor" id="sgForm" novalidate>
-    ${pairs.map(pp => `<div class="row" style="gap:12px;flex-wrap:nowrap">${pp.map(ctl).join("")}</div>`).join("")}
-    <div class="sg-prev" style="padding:14px;border:1px solid var(--outline-variant);border-radius:12px;background:${esc(tv("color.ground") || "#fff")}">${sgSampleWith(item, d)}</div>
-    <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-m">${why ? esc(why) : '<span class="osv">No explanation added.</span>'}</div>${cs.length ? `<div class="sys-based"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>` : ""}<span class="body-s osv">${esc(provLabel(sgEdited(item.id)))} · base: ${esc(baseShort())}</span></section>
+    <div class="sg-fields">${item.props.map(ctl).join("")}</div>
+    <div class="sg-prevwrap"><span class="label-m osv">Preview</span><div class="sg-prev" style="background:${esc(tv("color.ground") || "#fff")}">${sgSampleWith(item, d)}</div></div>
+    <section class="sys-whybox"><span class="title-s">Why this setting?</span><div class="body-s">${why ? esc(why) : '<span class="osv">No explanation added.</span>'}</div>${cs.length ? `<div class="sys-based"><span class="label-m osv">Based on</span>${basedOnHTML(cs)}</div>` : ""}${sgEdited(item.id) ? `<span class="badge p" style="align-self:flex-start">Edited by you</span>` : ""}</section>
     ${relatedHTML({ button: ["comp.cta"], card: ["comp.dishCard"], heroPhoto: ["imagery"], cardPhoto: ["imagery"], mediaPhoto: ["imagery"], logo: ["motif"] }[item.id] || [])}
     <p class="body-s bad-t" id="sgErr" role="alert"></p>
     <div class="row sys-apply" id="sgActions" ${dirty ? "" : "hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="sgCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>

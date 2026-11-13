@@ -101,7 +101,7 @@ function renderInspiration(){const root=$("#inspBody"),rail=$("#rail-inspiration
   [root,rail].forEach(container=>$$("[data-rmanno]",container).forEach(b=>b.onclick=()=>{const[id,i]=b.dataset.rmanno.split(":");const t=S.tiles.find(x=>x.id===id);t.annotations.splice(+i,1);syncBorrow(t);snapshot("removed annotation");save();renderInspiration()}));
   $$("[data-whole]",root).forEach(b=>b.onclick=()=>{const[o,id]=b.dataset.whole.split(":");borrowAll(o,id)});
   $$("[data-part]",root).forEach(b=>b.onclick=()=>{const[o,id]=b.dataset.part.split(":");selectPartModal(o,id)});
-  $("#toSystem").onclick=()=>{if(!S.tokens)S.tokens=seedTokens();S.sysBuilt=true;snapshot("design system drafted");save();go("system");toast(`Design system drafted from research + ${S.tiles.length} inspiration${S.tiles.length===1?"":"s"}`)};
+  $("#toSystem").onclick=()=>{if(!S.tokens)S.tokens=defaultTokens();S.sysBuilt=true;snapshot("design system drafted");save();go("system");toast(`Design system drafted from research + ${S.tiles.length} inspiration${S.tiles.length===1?"":"s"}`)};
   fitLayers(root);fitLayers(rail);
 }
 /* Snapshot the reference onto the tile. Saved inspiration must survive a later

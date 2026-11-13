@@ -111,6 +111,7 @@ function save(){if(!STORE||!S)return;
   const c={...S,
     tiles:S.tiles.map(t=>({...t,img:undefined})),
     userImgs:(S.userImgs||[]).map(u=>u.imgKey?{...u,src:undefined}:u),
+    userMotifs:(S.userMotifs||[]).map(u=>u.imgKey?{...u,src:undefined}:u),
     history:(S.history||[]).slice(-30)};
   STORE.states[S.pid]=c;const m=STORE.list.find(x=>x.id===S.pid);if(m){m.name=S.project;m.updated=Date.now()}storeWrite()}
 function ago(t){const d=(Date.now()-t)/1000;if(d<60)return"just now";if(d<3600)return Math.round(d/60)+" min ago";if(d<86400)return Math.round(d/3600)+" h ago";return Math.round(d/86400)+" d ago"}
@@ -159,7 +160,7 @@ function renderTrash(){const t=trashList();const miss=missingSeeds();
   $$("[data-purge]",host).forEach(b=>b.onclick=()=>{const e=trashList().find(x=>x.meta.id===b.dataset.purge);
     dialog(`<span class="headline-s">Delete “${esc(e.meta.name)}” permanently?</span><div class="body-m">This removes it from this browser for good. It cannot be undone.</div>`,[["Cancel","text",()=>{}],["Delete permanently","filled",()=>{purgeProject(b.dataset.purge);renderLanding();toast("Deleted permanently")}]])});
 }
-function openProject(id){const sv=STORE.states[id];if(sv&&["trending","reference"].includes(sv.view))sv.view="inspiration";if(S&&S.pid&&S.pid!==id)save();STORE.current=id;S=JSON.parse(JSON.stringify(STORE.states[id]));if(!S.tokens&&S.type==="restaurant")S.tokens=seedTokens();
+function openProject(id){const sv=STORE.states[id];if(sv&&["trending","reference"].includes(sv.view))sv.view="inspiration";if(S&&S.pid&&S.pid!==id)save();STORE.current=id;S=JSON.parse(JSON.stringify(STORE.states[id]));if(!S.tokens&&S.type==="restaurant")S.tokens=defaultTokens();
   try{rTurns=[];pTurns=[];previewVer=null}catch{}storeWrite();showApp();setProjChip();go(S.view||"research");hydrateAndRender()}
 function setProjChip(){const t=PTYPES[S.type]||PTYPES.restaurant;$("#projChip").innerHTML=`<span class="ms" style="font-size:16px">${t.icon}</span>${esc(S.project)}`;$("#projChip").title="Switch project";}
 

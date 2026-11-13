@@ -5,6 +5,11 @@ function ramp(hex){return[["10",mix(hex,"#000000",.8)],["20",mix(hex,"#000000",.
 function onColor(hex){return ratio("#ffffff",hex)>=ratio("#1F1F1F",hex)?"#FFFFFF":"#1F1F1F"}
 const SHEET=el=>`<div class="sheet">${el}</div>`;
 const SH=(t,s)=>`<div class="sheet-hd"><span class="title-s">${t}</span>${s?`<span class="body-s osv">${s}</span>`:""}</div>`;
+/* Contrast checks: each pair is [label, foreground, background, minimum, token to edit].
+   A row shows the pair itself, the ratio, and what it needs; clicking opens that token. */
+function contrastSheet(pairs){
+  return SHEET(SH("Contrast","WCAG 2.2 AA: 4.5 to 1 for text, 3 to 1 for buttons and icons")+`<div class="ctab">${pairs.map(([n,a,b,m,k])=>{const r=ratio(a,b),ok=r>=m;
+    return`<div class="crt" ${k?tokBtn(k):""}><span class="crt-s" style="background:${esc(b)};color:${esc(a)}" aria-hidden="true">Aa</span><span class="crt-n"><span class="body-m">${esc(n)}</span><span class="body-s osv">needs ${m}:1 · ${m>=4.5?"text":"buttons and icons"}</span></span><b class="crt-r ${ok?"ok-t":"bad-t"}">${r1(r)}:1</b><span class="badge ${ok?"ok":"e"}">${ok?"Pass":"Fails AA"}</span></div>`}).join("")}</div>`)}
 function tokBtn(k,extra=""){return`data-tok="${k}" tabindex="0" role="button" class="pick ${S.sel?.kind==="token"&&S.sel.id===k?"sel":""} ${extra}"`}
 function specColor(){
   const roles=[["color.ground","Ground","Page background; photos carry the color"],["color.accent","Accent","Buttons, links, selected states, motif"],["color.heat","Heat","Spice scale only — never buttons or headlines"],["color.ink","Ink","Text and icons on ground"]];
@@ -13,10 +18,10 @@ function specColor(){
     <div class="cmain"><div class="cswatch" style="background:${t.v};color:${on}"><span>${n}</span><span class="mono">${t.v.toUpperCase()}</span></div><div class="cswatch sm" style="background:${on};color:${t.v};border:1px solid var(--outline-variant)"><span>On ${n.toLowerCase()}</span><span class="mono">${on}</span></div></div>
     <div class="cramp">${ramp(t.v).map(([s,h])=>`<div style="background:${h};color:${onColor(h)}" title="${h.toUpperCase()}"><span>${s}</span></div>`).join("")}<div class="mono osv" style="grid-column:1/-1">${k}.10 … ${k}.95 · tonal ramp</div></div></div>`}).join("");
   const sur=[["surface.lowest",mix(g,"#ffffff",.6)],["surface.low",mix(g,"#ffffff",.3)],["surface",g],["surface.high",mix(g,"#000000",.05)],["surface.highest",mix(g,"#000000",.1)]];
-  const pairs=[["ink / ground",tv("color.ink"),g,4.5],["accent / ground (UI)",tv("color.accent"),g,3],["on-accent / accent",onColor(tv("color.accent")),tv("color.accent"),4.5],["heat / ground (UI)",tv("color.heat"),g,3]];
+  const pairs=[["Text on the page background",tv("color.ink"),g,4.5,"color.ink"],["Button text on the accent colour",onColor(tv("color.accent")),tv("color.accent"),4.5,"color.accent"],["Accent against the background (buttons, focus)",tv("color.accent"),g,3,"color.accent"],["Heat against the background",tv("color.heat"),g,3,"color.heat"]];
   return SHEET(SH("Color roles","each role has an on-color and a tonal ramp · click a role to edit the base value")+rows)+
     SHEET(SH("Surface tiers","derived from color.ground")+`<div class="surf">${sur.map(([k,h])=>`<div style="background:${h};color:${onColor(h)}"><span class="mono">${k}</span><span class="mono">${h.toUpperCase()}</span></div>`).join("")}</div>`)+
-    SHEET(SH("Contrast","WCAG 2.2 AA · 4.5:1 text · 3:1 UI")+`<div class="ctab">${pairs.map(([n,a,b,m])=>`<div class="kv"><span>${n}</span><b class="${ratio(a,b)>=m?"ok-t":"bad-t"}">${r1(ratio(a,b))}:1 ${ratio(a,b)>=m?"✓":"✗"}</b></div>`).join("")}</div>`);
+    contrastSheet(pairs);
 }
 function specType(){
   const fd=tv("type.display"),fb=tv("type.body");

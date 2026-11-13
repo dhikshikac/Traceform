@@ -54,7 +54,9 @@ function templateSite(){const v=vocab(S.type);const name=S.project||"Project";co
     action:{title:v.action,sub:"",cartTitle:"Your selection",addTitle:"",formTitle:"Your details",options:[],fields:[["Name",""],["Email",""]],submit:v.action,note:""},
     about:{title:v.about,img:"",alt:"About image: [ART DIRECTION]",paragraphs:["[STORY — generate from research]"],photos:[],people:[]}}}
 function genericTokens(){const v=vocab(S.type);return seedTokens().map(t=>{const o={...t,edited:false,prev:[],why:"Template default · generate from research to replace",not:""};
-  const val={"color.ground":"#FAFAF7","color.accent":"#3D5A80","color.heat":"#B5533C","color.ink":"#1C1C1C","type.display":"Fraunces","type.body":"Roboto","type.scale":"40 / 28 / 20 / 16 / 13","type.accentLine":"none","space.scale":"8 · 16 · 24 · 40 · 64","shape.radius":"4 / 8 / 12","imagery":"[from research]","motif":"none","comp.cta":`“${v.cta}”`}[t.k];
+  /* Deliberately plain greys and a system sans: a project that has not generated
+     its design system should look unstyled, never like the demo restaurant. */
+  const val={"color.ground":"#FFFFFF","color.accent":"#3A3A3A","color.heat":"#6E6E6E","color.ink":"#141414","type.display":"Roboto","type.body":"Roboto","type.scale":"36 / 26 / 20 / 16 / 13","type.accentLine":"none","space.scale":"4 · 8 · 16 · 32 · 48","shape.radius":"6 / 10 / 14","imagery":"[from research]","motif":"none","comp.cta":`“${v.cta}”`}[t.k];
   if(val!==undefined)o.v=val;else if(t.type==="text")o.v="[from research]";o.mine=typeof mineLabel==="function"?mineLabel(o):o.mine;return o})}
 function ensureProjectDefaults(){if(S.pid==="p-mali")return;if(!S.tokensTemplated&&!(S.gen&&S.gen.system)){S.tokens=genericTokens();S.tokensTemplated=true}site()}
 function reason(sec){return(S.reasons&&S.reasons[sec])||(S.pid==="p-mali"?SECTION_REASON[sec]:"Template values. Generate the design system to get choices and reasoning drawn from this project's research.")}
@@ -91,7 +93,7 @@ function inspirationDump(){
     if(m)lines.push(`  its palette: bg ${m.bg||"?"}, text ${m.fg||"?"}, accent ${m.cta||"?"}; display type ${String(m.font||"?").replace(/['"]/g,"")}`);
     if(t.siteBorrow)lines.push(`  take from the real site: ${t.siteBorrow}`);
     return lines.join("\n")}).join("\n")}
-function tokenDump(){return(S.tokens||seedTokens()).map(t=>`${t.k}=${t.v}`).join("\n")}
+function tokenDump(){return(S.tokens||defaultTokens()).map(t=>`${t.k}=${t.v}`).join("\n")}
 function projectHeader(){const c=projectContext();const v=vocab(S.type);
   return[`PROJECT: ${S.project}`,
     `PROJECT TYPE: ${c.typeName}. Shape everything for this kind of project: typical pages here are ${v.pages.join(", ")}; the main things on offer are "${v.items.toLowerCase()}"; the primary action is usually "${v.cta}" (change it if the research points elsewhere).`,
@@ -99,6 +101,13 @@ function projectHeader(){const c=projectContext();const v=vocab(S.type);
     `AVOID-LIST (rejected assumptions and hard rules): ${avoidList().join("; ")||"(none)"}`,
     `HOW TO DECIDE: build what the project type and the designer's context call for (pages, sections, items, tone, primary action) and make every specific choice from the research. If the research contradicts the context, follow the research and say so. Write for the audience above.`].filter(Boolean).join("\n")}
 const isHex=v=>/^#[0-9a-f]{6}$/i.test(String(v||""));
+/* A colour the model wrote slightly differently ("8FA05A", "#8fa", "rgb(143,160,90)",
+   "#8FA05A (olive)") used to fail the check and silently fall back to the template,
+   whose cream and slate blue look like the demo project's. Read what was meant. */
+function toHex(v){const s=String(v||"").trim();let m=s.match(/#?\b([0-9a-f]{6})\b/i);if(m)return"#"+m[1].toUpperCase();
+  m=s.match(/#([0-9a-f]{3})\b/i);if(m)return"#"+m[1].split("").map(c=>c+c).join("").toUpperCase();
+  m=s.match(/rgba?\(\s*(\d{1,3})[\s,]+(\d{1,3})[\s,]+(\d{1,3})/i);if(m)return"#"+m.slice(1,4).map(n=>Math.min(255,+n).toString(16).padStart(2,"0")).join("").toUpperCase();
+  return""}
 function imageKeyGuide(){return `Image slots: set "img" to a SHORT search phrase naming the SUBJECT of a real photograph: 2-4 plain nouns, no adjectives, no brand or person names. Say what the thing IS, not how it looks: "papaya salad mortar", "jewelers workbench", "nurse and patient", "potter at wheel". Adjectives like fresh, green, wooden or rustic match nothing and make the search worse. It is used to search a stock photo library, so describe what is IN the frame, not how it is shot. Base the subject on the research, not on the category. Put the reason the photo shows that, and any cropping or art direction, in "alt". Use "" for img only when no photograph belongs in that slot.`}
 
 /* ---------- stage 1: research → themes, cards, assumptions ---------- */
@@ -165,17 +174,65 @@ function offlineInspiration(){const g=tv("color.ground"),i=tv("color.ink");const
   S.directions=[["Quiet and photographic","#F6F4EF","#1C1C1C","#3D5A80"],["Bold and graphic","#FFFFFF","#111111","#C2410C"],["Warm and editorial","#F3EDE3","#2A2520","#7A5C3E"]].map(([n,bg,fg,a],k)=>directionFrom({name:n,desc:"Template direction (AI offline).",palette:{bg,fg,accent:a,card:"#FFFFFF"},font:FONTS.display[k%FONTS.display.length],headline:S.project,sub:"",cta:v.cta,nav:v.nav.slice(0,3),items:[]},k))}
 
 /* ---------- stage 3: design system ---------- */
-async function aiSystem(){const toks=(S.tokens||genericTokens());
-  return aiRetry(()=>sample.json(`${projectHeader()}\n\nINSIGHTS:\n${insightDump()}\n\nSAVED REFERENCES AND WHAT TO BORROW:\n${inspirationDump()}\n\nDraft this project's design tokens from the research and references. The saved references above are the designer's own choices: where a reference names a part to borrow, honour it concretely (a borrowed palette should show up in color.*, borrowed type in type.*, a borrowed layout or component idea in space.*/comp.*), and cite that reference by title in \"why\". Do not silently ignore a borrowed part; if one cannot be honoured, say why in the matching section of \"reasoning\". Keep exactly these keys and types:\n${toks.map(t=>`${t.k} (${t.type})`).join("\n")}\nRules: colors are hex; color.ink on color.ground at least 4.5:1; white text on color.accent at least 4.5:1; color.heat is a secondary signal color. type.display one of ${FONTS.display.join(", ")}; type.body one of ${FONTS.body.join(", ")}. comp.cta is the primary button label in curly quotes, e.g. “See the menu”. type.scale is font sizes in px, largest to smallest, as numbers only, e.g. "44 / 30 / 22 / 18 / 14" (the size nearest 16-18 is body text). space.scale is spacing steps in px, smallest to largest, numbers only, e.g. "8 / 16 / 24 / 40 / 64". shape.radius is three radii in px, small / medium / large, numbers only, e.g. "4 / 8 / 16". Put the reasoning for these in "why", never in the value. Other text tokens are short specs a developer can follow. A value never contains a card id or a citation; the evidence goes in "why". For each token give: why (cite the insight card id or reference), not (the generic choice it avoids), typical (the most common choice AI tools make for this token in this kind of project), typicalPct (your estimate, 0–100, of how often they make it) and minePct (your estimate of how often they make the choice you just made). Also one short paragraph of reasoning per section: base, color, type, space, imagery, components.\nJSON: {"tokens":[{"k":string,"v":string,"why":string,"not":string,"typical":string,"typicalPct":number,"minePct":number}],"reasoning":{"base":string,"color":string,"type":string,"space":string,"imagery":string,"components":string}}`,{modelTier:"default"}))}
+/* The references themselves, as pictures. The model used to get only each
+   reference's title and the designer's few words about it ("font styles"), so it
+   could not see the palette, type or shapes it was told to borrow, and drafted a
+   system that looked like the demo's. Each annotated part is cropped out so the
+   model sees exactly what was marked; an unannotated reference goes whole. */
+function loadImg(src){return new Promise((res,rej)=>{const im=new Image();im.crossOrigin="anonymous";im.onload=()=>res(im);im.onerror=()=>rej(new Error("image"));im.src=src})}
+async function cropBlob(im,sel,max=1024){const W=im.naturalWidth,H=im.naturalHeight;let x=0,y=0,w=W,h=H;
+  if(sel){const pad=.02;x=Math.max(0,(sel.x-pad)*W);y=Math.max(0,(sel.y-pad)*H);w=Math.min(W-x,(sel.w+2*pad)*W);h=Math.min(H-y,(sel.h+2*pad)*H)}
+  else if(H>W*1.6){h=W*1.6}  // a full-page screenshot: its top is what was seen on the card
+  const k=Math.min(1,max/Math.max(w,h));const c=document.createElement("canvas");c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+  c.getContext("2d").drawImage(im,x,y,w,h,0,0,c.width,c.height);return new Promise(r=>c.toBlob(r,"image/jpeg",.82))}
+/* The main colours of an image (or one marked part of it), measured from its pixels,
+   so the palette does not depend on how well the model reads a picture. */
+function paletteOf(im,sel,n=5){try{const W=im.naturalWidth,H=im.naturalHeight;let x=0,y=0,w=W,h=H;if(sel){x=sel.x*W;y=sel.y*H;w=sel.w*W;h=sel.h*H}
+  const c=document.createElement("canvas");c.width=48;c.height=48;const g=c.getContext("2d");g.drawImage(im,x,y,Math.max(1,w),Math.max(1,h),0,0,48,48);
+  const d=g.getImageData(0,0,48,48).data;const cnt={};for(let i=0;i<d.length;i+=4){if(d[i+3]<128)continue;const k=(d[i]>>4)+","+(d[i+1]>>4)+","+(d[i+2]>>4);(cnt[k]=cnt[k]||{n:0,r:0,g:0,b:0}).n++;cnt[k].r+=d[i];cnt[k].g+=d[i+1];cnt[k].b+=d[i+2]}
+  const out=[];Object.values(cnt).sort((a,b)=>b.n-a.n).forEach(b=>{if(out.length>=n||b.n<12)return;const rgb=[b.r/b.n,b.g/b.n,b.b/b.n].map(Math.round);
+    if(out.some(o=>Math.abs(o[0]-rgb[0])+Math.abs(o[1]-rgb[1])+Math.abs(o[2]-rgb[2])<60))return;out.push(rgb)});
+  return out.map(c=>"#"+c.map(v=>v.toString(16).padStart(2,"0")).join("").toUpperCase())}catch{return[]}}
+async function inspirationAttachments(limit=8){const blobs=[],lines=[];
+  let see=false;try{const lim=await sample.limits().catch(()=>null);see=!!(lim&&lim.images)}catch{}
+  const items=[];
+  /* A live-site reference: ask for the screenshot at the size its card already
+     loaded, which the server has cached. A new size meant a fresh capture, and when
+     the screenshot service refused, the reference silently gave the AI nothing. */
+  (S.tiles||[]).forEach(t=>{const src=t.img||(t.url?[shotSrc(t.url,1000),shotSrc(t.url,1400)]:(t.imgk&&IMG[t.imgk]));if(!src)return;
+    const notes=(t.annotations||[]).filter(a=>a.selection);
+    if(notes.length)notes.forEach((a,i)=>items.push({src,sel:a.selection,cap:`reference "${t.title}", the part the designer marked ${i+1}: "${a.note}"`}));
+    else if(t.whole||String(t.borrow||"").trim()&&!/^\(not yet chosen\)$|^nothing\b/i.test(String(t.borrow)))items.push({src,cap:`reference "${t.title}" (whole)${t.whole?": borrow everything":`: borrow ${t.borrow}`}`})});
+  (S.userMotifs||[]).forEach(m=>m.src&&items.push({src:m.src,cap:`the designer's own motif "${m.name||"motif"}"${m.use?`: ${m.use}`:""}`}));
+  const cache={};
+  let n=0;
+  for(const it of items){if(n>=limit)break;
+    try{const key=[].concat(it.src).join("|");let im=cache[key];if(!im){for(const u of [].concat(it.src)){try{im=await loadImg(u);break}catch{}}if(!im)throw new Error("image");cache[key]=im}const pal=paletteOf(im,it.sel);const b=see?await cropBlob(im,it.sel):null;
+      n++;if(b)blobs.push(b);lines.push(`${b?`image ${blobs.length}`:`reference ${n}`}: ${it.cap}${pal.length?` · measured main colours, most used first: ${pal.join(", ")}`:""}`)}catch{}}
+  S.genInputs={images:blobs.length,refs:n};
+  return{blobs,text:lines.length?`\n\n${blobs.length?"ATTACHED IMAGES (look at them; they are what the designer chose)":"WHAT THE DESIGNER'S REFERENCES LOOK LIKE"}:\n${lines.join("\n")}\nThe colours of this design system come from these references: build color.ground, color.accent, color.heat and color.ink from the measured colours above (adjust lightness only as far as contrast requires) and say which reference each came from. Take concrete values from what you see in them: read colours as hex from the pixels, match the type's character (weight, width, serif or not) with the closest font in the lists below, and take corner radius, spacing density and the motif from the shapes. Where a marked part names one thing (for example "font styles"), take that thing from that image.`:""}}
+/* Some providers reject a request with images (size, type, or a model that cannot
+   read them) and every retry failed the same way, so the design system never
+   changed. Ask once more without the pictures: the measured colours and the notes
+   still go as text. */
+async function withoutImagesOnReject(att,ask){try{return await ask(att.blobs.length?{images:att.blobs}:{})}
+  catch(e){if(!att.blobs.length||!["provider_error","bad_json"].includes(e.code))throw e;S.genInputs={...(S.genInputs||{}),images:0,imagesRejected:true};return ask({})}}
+async function aiSystem(){const toks=(S.tokens||genericTokens());const att=await inspirationAttachments();return withoutImagesOnReject(att,imgOpt=>
+  aiRetry(()=>sample.json(`${projectHeader()}\n\nINSIGHTS:\n${insightDump()}\n\nSAVED REFERENCES AND WHAT TO BORROW:\n${inspirationDump()}${att.text}\n\nDraft this project's design tokens from the research and references. The saved references above are the designer's own choices: where a reference names a part to borrow, honour it concretely (a borrowed palette should show up in color.*, borrowed type in type.*, a borrowed layout or component idea in space.*/comp.*), and cite that reference by title in \"why\". Do not silently ignore a borrowed part; if one cannot be honoured, say why in the matching section of \"reasoning\". Keep exactly these keys and types:\n${toks.map(t=>`${t.k} (${t.type})`).join("\n")}\nRules: colors are hex; color.ink on color.ground at least 4.5:1; white text on color.accent at least 4.5:1; color.heat is a secondary signal color. type.display one of ${FONTS.display.join(", ")}; type.body one of ${FONTS.body.join(", ")}. comp.cta is the primary button label in curly quotes, written for THIS project (for this kind of project it is often “${vocab(S.type).cta}”, change it if the research says otherwise). comp.dishCard is how one of this project's main items is shown as a card (whatever its items are: ${vocab(S.type).items}), not a food dish. comp.heat is how the signal colour marks a status or priority on an item. color.heat is that secondary signal colour. type.scale is font sizes in px, largest to smallest, as numbers only, e.g. "44 / 30 / 22 / 18 / 14" (the size nearest 16-18 is body text). space.scale is spacing steps in px, smallest to largest, numbers only, e.g. "8 / 16 / 24 / 40 / 64". shape.radius is three radii in px, small / medium / large, numbers only, e.g. "4 / 8 / 16". Put the reasoning for these in "why", never in the value. Other text tokens are short specs a developer can follow. A value never contains a card id or a citation; the evidence goes in "why". For each token give: why (cite the insight card id or reference), not (the generic choice it avoids), typical (the most common choice AI tools make for this token in this kind of project), typicalPct (your estimate, 0–100, of how often they make it) and minePct (your estimate of how often they make the choice you just made). Also one short paragraph of reasoning per section: base, color, type, space, imagery, components.\nJSON: {"tokens":[{"k":string,"v":string,"why":string,"not":string,"typical":string,"typicalPct":number,"minePct":number}],"reasoning":{"base":string,"color":string,"type":string,"space":string,"imagery":string,"components":string}}`,{modelTier:"default",...imgOpt})))}
 /* What the design system's spec sheets show: sample copy and photographs for THIS
    project. Asked for separately, after the tokens: together the reply was long
    enough that a small model sometimes returned broken JSON, which failed the
    whole design system. On its own it is short, and if it fails the tokens stand. */
 async function aiSystemKit(){const pick=k=>{const t=(S.tokens||[]).find(x=>x.k===k);return t?t.v:""};
   return aiRetry(()=>sample.json(`${projectHeader()}\n\nINSIGHTS:\n${insightDump()}\n\nSAVED REFERENCES AND WHAT TO BORROW:\n${inspirationDump()}\n\nDESIGN SYSTEM DECISIONS ALREADY MADE:\nimagery: ${pick("imagery")}\nmotif: ${pick("motif")}\nprimary button: ${pick("comp.cta")}\nitem card: ${pick("comp.dishCard")}\n\nSPEC SHEET CONTENT. Draft what this project's design-system spec sheets will show, so they illustrate THIS project and nothing generic.\nimagery.show: 3-4 photographs the site should use, following the imagery decision above. Each has "subject" (a stock-library search phrase: 2-4 plain nouns, no adjectives, no names), "what" (one line saying what the photo shows) and "why" (the finding or saved reference behind it, said in words, never a card id).\nimagery.avoid: 2-3 kinds of image this site must not use, each with why (draw on the rejected assumptions and the research).\nsamples is real copy in this organisation's own words, used to show the components: a headline; one body sentence; 3-4 nav labels; 2-3 of the main things on offer, each with a name, a one-line detail, and a price, date or status (or ""); one form field this site would really have (label, an example value, the error message); and 3-4 tags or filters these people would really use. No placeholders, and nothing invented: use only names, places, prices and facts that appear in the research above; where the research gives none, say it generally ("a local farm", no price) rather than making one up.\nJSON: {"imagery":{"show":[{"subject":string,"what":string,"why":string}],"avoid":[{"what":string,"why":string}]},"samples":{"headline":string,"body":string,"nav":[string],"items":[{"name":string,"detail":string,"meta":string}],"field":{"label":string,"example":string,"error":string},"chips":[string]}}`,{modelTier:"default"}))}
-function applySystem(out){const old=S.tokens;const base=S.pid==="p-mali"?seedTokens():genericTokens();const got=new Map((out.tokens||[]).filter(o=>o&&o.k).map(o=>[o.k,o]));
+function applySystem(out){if(Array.isArray(out))out={tokens:out.filter(o=>o&&o.k),reasoning:out.find(o=>o&&!o.k&&(o.color||o.base))};
+  /* Tokens keyed as an object ({"color.ground": {...}}) or with "key"/"value" names are read too. */
+  if(out&&out.tokens&&!Array.isArray(out.tokens)&&typeof out.tokens==="object")out.tokens=Object.entries(out.tokens).map(([k,o])=>typeof o==="object"?{k,...o}:{k,v:o});
+  if(out&&Array.isArray(out.tokens))out.tokens=out.tokens.map(o=>o&&({...o,k:o.k||o.key||o.token||o.name,v:o.v??o.value}));
+  const matched=(out&&out.tokens||[]).filter(o=>o&&o.k&&(S.tokens||defaultTokens()).some(t=>t.k===o.k)).length;
+  if(!matched)throw Object.assign(new Error("The AI reply had no design tokens in it."),{code:"bad_json",text:"The AI reply had no design tokens in it."});const old=S.tokens;const base=S.pid==="p-mali"?seedTokens():genericTokens();const got=new Map((out.tokens||[]).filter(o=>o&&o.k).map(o=>[o.k,o]));
   S.tokens=base.map(t=>{const o=got.get(t.k);if(!o)return t;let v=String(o.v??t.v);
-    if(t.type==="color"&&!isHex(v))v=t.v;
+    if(t.type==="color"){const h=toHex(v);v=h||t.v;if(!h)S.genColourMisses=(S.genColourMisses||0)+1}
     /* The scales drive the page's CSS, so they have to be numbers. A model that
        answers in prose ("18px base, generous") is read for the number it meant. */
     if(["type.scale","space.scale","shape.radius"].includes(t.k)){const n=(v.match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(x=>x<=200);const px=x=>Math.round(x);
@@ -205,6 +262,12 @@ function cleanKit(o){const im=o&&o.imagery,sm=o&&o.samples;if(!im&&!sm)return nu
       items:arr(M.items).filter(x=>x&&x.name).slice(0,3).map(x=>({name:s(x.name,60),detail:s(x.detail,140),meta:s(x.meta,40)})),
       field:M.field&&M.field.label?{label:s(M.field.label,90),example:s(M.field.example,80),error:s(M.field.error,140)}:null,
       chips:arr(M.chips).map(x=>s(x,28)).filter(Boolean).slice(0,4)}}}
+/* Motifs as drawings, not just a sentence: two to four small SVGs the site can
+   repeat (a pattern, a divider, an icon), drawn from the references the designer
+   marked and the project's own objects. Cleaned before they are shown. */
+async function aiMotifs(){const att=await inspirationAttachments(6);const tk=k=>(S.tokens||[]).find(t=>t.k===k)?.v||"";return withoutImagesOnReject(att,imgOpt=>
+  aiRetry(()=>sample.json(`${projectHeader()}\n\nINSIGHTS:\n${insightDump()}\n\nSAVED REFERENCES AND WHAT TO BORROW:\n${inspirationDump()}${att.text}\n\nDESIGN SYSTEM SO FAR:\nmotif direction: ${tk("motif")}\nimagery: ${tk("imagery")}\ncolours: ground ${tk("color.ground")}, accent ${tk("color.accent")}, signal ${tk("color.heat")}, ink ${tk("color.ink")}\n\nDraw this project's motifs: 3 small graphics the site repeats (for example a repeating pattern tile, a section divider, a badge or icon), each specific to this project and its references, never generic decoration. Each is one inline SVG: <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"> using only path, circle, ellipse, rect, line, polyline, polygon and g; fills and strokes only "currentColor", "none" or the four hex colours above; no text, images, scripts, styles or links. Keep each under 1500 characters.\nJSON: {"motifs":[{"name":string,"use":string (where on the site it goes, one short sentence),"svg":string}]}`,{modelTier:"default",...imgOpt})))}
+function cleanMotifs(o){return(Array.isArray(o)?o:Array.isArray(o&&o.motifs)?o.motifs:[]).map(m=>({name:String(m&&m.name||"Motif").slice(0,40),use:String(m&&m.use||"").slice(0,160),svg:cleanSvg(m&&m.svg)})).filter(m=>m.svg).slice(0,4)}
 function offlineSystem(){S.tokens=S.pid==="p-mali"?seedTokens():genericTokens();S.tokensTemplated=true;S.sysBuilt=true;S.kit=null;S.draftTokens=null}
 
 /* ---------- stage 4: site content + review decisions ---------- */
@@ -221,7 +284,7 @@ function siteSchema(){return`{"brand":string,"pages":{"home":string,"menu":strin
 "action":{"title":string,"sub":string,"cartTitle":string,"addTitle":string,"formTitle":string,"options":[string],"fields":[[string,string]],"submit":string,"note":string},
 "about":{"title":string,"img":string,"alt":string,"paragraphs":[string],"photos":[[imgKey,alt]],"people":[[name,bio]]}}`}
 async function aiSite(){const v=vocab(S.type);
-  return aiRetry(()=>sample.json(`${projectHeader()}\n\nINSIGHTS:\n${insightDump()}\n\nREFERENCES:\n${inspirationDump()}\n\nDESIGN TOKENS:\n${tokenDump()}\n\nWrite all content for this project's website as a FINISHED product ready to ship, not a skeleton to fill in later: real, specific copy drawn from the research (names, places, products, quotes), not generic marketing language, and nothing on the avoid list. Every field must carry real content. Never return a bracketed stand-in like [ITEM 1] or [DESCRIPTION]; the only brackets allowed are a genuine research gap, written as [ASK <who>] or [<FACT> - ask the owner], and at most one of those on the whole site. Write the way this particular organisation would speak: concrete nouns, the words the research shows these people actually use, and specifics (a dish, a farm, a clinic hour) over adjectives. Item descriptions run one or two real sentences, never a label. Headlines say something only this project could say. The site has four pages: home, a catalog page (key "menu"; e.g. ${v.pages[1]}), an action page (key "order"; e.g. ${v.pages[2]}) and an about page (key "story"). "items" are the main things on offer (5–8). "collections" are optional bundles or groups (0–3; empty list if they don't fit). "heat" is only for spice levels on food; otherwise 0. Where the research doesn't give a fact (price, hours, address), make up a plausible placeholder but wrap anything truly unknown in square brackets like [HOURS — ask the owner]. "items.gap" names one important missing item in brackets, or "". ${imageKeyGuide()}\nJSON (no extra keys): ${siteSchema()}`,{modelTier:"default"}))}
+  return aiRetry(()=>sample.json(`${projectHeader()}\n\nINSIGHTS:\n${insightDump()}\n\nREFERENCES:\n${inspirationDump()}\n\nDESIGN TOKENS:\n${tokenDump()}\n\nWrite all content for this project's website as a FINISHED product ready to ship, not a skeleton to fill in later: real, specific copy drawn from the research (names, places, products, quotes), not generic marketing language, and nothing on the avoid list. Every field must carry real content. Never return a bracketed stand-in like [ITEM 1] or [DESCRIPTION]; the only brackets allowed are a genuine research gap, written as [ASK <who>] or [<FACT> - ask the owner], and at most one of those on the whole site. Write the way this particular organisation would speak: concrete nouns, the words the research shows these people actually use, and specifics (a named item, a place, an hour) over adjectives. Item descriptions run one or two real sentences, never a label. Headlines say something only this project could say. The site has four pages: home, a catalog page (key "menu"; e.g. ${v.pages[1]}), an action page (key "order"; e.g. ${v.pages[2]}) and an about page (key "story"). "items" are the main things on offer (5–8). "collections" are optional bundles or groups (0–3; empty list if they don't fit). "heat" is only for spice levels on food; otherwise 0. Where the research doesn't give a fact (price, hours, address), make up a plausible placeholder but wrap anything truly unknown in square brackets like [HOURS — ask the owner]. "items.gap" names one important missing item in brackets, or "". ${imageKeyGuide()}\nJSON (no extra keys): ${siteSchema()}`,{modelTier:"default"}))}
 async function aiReview(){const W=site();const ids=Object.entries(elBase()).map(([id,e])=>`${id} (${genericElNames()[id]}, page ${e.page})`).join("\n");
   return aiRetry(()=>sample.json(`${projectHeader()}\n\nINSIGHTS:\n${insightDump()}\n\nSAVED REFERENCES AND WHAT TO BORROW:\n${inspirationDump()}\n\nTOKENS:\n${tokenDump()}\n\nSITE CONTENT:\n${JSON.stringify(W).slice(0,9000)}\n\nFor each page element below, write the design decision record a reviewer will see. receipt: "what was decided ← evidence" citing the insight card id, the quote, or the saved reference by title (and which annotated part, when that part drove the decision); use "" when neither the research nor a saved reference supports it (the AI decided alone). Where an element reflects something the designer chose to borrow, name that reference rather than the research alone. gaps: research that is missing or unused for this element, each starting with a [TAG] like "[PHOTO] real photo of the shop". typical: 2–3 options with your estimated % of AI-generated sites of this kind that choose each, the last one being this design's choice; mine: the label of this design's choice. name: a short element name for this project.\nELEMENTS:\n${ids}\nJSON: {"review":{"<element id>":{"name":string,"receipt":string,"gaps":[string],"typical":[[string,number]],"mine":string}}}`,{modelTier:"default"}))}
 function mergeShape(base,ai){if(ai==null)return base;if(Array.isArray(base))return Array.isArray(ai)&&ai.length?ai:base;
@@ -279,13 +342,19 @@ function stageFns(){return{
   inspiration:{ai:async()=>{applyInspiration(await aiInspiration());try{await aiRealSites();await verifyDirectionSites()}catch(e){}},off:offlineInspiration,done:"Inspiration directions generated · save the ones you like"},
   system:{ai:async()=>{
     // One malformed reply is worth a second ask before the stage is called failed.
+    /* The project can change while the AI is answering; its answer must not land in another project. */
+    const pid=S.pid;
     let out;try{out=await aiSystem()}catch(e){if(e.code!=="bad_json")throw e;out=await aiSystem()}
+    if(S.pid!==pid)return;
     applySystem(out);
-    S.kit=null;try{S.kit=cleanKit(await aiSystemKit())}catch(e){try{S.kit=cleanKit(await aiSystemKit())}catch(e2){}}},off:offlineSystem,done:"Design system generated from research + inspiration"},
+    S.kit=null;try{const k=cleanKit(await aiSystemKit());if(S.pid===pid)S.kit=k}catch(e){try{const k=cleanKit(await aiSystemKit());if(S.pid===pid)S.kit=k}catch(e2){}}
+    try{const m=cleanMotifs(await aiMotifs());if(S.pid===pid)S.motifs=m}catch(e){}},off:offlineSystem,done:"Design system generated from research + inspiration"},
   site:{ai:async()=>{
     /* The page is designed outright (75-design-page.js) rather than poured into a
        fixed layout, and it is the whole of what the Review page shows. */
     applyHomePage(await aiHomePage());
+    /* The rest of the site: every page in the nav, after the home page is up. */
+    setTimeout(()=>{designOtherPages().catch(()=>{})},0);
     /* The older content model still feeds the exports, so it is refreshed too -
        but after the page is on screen, not before: waiting on two more requests
        kept a finished design hidden behind "Generating". Photos resolve in the
@@ -304,8 +373,9 @@ async function runStage(stage,opts={}){const G=gen();if(G.busy)return false;cons
     if(S.pid!==pid)return false;
     restoreTiles();
     S.gen=S.gen||{};S.gen[stage]=sample?"done":"template";save();
+    if(stage==="system"&&sample&&S.genInputs&&!opts.quiet){const g=S.genInputs;toast(g.refs?`Design system generated from your research and ${g.refs} inspiration part${g.refs===1?"":"s"}${g.images?` (${g.images} image${g.images===1?"":"s"} shown to the AI)`:""}`:"Design system generated from your research · no inspiration images to read, so colours come from the research");opts={...opts,quiet:true}}
     if(!opts.quiet)toast(sample?f.done:`AI offline: filled ${stage} with a template. Connect an AI to generate from research.`);
-  }catch(e){ok=false;if(S.pid===pid){restoreTiles();toast("Couldn't generate "+stage+": "+(e.text||e.code||e.message||"error"))}}
+  }catch(e){ok=false;if(S.pid===pid){restoreTiles();S.genError={...(S.genError||{}),[stage]:String(e.text||e.message||e.code||"error")};save();toast("Couldn't generate "+stage+": "+(e.text||e.code||e.message||"error"))}}
   finally{G.busy=null;if(S.pid===pid){syncEL();renderAll()}}
   return ok}
 /* Build a stage on everything before it. Generating only the stage asked for
@@ -314,13 +384,22 @@ async function runStage(stage,opts={}){const G=gen();if(G.busy)return false;cons
    been generated. Stages that already exist are the designer's and are kept. */
 function stageChain(){return["research","inspiration","system","site"]}
 async function generateFrom(stage){
-  if(gen().busy)return false;
+  /* Saying nothing here made Regenerate look broken while another step was still drafting. */
+  if(gen().busy){toast(`Still generating the ${Object.fromEntries(stages())[gen().busy]||gen().busy}… try again when it finishes`);return false}
   const chain=stageChain();const upto=chain.indexOf(stage);const pid=S.pid;
+  /* An earlier stage is only drafted first when there is nothing of it to build on.
+     Saved references ARE the inspiration: a project whose designer uploaded and
+     annotated their own never had suggested directions generated, and regenerating
+     its design system used to try to draft those first - and when that failed,
+     stopped there, so the design system never changed and only a passing toast
+     said why. Now the requested stage always runs. */
+  const have={inspiration:()=>(S.tiles||[]).length>0,system:()=>!!(S.gen&&S.gen.system)};
   if(sample&&S.themes.length)for(const st of chain.slice(1,Math.max(1,upto))){
-    if(genState(st)!=="none")continue;
+    if(genState(st)!=="none"||(have[st]&&have[st]()))continue;
     const ok=await runStage(st,{quiet:true});
-    if(!ok||S.pid!==pid)return false;      // a failure stops the chain rather than
-  }                                        // building later stages on nothing
+    if(S.pid!==pid)return false;
+    if(!ok)toast(`Couldn't draft ${Object.fromEntries(stages())[st]} first · generating the ${Object.fromEntries(stages())[stage]} from what you have`);
+  }
   return runStage(stage)}
 function confirmRegen(stage,fn){const labels=Object.fromEntries(stages());const nPin=(S.themes||[]).filter(t=>t.pinned).length;
   const keeps=stage==="research"&&nPin?`<div class="body-m" style="margin-top:var(--sp-2)"><b>Your ${nPin} pinned theme${nPin===1?"":"s"} ${nPin===1?"is":"are"} kept.</b> Only unpinned themes are replaced.</div>`:stage==="inspiration"&&S.tiles.length?`<div class="body-m" style="margin-top:var(--sp-2)"><b>Your ${S.tiles.length} saved inspiration${S.tiles.length===1?"":"s"} and ${S.tiles.reduce((n,x)=>n+(x.annotations||[]).length,0)} annotated part${S.tiles.reduce((n,x)=>n+(x.annotations||[]).length,0)===1?"":"s"} are kept.</b> Only the Explore suggestions are redrawn.</div>`:"";dialog(`<span class="headline-s">Regenerate ${labels[stage]}?</span><div class="body-m">The AI reads your current research${stage!=="research"?" and earlier stages":""} and replaces the ${labels[stage]}. Your edits to ${labels[stage]} will be replaced${stage==="research"?"":"; you can restore the old version from History on the Review page"}.</div>${keeps}`,[["Cancel","text",()=>{}],["Regenerate","filled",fn]])}
@@ -399,6 +478,7 @@ function wireEditor(r,id){const W=site();
     if(gen().busy)return;
     if(!S.themes.length)return;          // nothing to build from yet
     if(stageChain().indexOf(stage)<1||genState(stage)!=="none")return;
+    if(stage==="inspiration"&&(S.tiles||[]).length)return;   // the designer's own references are the inspiration
     await generateFrom(stage);
   }
   // The Review view is backed by the "site" stage; the other views match by name.
