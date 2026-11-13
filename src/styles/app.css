@@ -570,10 +570,16 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .sys-toolbar{flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .sys-scope{font-size:13px;color:var(--on-surface-variant)}
 .sysprev-frame.inspect [data-sp]{cursor:pointer}
-.sysprev-frame.inspect [data-sp]:hover{outline:1px solid var(--primary);outline-offset:-1px}
+.sysprev-frame.inspect [data-sp]:not(.sp-sel):not(.sp-shared):hover{outline:1px solid var(--primary);outline-offset:-1px}
 .sysprev-frame.inspect [data-sp]:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
-.sysprev-frame.inspect .sp-shared{outline:2px dashed var(--primary);outline-offset:-2px}
-.sysprev-frame.inspect .sp-sel{outline:2px solid var(--primary);outline-offset:-2px}
+/* selected: thick ring outside the part with a white halo, so images and dark
+   backgrounds can't hide it; related: thinner dashed ring, same halo */
+.sysprev-frame.inspect .sp-shared{outline:2px dashed var(--primary);outline-offset:3px;box-shadow:0 0 0 7px rgba(255,255,255,.75);position:relative;z-index:1}
+.sysprev-frame.inspect .sp-sel{outline:3px solid var(--primary);outline-offset:3px;box-shadow:0 0 0 9px rgba(255,255,255,.9);position:relative;z-index:2}
+/* everything unrelated fades back */
+.sysprev-frame .sp-dim{opacity:.28 !important;filter:saturate(.3);transition:opacity .18s,filter .18s}
+.sysprev-frame.has-sel .card,.sysprev-frame.has-sel .hero .ph{overflow:visible}
+.sysprev-frame .s.spec .card{min-width:0}
 .tokgrid{flex:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
 .tokcard{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:14px;border:1px solid var(--outline-variant);border-radius:12px;background:var(--surface-container-lowest);color:var(--on-surface);text-align:left;cursor:pointer}
 .tokcard:hover{background:var(--surface-container-low)}

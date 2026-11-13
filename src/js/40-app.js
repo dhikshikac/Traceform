@@ -172,6 +172,17 @@ function sysTokenSheets(sec,toks){const selK=S.sel?.kind==="token"?S.sel.id:null
 function sysPreviewHTML(){
   return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview">${sysPreviewBar()}
   <div class="sysprev-frame inspect">${withDrafts(()=>sysSpecimenHTML(S.sysSection))}</div></section>`}
+/* With something selected, fade everything that isn't the selected part, a part that
+   shares its setting, or a container of one: the top-most element of each unrelated
+   branch gets .sp-dim, so containers of a highlighted part keep full strength. */
+function sysFocusDim(frame,root){
+  $$(".sp-dim",root).forEach(e=>e.classList.remove("sp-dim"));
+  const hi=$$(".sp-sel,.sp-shared",frame);frame.classList.toggle("has-sel",hi.length>0);
+  if(!hi.length||hi.includes(root))return;
+  const keep=new Set();
+  hi.forEach(e=>{for(let a=e;a&&a!==frame;a=a.parentElement)keep.add(a);e.querySelectorAll("*").forEach(d=>keep.add(d))});
+  root.querySelectorAll("*").forEach(el=>{if(!keep.has(el)&&keep.has(el.parentElement))el.classList.add("sp-dim")});
+}
 function wireSysPreview(c,sec){
   const frame=$(".sysprev-frame.inspect",c);if(!frame)return;
   const root=$(".site",frame);if(!root)return;
@@ -186,15 +197,18 @@ function wireSysPreview(c,sec){
   let n=0;
   $$("[data-sp]",frame).forEach(el=>{const p=pickById(el.dataset.sp);
     el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label","Inspect "+p.name);el.title=p.name+(sec==="type"&&p.ts?` · ${tsDef(p.ts).name} text style`:"");
-    const picked=selP===p.id,shared=(!!selK&&p.tok.includes(selK))||(!!selTS&&p.ts===selTS)||(!!selCS&&(sgDef(selCS)?.pick||[]).includes(p.id))||(!!selSC&&sec==="space"&&(SPACE_REFS[p.id]||[]).some(r=>r.join(":")===selSC));if(picked||shared)n++;
+    const same=$$(`[data-sp="${p.id}"]`,frame),pi=Number.isInteger(S.sel?.pi)?S.sel.pi:0;
+    const picked=selP===p.id&&same.indexOf(el)===Math.min(pi,same.length-1),shared=(selP===p.id&&!picked)||(!!selK&&p.tok.includes(selK))||(!!selTS&&p.ts===selTS)||(!!selCS&&(sgDef(selCS)?.pick||[]).includes(p.id))||(!!selSC&&sec==="space"&&(SPACE_REFS[p.id]||[]).some(r=>r.join(":")===selSC));if(picked||shared)n++;
     el.classList.toggle("sp-sel",picked);el.classList.toggle("sp-shared",shared&&!picked)});
-  const pick=id=>{const p=pickById(id);
-    if(sec==="type"&&p.ts){select({kind:"tstyle",id:p.ts,pick:id});renderSystem();return}
-    const it=sgItem(id);if(it){select({kind:"cstyle",id:it.id,pick:id});renderSystem();return}
-    if(sec==="space"&&SPACE_REFS[id]){const refs=SPACE_REFS[id];const r=refs.find(x=>x.join(":")===selSC)||refs[0];select({kind:"scale",id:r[0],i:r[1],pick:id});renderSystem();return}
-    const keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id});renderSystem()};
-  frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp)};
-  frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}};
+  sysFocusDim(frame,root);
+  const pick=(id,pi)=>{const p=pickById(id);
+    if(sec==="type"&&p.ts){select({kind:"tstyle",id:p.ts,pick:id,pi});renderSystem();return}
+    const it=sgItem(id);if(it){select({kind:"cstyle",id:it.id,pick:id,pi});renderSystem();return}
+    if(sec==="space"&&SPACE_REFS[id]){const refs=SPACE_REFS[id];const r=refs.find(x=>x.join(":")===selSC)||refs[0];select({kind:"scale",id:r[0],i:r[1],pick:id,pi});renderSystem();return}
+    const keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id,pi});renderSystem()};
+  const idxOf=el=>$$(`[data-sp="${el.dataset.sp}"]`,frame).indexOf(el);
+  frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp,idxOf(el))};
+  frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp,idxOf(el))}};
   const st=$("#sysScopeText",c);if(st)st.textContent=selK||selTS||selCS||selSC?`${n} element${n===1?" uses":"s use"} this ${sec==="color"?"color":sec==="type"?"text style":"setting"}.`:sec==="type"?"Click any text to edit its text style.":"Click any element to edit it.";
   sysPreviewExtras(c,sec);
 }
