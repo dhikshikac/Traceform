@@ -771,3 +771,16 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .ov-note{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--secondary-container);color:var(--on-secondary-container)}
 .ov-note .ms{font-size:18px}
 .sys-editor .row>.field{flex:1 1 0;min-width:0}
+
+/* System Preview: status + content switch, live edits, section highlights (26-preview-extras.js) */
+.sys-prevbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.seg.seg-sm button{height:30px;padding:0 var(--sp-3);font-size:12px}
+.live-t{color:var(--primary);font-weight:600}
+.sysprev-frame{position:relative}
+.sx-ov{position:absolute;inset:0;pointer-events:none;z-index:5}
+.sx-ovtag{position:absolute;display:inline-flex;align-items:center;gap:5px;padding:2px 7px 2px 4px;border-radius:999px;background:rgba(20,20,20,.82);color:#fff;font:600 11px/16px system-ui,sans-serif;white-space:nowrap}
+.sx-ovtag i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,.7);display:inline-block}
+.sx-ovpad,.sx-ovgap{position:absolute;background:repeating-linear-gradient(45deg,rgba(103,80,164,.20) 0 4px,rgba(103,80,164,.08) 4px 8px);outline:1px solid rgba(103,80,164,.45);outline-offset:-1px}
+.sx-ovgap{background:repeating-linear-gradient(-45deg,rgba(0,128,96,.22) 0 4px,rgba(0,128,96,.08) 4px 8px);outline-color:rgba(0,128,96,.5)}
+.sx-ovpad span,.sx-ovgap span{position:absolute;left:2px;top:50%;transform:translateY(-50%);padding:0 4px;border-radius:4px;background:rgba(20,20,20,.82);color:#fff;font:600 10px/14px system-ui,sans-serif;white-space:nowrap}
+.sx-ovtip{position:absolute;padding:3px 8px;border-radius:6px;background:rgba(20,20,20,.88);color:#fff;font:600 11px/16px system-ui,sans-serif;white-space:nowrap}

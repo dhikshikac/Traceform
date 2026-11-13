@@ -165,9 +165,8 @@ function sysTokenSheets(sec,toks){const selK=S.sel?.kind==="token"?S.sel.id:null
 /* Design-system preview: a specimen with placeholder content, styled by the current tokens
    (32-system-specimen.js); click a part to inspect the decisions it uses. */
 function sysPreviewHTML(){
-  return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview">
-  <div class="sys-scope" role="status" id="sysScopeText"></div>
-  <div class="sysprev-frame inspect">${sysSpecimenHTML()}</div></section>`}
+  return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview">${sysPreviewBar()}
+  <div class="sysprev-frame inspect">${withDrafts(()=>sysSpecimenHTML(S.sysSection))}</div></section>`}
 function wireSysPreview(c,sec){
   const frame=$(".sysprev-frame.inspect",c);if(!frame)return;
   const root=$(".site",frame);if(!root)return;
@@ -190,6 +189,7 @@ function wireSysPreview(c,sec){
   frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp)};
   frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}};
   const st=$("#sysScopeText",c);if(st)st.textContent=selK||selTS||selCS?`${n} element${n===1?" uses":"s use"} this ${sec==="color"?"color":sec==="type"?"text style":"setting"}.`:sec==="type"?"Click any text to edit its text style.":"Click any element to edit it.";
+  sysPreviewExtras(c,sec);
 }
 /* Inspector: the selected element, its property, the value, and why. */
 function renderSystemRail(){
@@ -226,12 +226,12 @@ function renderSystemRail(){
   </form>
   ${promptBox(t.k,`token ${t.k} = ${t.v} (why: ${t.why}; not: ${t.not})`)}`;
   const val=()=>isC?$("#tkHex").value.trim():t.type==="font"?$("#tkFont").value:$("#tkVal").value;
-  const draft=()=>{sysDrafts[t.k]={v:val(),why:t.why||"",not:$("#tkNot").value};$("#tkActions").hidden=!sysDirty(t);$("#tkErr").textContent=""};
+  const draft=()=>{sysDrafts[t.k]={v:val(),why:t.why||"",not:$("#tkNot").value};$("#tkActions").hidden=!sysDirty(t);$("#tkErr").textContent="";sysLivePreview()};
   if(isC){$("#tkColor").oninput=()=>{$("#tkHex").value=$("#tkColor").value.toUpperCase();draft()};$("#tkHex").oninput=()=>{const v=$("#tkHex").value.trim();if(valOk(v))$("#tkColor").value=v;draft()}}
   const f=$("#tkForm");f.addEventListener("input",draft);f.addEventListener("change",draft);
   f.onsubmit=e=>{e.preventDefault();const v=val();if(!valOk(v)){$("#tkErr").textContent="Use a six-digit hex color, such as #4F6F8F.";return}if(!v.trim()){$("#tkErr").textContent="Enter a value.";return}
     snapshot(`token ${t.k} → ${v}`);t.v=isC?v.toUpperCase():v;t.not=$("#tkNot").value.trim();t.edited=true;t.user=true;t.mine=mineLabel(t);delete sysDrafts[t.k];save();renderSystem();if(S.view==="review")renderReview();toast(`${decName(t)} updated across the website`)};
-  $("#tkCancel").onclick=()=>{delete sysDrafts[t.k];renderSystemRail()};
+  $("#tkCancel").onclick=()=>{delete sysDrafts[t.k];renderSystemRail();sysLivePreview()};
   const prop=$("#tkProp");if(prop)prop.onchange=()=>{select({kind:"token",id:prop.value,pick:S.sel.pick});renderSystem()};
   wirePrompt(r,{kind:"token",id:t.k},`token ${t.k} = ${t.v} (why: ${t.why}; not: ${t.not})`);
   wireCites(r);wireOverriders(r);const tb=$("#tkToBase",r);if(tb)tb.onclick=()=>resetTokenToBase(t.k);

@@ -153,7 +153,7 @@ function renderStyleItemRail() {
   </form>`;
   const read = () => Object.fromEntries(item.props.map(p => [p.k, p.opts ? $("#sg_" + p.k).value : $("#sg_" + p.k).value]));
   const f = $("#sgForm");
-  const draft = () => { const v = read(); sgDrafts[item.id] = v; $("#sgActions").hidden = item.props.every(p => String(v[p.k]) === String(cur[p.k])); $("#sgErr").textContent = ""; $(".sg-prev", r).innerHTML = sgSampleWith(item, v); };
+  const draft = () => { const v = read(); sgDrafts[item.id] = v; $("#sgActions").hidden = item.props.every(p => String(v[p.k]) === String(cur[p.k])); $("#sgErr").textContent = ""; $(".sg-prev", r).innerHTML = sgSampleWith(item, v); sysLivePreview(); };
   f.addEventListener("input", draft); f.addEventListener("change", draft);
   f.onsubmit = e => {
     e.preventDefault(); const v = read();
@@ -167,7 +167,7 @@ function renderStyleItemRail() {
     delete sgDrafts[item.id]; save(); renderSystem(); if (S.view === "review") renderReview();
     toast(`${item.name} updated across the website`);
   };
-  $("#sgCancel").onclick = () => { delete sgDrafts[item.id]; renderStyleItemRail(); };
+  $("#sgCancel").onclick = () => { delete sgDrafts[item.id]; renderStyleItemRail(); sysLivePreview(); };
   const rs = $("#sgReset"); if (rs) rs.onclick = () => { snapshot(`reset ${item.name.toLowerCase()} style`); S.compStyles = { ...(S.compStyles || {}) }; delete S.compStyles[item.id]; delete sgDrafts[item.id]; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${item.name} follows ${baseShort()} again`); };
   $("#sgPick").onchange = () => { select({ kind: "cstyle", id: $("#sgPick").value }); renderSystem(); };
   wireCites(r);
@@ -217,7 +217,7 @@ function renderScaleRail() {
     <p class="body-s bad-t" id="scErr" role="alert"></p>
     <div class="row sys-apply" id="scActions" ${String(dv) !== String(cur) ? "" : "hidden"}><span class="spacer"></span><button type="button" class="btn text sm" id="scCancel">Cancel</button><button type="submit" class="btn filled sm">Apply change</button></div>
   </form>`;
-  $("#scVal").oninput = () => { const v = $("#scVal").value; scDraft = { k, i, v }; $("#scActions").hidden = String(v) === String(cur); $("#scErr").textContent = ""; $(".sc-prev", r).innerHTML = scSample(k, v); };
+  $("#scVal").oninput = () => { const v = $("#scVal").value; scDraft = { k, i, v }; $("#scActions").hidden = String(v) === String(cur); $("#scErr").textContent = ""; $(".sc-prev", r).innerHTML = scSample(k, v); sysLivePreview(); };
   $("#scForm").onsubmit = e => {
     e.preventDefault(); const v = $("#scVal").value;
     if (v === "" || !Number.isFinite(+v) || +v < 0 || +v > info.max) { $("#scErr").textContent = `Enter a number from 0 to ${info.max}.`; return; }
@@ -225,7 +225,7 @@ function renderScaleRail() {
     t.v = scaleWith(k, i, +v); t.edited = true; t.user = true; t.mine = typeof mineLabel === "function" ? mineLabel(t) : t.mine;
     scDraft = null; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${info.name(i)} updated across the website`);
   };
-  $("#scCancel").onclick = () => { scDraft = null; renderScaleRail(); };
+  $("#scCancel").onclick = () => { scDraft = null; renderScaleRail(); sysLivePreview(); };
   const ub = $("#scUseBase", r); if (ub) ub.onclick = () => { const bv = (String(baseTokenValue(k) || "").match(/\d+(?:\.\d+)?/g) || [])[i]; $("#scVal").value = bv; $("#scVal").oninput(); };
   wireOverriders(r);
   $$("[data-step]", r).forEach(b => b.onclick = () => { scDraft = null; select({ kind: "scale", id: k, i: +b.dataset.step }); renderSystem(); });

@@ -58,25 +58,79 @@ function specimenCSS(d) {
 .s.spec .foot b{display:inline;margin:0}
 .s.spec .foot .sx-fl{display:flex;gap:var(--s1);flex:1}
 .s.spec .foot .sx-cp{opacity:.6;font-size:12px}
+.s.spec .phs img{width:100%;height:100%;object-fit:cover;display:block}
+.s.spec .sx-states{padding-top:var(--s1);padding-bottom:var(--s1);display:flex;flex-direction:column;gap:var(--s1);border-bottom:1px solid color-mix(in srgb,var(--i) 10%,transparent)}
+.s.spec .sx-strow{display:flex;flex-wrap:wrap;gap:var(--s1);align-items:flex-start}
+.s.spec .sx-st{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.s.spec .sx-stl{font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+.s.spec .sx-st .sx-field{width:120px}
+.s.spec .btn.sx-hov{filter:brightness(.92)}
+.s.spec .btn.sx-prs{filter:brightness(.84)}
+.s.spec .btn.sx-foc{outline:2px solid var(--a);outline-offset:2px}
+.s.spec .btn.sx-dis,.s.spec .sx-field.sx-off{opacity:.4}
 @media (max-width:700px){.s.spec .story,.s.spec .sx-form{grid-template-columns:1fr}}
 ${typeof tsSpecimenCSS==="function"?tsSpecimenCSS(".s.spec"):""}
 ${typeof sgCSS==="function"?sgCSS(".s.spec",true):""}
 `;
 }
 
-/* A short placeholder website: one screen tall, or close to it. */
-function sysSpecimenHTML() {
-  const d = designTokens();
-  const card = i => `<div class="card"><div class="im">${specPh("IMAGE")}</div><div class="b"><h3>Card title ${i}</h3><p>A short line describing the item.</p><div class="m"><span class="tags"><span class="tag">Tag</span>${i === 1 ? `<span class="heat" aria-label="Level 2 of 3">●●○</span>` : ""}</span><a class="btn s" href="#">Action</a></div></div></div>`;
-  const field = (cls, lbl, val, msg) => `<div class="sx-field ${cls}"><span>${lbl}</span><i>${val}</i>${msg ? `<span class="sx-msg">${msg}</span>` : ""}</div>`;
+/* The words and images on the preview: placeholders by default, or the project's
+   own content when "My content" is on (S.sysContent). Anything the project doesn't
+   have yet falls back to its placeholder. */
+function specContent() {
+  const P = {
+    brand: "Brand", nav: ["Link one", "Link two", "Link three"], cta: "Primary action", cta2: "Tertiary", cta3: "Secondary",
+    h1: "Display headline", sub: "Supporting text that introduces the site in a sentence or two.", heroImg: null, sideImg: null,
+    info: { title: "Info card", lines: [["Label", "Value"], ["Label", "Value"]] },
+    secH: "Section heading", secSub: "A short line that explains what this section holds.",
+    items: [1, 2, 3].map(i => ({ n: `Card title ${i}`, d: "A short line describing the item.", tags: ["Tag"], heat: i === 1 ? 2 : 0, img: null })),
+    itemBtn: "Action", quote: "A pull quote set in the display face.", body: "Body text at reading size, long enough to show line length and line height.",
+    fields: [["Label", "Typed value"], ["Label", "Typed value", "Helpful error message"]], foot: "© Brand · placeholder content",
+  };
+  if (S.sysContent !== "mine") return P;
+  const W = typeof siteIsScaffold === "function" && !siteIsScaffold() ? site() : null;
+  const k = typeof systemKit === "function" ? systemKit() : {};
+  const pick = (...v) => v.find(x => x != null && String(x).trim() !== "" && !/^\[/.test(String(x)));
+  const nav = (W && W.navLinks || k.nav || []).filter(Boolean).slice(0, 3);
+  const list = (W && W.items && W.items.list || []).slice(0, 3);
+  const items = list.length ? list.map(d => ({ n: d.n, d: d.d, tags: (d.tags || []).slice(0, 2), heat: d.heat || 0, img: d.img || null }))
+    : (k.items || []).slice(0, 3).map(it => ({ n: it.name, d: it.detail || it.meta || "", tags: [], heat: 0, img: null }));
+  const f = k.field;
+  return {
+    brand: pick(W && W.brand, S.project, P.brand), nav: nav.length ? nav.concat(P.nav).slice(0, 3) : P.nav,
+    cta: pick(W && W.cta, k.label, P.cta), cta2: pick(W && W.lead && W.lead.button, W && W.story && W.story.button, P.cta2), cta3: pick(W && W.collections && W.collections.button, P.cta3),
+    h1: pick(W && W.hero && W.hero.headline, k.headline, P.h1), sub: pick(W && W.hero && W.hero.sub, k.body, P.sub),
+    heroImg: W && W.hero && W.hero.img || null, sideImg: W && W.side && W.side.img || null,
+    info: W && W.info && (W.info.lines || []).length ? { title: pick(W.info.title, P.info.title), lines: W.info.lines.slice(0, 2) } : P.info,
+    secH: pick(W && W.items && W.items.title, P.secH), secSub: pick(W && W.items && W.items.sub, P.secSub),
+    items: items.length ? items.concat(P.items).slice(0, 3) : P.items, itemBtn: pick(W && W.items && W.items.button, P.itemBtn),
+    quote: pick(W && W.story && W.story.quote, P.quote), body: pick(W && W.story && W.story.body, W && W.lead && W.lead.text, P.body),
+    fields: f && f.label ? [[f.label, pick(f.placeholder, f.example, "Typed value")], [f.label, pick(f.placeholder, f.example, "Typed value"), pick(f.error, "Helpful error message")]] : P.fields,
+    foot: `© ${pick(W && W.brand, S.project, "Brand")}${W && W.footer && W.footer.blurb ? " · " + W.footer.blurb : ""}`,
+  };
+}
+function specImg(key, alt, label) { return key && S.sysContent === "mine" ? pic(key, alt) : specPh(label || "IMAGE"); }
+
+/* A short website, one screen tall or close to it. On Components it starts with a
+   strip of buttons and fields in each state. */
+function sysSpecimenHTML(sec) {
+  const d = designTokens(), C = specContent();
+  const heatPips = n => n ? `<span class="heat" aria-label="Level ${n} of 3">${"●".repeat(n)}${"○".repeat(3 - n)}</span>` : "";
+  const card = it => `<div class="card"><div class="im">${specImg(it.img, it.n)}</div><div class="b"><h3>${esc(it.n)}</h3><p>${esc(it.d)}</p><div class="m"><span class="tags">${(it.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join("")}${heatPips(it.heat)}</span><a class="btn s" href="#">${esc(C.itemBtn)}</a></div></div></div>`;
+  const field = (cls, lbl, val, msg) => `<div class="sx-field ${cls}"><span>${esc(lbl)}</span><i>${esc(val)}</i>${msg ? `<span class="sx-msg">${esc(msg)}</span>` : ""}</div>`;
+  const st = (lbl, h) => `<div class="sx-st">${h}<span class="sx-stl">${lbl}</span></div>`;
+  const states = sec === "components" ? `<div class="sx-blk sx-states" aria-label="Component states">
+    <div class="sx-strow">${[["Default", ""], ["Hover", "sx-hov"], ["Focus", "sx-foc"], ["Pressed", "sx-prs"], ["Disabled", "sx-dis"]].map(([l, c]) => st(l, `<a class="btn ${c}" href="#"${c === "sx-dis" ? ' aria-disabled="true"' : ""}>${esc(S.sysContent === "mine" ? C.cta : "Button")}</a>`)).join("")}</div>
+    <div class="sx-strow">${st("Default", field("", C.fields[0][0], C.fields[0][1]))}${st("Focus", field("sx-focus", C.fields[0][0], C.fields[0][1]))}${st("Error", field("sx-err", C.fields[1][0], C.fields[1][1]))}${st("Disabled", field("sx-off", C.fields[0][0], C.fields[0][1]))}</div></div>` : "";
   return `<style>${siteCSS()}${accentRules()}${SPEC_PH_CSS}${specimenCSS(d)}</style>
 <div class="site s spec">
-  <div class="nav"><div class="brand"><i><span class="ms" style="font-size:16px">star</span></i>Brand</div><div class="links"><a href="#">Link one</a><a href="#">Link two</a><a href="#">Link three</a><a class="btn" href="#">Primary action</a></div></div>
-  <div class="hero"><div class="ph"><div class="phs" role="img" aria-label="Placeholder image"></div><div class="ov"><h1>Display headline</h1><p>Supporting text that introduces the site in a sentence or two.</p><div class="sx-cta"><a class="btn" href="#">Primary action</a><a class="btn o" href="#" style="border-color:#fff">Tertiary</a></div></div></div>
-    <div class="side"><div class="im">${specPh("IMAGE")}</div><div class="hcard"><b>Info card</b><div class="l"><span>Label</span><span>Value</span></div><div class="l"><span>Label</span><span>Value</span></div></div></div></div>
-  <div class="sx-blk"><h2 class="sec">Section heading</h2><p class="secsub">A short line that explains what this section holds.</p><div class="cards">${card(1)}${card(2)}${card(3)}</div></div>
-  <div class="sx-blk"><div class="story"><div><p class="q">“A pull quote set in the display face.”</p><p>Body text at reading size, long enough to show line length and line height.</p></div>
-    <div class="sx-form">${field("sx-focus", "Label", "Typed value")}${field("sx-err", "Label", "Typed value", "Helpful error message")}<a class="btn sx-2nd" href="#">Secondary</a><a class="btn" href="#">Primary action</a></div></div></div>
-  <div class="foot"><b>Brand</b><span class="sx-fl"><a href="#">Link one</a><a href="#">Link two</a><a href="#">Link three</a></span><span class="sx-cp">© Brand · placeholder content</span></div>
+  <div class="nav"><div class="brand"><i><span class="ms" style="font-size:16px">star</span></i>${esc(C.brand)}</div><div class="links">${C.nav.map(n => `<a href="#">${esc(n)}</a>`).join("")}<a class="btn" href="#">${esc(C.cta)}</a></div></div>
+  ${states}
+  <div class="hero"><div class="ph">${C.heroImg && S.sysContent === "mine" ? `<div class="phs" style="padding:0">${pic(C.heroImg, C.h1)}</div>` : `<div class="phs" role="img" aria-label="Placeholder image"></div>`}<div class="ov"><h1>${esc(C.h1)}</h1><p>${esc(C.sub)}</p><div class="sx-cta"><a class="btn" href="#">${esc(C.cta)}</a><a class="btn o" href="#" style="border-color:#fff">${esc(C.cta2)}</a></div></div></div>
+    <div class="side"><div class="im">${specImg(C.sideImg, C.brand)}</div><div class="hcard"><b>${esc(C.info.title)}</b>${C.info.lines.map(l => `<div class="l"><span>${esc(l[0])}</span><span>${esc(l[1] || "")}</span></div>`).join("")}</div></div></div>
+  <div class="sx-blk"><h2 class="sec">${esc(C.secH)}</h2><p class="secsub">${esc(C.secSub)}</p><div class="cards">${C.items.map(card).join("")}</div></div>
+  <div class="sx-blk"><div class="story"><div><p class="q">“${esc(C.quote)}”</p><p>${esc(C.body)}</p></div>
+    <div class="sx-form">${field("sx-focus", C.fields[0][0], C.fields[0][1])}${field("sx-err", C.fields[1][0], C.fields[1][1], C.fields[1][2])}<a class="btn sx-2nd" href="#">${esc(C.cta3)}</a><a class="btn" href="#">${esc(C.cta)}</a></div></div></div>
+  <div class="foot"><b>${esc(C.brand)}</b><span class="sx-fl">${C.nav.map(n => `<a href="#">${esc(n)}</a>`).join("")}</span><span class="sx-cp">${esc(C.foot)}</span></div>
 </div>`;
 }

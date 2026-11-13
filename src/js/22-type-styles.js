@@ -136,6 +136,7 @@ function renderTypeStyleRail() {
     const v = read(); tsDrafts[id] = v;
     const same = ["font", "size", "lh", "w", "tr"].every(k => String(v[k]) === String(cur[k]));
     $("#tsActions").hidden = same; $("#tsErr").textContent = "";
+    sysLivePreview();
     const p = $(".ts-prev", r); if (p) p.style.cssText = p.style.cssText.replace(/font-family:[^;]*;font-size:[^;]*;line-height:[^;]*;font-weight:[^;]*;letter-spacing:[^;]*/, tsDeclFrom(v, s.fam));
   };
   f.addEventListener("input", draft); f.addEventListener("change", draft);
@@ -155,7 +156,7 @@ function renderTypeStyleRail() {
     delete tsDrafts[id]; save(); renderSystem(); if (S.view === "review") renderReview();
     toast(`${s.name} updated across the website`);
   };
-  $("#tsCancel").onclick = () => { delete tsDrafts[id]; renderTypeStyleRail(); };
+  $("#tsCancel").onclick = () => { delete tsDrafts[id]; renderTypeStyleRail(); sysLivePreview(); };
   const rs = $("#tsReset"); if (rs) rs.onclick = () => { snapshot(`reset text style ${s.name}`); S.typeStyles = { ...(S.typeStyles || {}) }; delete S.typeStyles[id]; delete tsDrafts[id]; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${s.name} follows ${baseShort()} again`); };
   $("#tsPick").onchange = () => { select({ kind: "tstyle", id: $("#tsPick").value }); renderSystem(); };
   wireCites(r);
