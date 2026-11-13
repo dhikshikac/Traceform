@@ -529,8 +529,10 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .insp-part+.insp-part{border-top:1px solid var(--outline-variant)}
 .insp-part-crop{position:relative;width:84px;flex:none;aspect-ratio:16/10;overflow:hidden;border-radius:6px;background:var(--surface-container-highest)}
 .insp-part-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--sp-2);align-items:flex-start}
-.insp-zoom{position:absolute}
-.insp-zoom>img{width:100%;height:100%;object-fit:cover;display:block}
+/* An image and its annotation boxes, kept in the image's own proportions (see fitLayer). */
+.fitlayer{position:absolute;inset:0}
+.fitlayer.zoom,.fitlayer.fitted{inset:auto}
+.fitlayer>img,.fitlayer .shotwrap>.shot{width:100%;height:100%;object-fit:cover;display:block}
 
 /* Real-site screenshot with the generated mock kept underneath as a fallback. */
 .shotwrap{position:absolute;inset:0}
