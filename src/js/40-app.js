@@ -69,6 +69,7 @@ function wireCites(root){$$("[data-cite]",root).forEach(b=>b.onclick=e=>{e.preve
    Ordered general → specific: when selectors overlap, the more specific part wins. */
 const SYS_PICK=[
   {id:"page",name:"Page background",sel:"&",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"block",name:"Section spacing",sel:".sx-blk",tok:["space.scale"]},
   {id:"navbar",name:"Navigation bar",sel:".nav",tok:["color.ground","space.scale"]},
   {id:"footer",name:"Footer",sel:".foot",tok:["color.ground","color.ink","type.body","space.scale"]},
   {id:"heroBlock",name:"Hero section",sel:".hero",tok:["space.scale"]},
@@ -83,19 +84,30 @@ const SYS_PICK=[
   {id:"heroHeadline",name:"Hero headline",sel:".hero .ov h1",tok:["type.display","type.scale"]},
   {id:"heroSub",name:"Hero description",sel:".hero .ov p",tok:["type.body","type.scale"]},
   {id:"sidePhoto",name:"Second photo",sel:".hero .side .im",tok:["imagery","shape.radius"]},
-  {id:"infoCard",name:"Hours card",sel:".hcard",tok:["color.ground","color.ink","type.body","shape.radius"]},
+  {id:"infoCard",name:"Info card",sel:".hcard",tok:["color.ground","color.ink","type.body","shape.radius"]},
   {id:"lead",name:"Intro text",sel:".lead p",tok:["type.body","type.scale","color.ink"]},
   {id:"secHead",name:"Section heading",sel:"h2.sec",tok:["type.display","type.scale","color.ink"]},
   {id:"secSub",name:"Section description",sel:"p.secsub",tok:["type.body","color.ink"]},
   {id:"cardPhoto",name:"Card photo",sel:".card .im",tok:["imagery"]},
   {id:"cardTitle",name:"Card title",sel:".card h3",tok:["type.display","type.scale","color.ink"]},
   {id:"cardText",name:"Card description",sel:".card .b>p",tok:["type.body","color.ink"]},
-  {id:"heat",name:"Heat indicator",sel:".heat",tok:["color.heat","comp.heat"]},
-  {id:"tag",name:"Dietary tag",sel:".tag",tok:["shape.radius","color.ink"]},
-  {id:"storyPhoto",name:"Story photo",sel:".story .im",tok:["imagery","shape.radius"]},
-  {id:"storyQuote",name:"Story quote",sel:".story .q",tok:["type.display","type.accentLine","color.ink"]},
-  {id:"storyBody",name:"Story text",sel:".story p:not(.q)",tok:["type.body","color.ink"]},
-  {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]}
+  {id:"heat",name:"Signal indicator",sel:".heat",tok:["color.heat","comp.heat"]},
+  {id:"tag",name:"Chip",sel:".tag",tok:["shape.radius","color.ink"]},
+  {id:"storyPhoto",name:"Media image",sel:".story .im",tok:["imagery","shape.radius"]},
+  {id:"storyQuote",name:"Pull quote",sel:".story .q",tok:["type.display","type.accentLine","color.ink"]},
+  {id:"storyBody",name:"Media text",sel:".story p:not(.q)",tok:["type.body","color.ink"]},
+  {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]},
+  /* parts that only the design-system specimen has */
+  {id:"swGround",name:"Background swatch",sel:".sx-sw-g",tok:["color.ground"]},
+  {id:"swAccent",name:"Accent swatch",sel:".sx-sw-a",tok:["color.accent"]},
+  {id:"swSignal",name:"Signal swatch",sel:".sx-sw-h",tok:["color.heat"]},
+  {id:"swInk",name:"Text swatch",sel:".sx-sw-i",tok:["color.ink"]},
+  {id:"rampDisplay",name:"Heading styles",sel:".sx-tr-d",tok:["type.display","type.scale"]},
+  {id:"rampBody",name:"Body styles",sel:".sx-tr-b",tok:["type.body","type.scale"]},
+  {id:"secondary",name:"Secondary action",sel:".btn.sx-2nd",tok:["color.accent","shape.radius","type.body"]},
+  {id:"field",name:"Text field",sel:".sx-field",tok:["color.ink","color.accent","color.heat","shape.radius","type.body"]},
+  {id:"spaceSteps",name:"Spacing steps",sel:".sx-steps",tok:["space.scale"]},
+  {id:"radii",name:"Corner radius samples",sel:".sx-radii",tok:["shape.radius"]}
 ];
 const pickById=id=>SYS_PICK.find(p=>p.id===id);
 /* Plain-language explanations for the System inspector. The stored "why" stays terse (it feeds the AI and other pages);
@@ -150,14 +162,12 @@ function renderSystem(){
 /* Tokens view: every decision in the section as a selectable card. */
 function sysTokenGrid(toks){const selK=S.sel?.kind==="token"?S.sel.id:null;
   return`<section class="tokgrid" aria-label="Tokens">${toks.map(t=>`<button class="tokcard ${selK===t.k?"sel":""}" data-tok="${t.k}" aria-pressed="${selK===t.k}"><span class="tokcard-s">${decSample(t)}</span><span class="title-s">${esc(decName(t))}</span><span class="mono osv">${esc(t.k)}</span><span class="body-s tokcard-v">${esc(t.v)}</span>${sysDirty(t)?'<span class="body-s warn-t">Unapplied edits</span>':""}</button>`).join("")}</section>`}
-/* Live website preview: the homepage rendered from the current tokens; click a part to inspect it. */
+/* Design-system preview: a specimen with placeholder content, styled by the current tokens
+   (32-system-specimen.js); click a part to inspect the decisions it uses. */
 function sysPreviewHTML(){
-  let site_="";const keep={page:S.page,sel:S.sel,device:S.device,overlays:S.overlays};
-  try{S.page="home";S.sel=null;S.device="desk";S.overlays={...S.overlays,receipts:false};if(typeof syncEL==="function")syncEL();site_=pageHTML()}
-  finally{Object.assign(S,keep)}
-  return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview"><div class="sysprev-hd"><span class="title-s">${esc(SEC_NAME[S.sysSection])} preview</span></div>
+  return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview"><div class="sysprev-hd"><span class="title-s">Design system preview</span><span class="body-s osv">Placeholder content · styled by this project's ${esc(SEC_NAME[S.sysSection].toLowerCase())} settings</span></div>
   <div class="sys-scope" role="status" id="sysScopeText"></div>
-  <div class="sysprev-canvas"><div class="sysprev-frame inspect">${site_}</div></div></section>`}
+  <div class="sysprev-canvas"><div class="sysprev-frame inspect">${sysSpecimenHTML()}</div></div></section>`}
 function wireSysPreview(c,sec){
   const frame=$(".sysprev-frame.inspect",c);if(!frame)return;
   const root=$(".site",frame);if(!root)return;
