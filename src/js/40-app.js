@@ -145,7 +145,7 @@ function renderSystem(){
   $$("#secnav button").forEach(b=>b.classList.toggle("on",b.dataset.s===sec));
   if(sec==="base"){renderBaseSystem();return}
   const c=$("#sysCenter"),toks=sysSecToks(sec),name=SEC_NAME[sec];
-  c.innerHTML=`<div class="pane-hd sys-hd"><div><div class="row" style="gap:8px;align-items:center"><span class="title-l">${name}</span>${baseChipHTML()}</div><div class="body-s osv">Select an element to edit its style. Highlighted elements share the same setting.</div></div></div>
+  c.innerHTML=`<div class="pane-hd sys-hd"><div><div class="row" style="gap:8px;align-items:center"><span class="title-l">${name}</span>${baseChipHTML()}</div></div></div>
   <div class="sys-toolbar"><div class="seg" role="group" aria-label="System view"><button data-sysview="preview" class="${view==="preview"?"on":""}" aria-pressed="${view==="preview"}">Preview</button><button data-sysview="tokens" class="${view==="tokens"?"on":""}" aria-pressed="${view==="tokens"}">Tokens</button></div></div>
   ${view==="preview"?sysPreviewHTML():sysTokenSheets(sec,toks)}
   <details class="sys-why"><summary><span class="title-s">About these ${esc(name.toLowerCase())} settings</span></summary><div class="sys-why-b"><div class="body-m">${whyHTML(reason(sec))}</div><form id="sysNotes" class="col" style="gap:8px"><div class="field"><label for="sysNotesTA">Category notes</label><textarea id="sysNotesTA" rows="4">${esc(reason(sec))}</textarea></div><button class="btn outlined sm" type="submit" style="align-self:flex-start">Save notes</button></form></div></details>`;
@@ -165,9 +165,9 @@ function sysTokenSheets(sec,toks){const selK=S.sel?.kind==="token"?S.sel.id:null
 /* Design-system preview: a specimen with placeholder content, styled by the current tokens
    (32-system-specimen.js); click a part to inspect the decisions it uses. */
 function sysPreviewHTML(){
-  return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview"><div class="sysprev-hd"><span class="title-s">Design system preview</span><span class="body-s osv">Placeholder content · styled by this project's ${esc(SEC_NAME[S.sysSection].toLowerCase())} settings</span></div>
+  return`<section class="sysprev" aria-label="${esc(SEC_NAME[S.sysSection])} preview">
   <div class="sys-scope" role="status" id="sysScopeText"></div>
-  <div class="sysprev-canvas"><div class="sysprev-frame inspect">${sysSpecimenHTML()}</div></div></section>`}
+  <div class="sysprev-frame inspect">${sysSpecimenHTML()}</div></section>`}
 function wireSysPreview(c,sec){
   const frame=$(".sysprev-frame.inspect",c);if(!frame)return;
   const root=$(".site",frame);if(!root)return;
@@ -189,7 +189,7 @@ function wireSysPreview(c,sec){
     const keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id});renderSystem()};
   frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp)};
   frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}};
-  const st=$("#sysScopeText",c);if(st)st.textContent=selK||selTS||selCS?`Changes apply to ${n} element${n===1?"":"s"}.`:sec==="type"?"Click any text to edit its text style: font, size, weight and spacing.":`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`;
+  const st=$("#sysScopeText",c);if(st)st.textContent=selK||selTS||selCS?`${n} element${n===1?" uses":"s use"} this ${sec==="color"?"color":sec==="type"?"text style":"setting"}.`:sec==="type"?"Click any text to edit its text style.":"Click any element to edit it.";
 }
 /* Inspector: the selected element, its property, the value, and why. */
 function renderSystemRail(){
