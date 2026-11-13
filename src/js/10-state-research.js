@@ -275,9 +275,9 @@ function renderResearchUnsafe(){
   $$("[data-dt]").forEach(b=>b.onclick=()=>{const i=S.themes.findIndex(t=>t.id===b.dataset.dt);const th=S.themes[i];S.themes.splice(i,1);save();renderResearch();undoToast(`Deleted “${th.name}” and its ${th.cards.length} card${th.cards.length===1?"":"s"}`,()=>{S.themes.splice(i,0,th);save();renderResearch()})});
   $$("[data-ac]").forEach(b=>b.onclick=()=>{const c={id:uid("c"),text:"",quote:"",quotes:[],src:"",conf:"medium"};S.themes.find(t=>t.id===b.dataset.ac).cards.push(c);cardModal(c.id,true)});
   $$("#themes [data-c]").forEach(el=>{el.onclick=()=>cardModal(el.dataset.c);el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();cardModal(el.dataset.c)}}});
-  $$("[data-a]").forEach(b=>b.onclick=()=>{const a=S.assume.find(x=>x.id===b.dataset.a);a.rej=!a.rej;save();renderResearch()});
-  $$("[data-al]").forEach(i=>i.onchange=()=>{S.assume.find(x=>x.id===i.dataset.al).label=i.value;save()});
-  $$("[data-af]").forEach(i=>i.onchange=()=>{S.assume.find(x=>x.id===i.dataset.af).from=i.value;save()});
+  $$("[data-a]").forEach(b=>b.onclick=()=>{const a=S.assume.find(x=>x.id===b.dataset.a);a.rej=!a.rej;a.touched=true;save();renderResearch()});
+  $$("[data-al]").forEach(i=>i.onchange=()=>{const a=S.assume.find(x=>x.id===i.dataset.al);a.label=i.value;a.touched=true;save()});
+  $$("[data-af]").forEach(i=>i.onchange=()=>{const a=S.assume.find(x=>x.id===i.dataset.af);a.from=i.value;a.touched=true;save()});
   $$("[data-ad]").forEach(b=>b.onclick=()=>{const i=S.assume.findIndex(x=>x.id===b.dataset.ad);const a=S.assume[i];S.assume.splice(i,1);save();renderResearch();undoToast("Assumption deleted",()=>{S.assume.splice(i,0,a);save();renderResearch()})});
   renderResearchAsk();
 }
@@ -311,6 +311,12 @@ function cardModal(id,isNew){const c=findCard(id);if(!c)return;const th=S.themes
     if(!isNew&&ti>=0)undoToast("Card deleted",()=>{S.themes[ti]&&S.themes[ti].cards.splice(ci,0,c);save();renderResearch()})};
   setTimeout(()=>$("#cmText",d).focus(),0)}
 
+/* An assumption the AI judged against the research: kept when the research
+   backs it, rejected (passed on as something to avoid) when it does not. */
+function aiAssumption(a,fallback){const v=a.supported!==undefined?a.supported:a.verdict;
+  const keep=v===true||/^(true|yes|keep|supported)$/i.test(String(v));
+  return{id:uid("a"),label:String(a.label),from:String(a.why||fallback),rej:!keep,ai:true}}
+
 /* ---- right: add context (AI turns it into cards and assumptions) ---- */
 let rTurns=[],rBusy=false;
 function renderResearchAsk(){const i=$("#rIn");if(!i)return;i.placeholder="A client call, a constraint, who it's for, something to avoid…";
@@ -321,9 +327,9 @@ $("#rForm").onsubmit=async e=>{e.preventDefault();if(rBusy)return;const q=$("#rI
   try{let text;
     if(sample){/* one JSON request (no tool round trips), so it works with any provider, including Gemini's free tier */
       const themes=S.themes.map(t=>t.name).join("; ")||"(none yet)";
-      const out=await aiRetry(()=>sample.json(`${projectHeader()}\n\nCURRENT THEMES: ${themes}\nCURRENT ASSUMPTIONS: ${S.assume.map(a=>a.label).join("; ")||"(none)"}\n\nTHE DESIGNER JUST ADDED THIS NOTE TO THE RESEARCH:\n"""${q}"""\n\nTurn the note into insight cards and assumptions, only where the note supports them.\n- cards: 0–3. text is one plain sentence a designer can act on. quote is copied EXACTLY from the note (word for word, it is checked). theme is an existing theme name when one fits, otherwise a short new one. conf is "low" unless the note says many people agree.\n- assumptions: 0–2 default choices an AI design tool would make for this project that the note contradicts.\n- reply: one or two plain sentences telling the designer what you added, or that the note adds nothing new.\nJSON: {"cards":[{"theme":string,"text":string,"quote":string,"conf":"high"|"medium"|"low"}],"assumptions":[{"label":string,"why":string}],"reply":string}`,{modelTier:"default"}));
+      const out=await aiRetry(()=>sample.json(`${projectHeader()}\n\nCURRENT THEMES: ${themes}\nCURRENT ASSUMPTIONS: ${S.assume.map(a=>a.label).join("; ")||"(none)"}\n\nTHE DESIGNER JUST ADDED THIS NOTE TO THE RESEARCH:\n"""${q}"""\n\nTurn the note into insight cards and assumptions, only where the note supports them.\n- cards: 0–3. text is one plain sentence a designer can act on. quote is copied EXACTLY from the note (word for word, it is checked). theme is an existing theme name when one fits, otherwise a short new one. conf is "low" unless the note says many people agree.\n- assumptions: 0–2 default choices an AI design tool would make for this project that the note speaks to. "supported": true if the note backs it, so the design should keep it; false if the note contradicts it.\n- reply: one or two plain sentences telling the designer what you added, or that the note adds nothing new.\nJSON: {"cards":[{"theme":string,"text":string,"quote":string,"conf":"high"|"medium"|"low"}],"assumptions":[{"label":string,"supported":boolean,"why":string}],"reply":string}`,{modelTier:"default"}));
       let added=0;(out.cards||[]).filter(c=>c&&c.text).slice(0,3).forEach(c=>{let th=S.themes.find(x=>x.name.toLowerCase()===String(c.theme||"").toLowerCase());if(!th){th={id:uid("t"),name:String(c.theme||"From your notes"),cards:[]};S.themes.push(th)}const qs=c.quote?[String(c.quote)]:[];th.cards.push({id:uid("c"),text:String(c.text),quotes:qs,quote:qs[0]||"",src:cn.id,conf:["high","medium","low"].includes(c.conf)?c.conf:"low",ai:true});added++});
-      (out.assumptions||[]).filter(a=>a&&a.label).slice(0,2).forEach(a=>{S.assume.push({id:uid("a"),label:String(a.label),from:String(a.why||"contradicted by your note"),rej:true,ai:true});added++});
+      (out.assumptions||[]).filter(a=>a&&a.label).slice(0,2).forEach(a=>{S.assume.push(aiAssumption(a,"from your note"));added++});
       if(added){snapshot("AI added context");save();renderResearch()}
       text=String(out.reply||(added?`Added ${added} item${added===1?"":"s"}.`:"Saved. Nothing new to add from this note."))}
     else text=offlineContext(q);
