@@ -372,7 +372,12 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .cramp>div .mono{font-size:9px}
 .surf{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--sp-0)}
 .surf>div{height:60px;display:flex;flex-direction:column;justify-content:space-between;padding:var(--sp-2);border-radius:4px;border:1px solid var(--outline-variant)}
-.ctab{max-width:420px}
+.ctab{display:flex;flex-direction:column}
+.crt{display:grid;grid-template-columns:48px minmax(0,1fr) auto auto;gap:var(--sp-3);align-items:center;padding:var(--sp-2) var(--sp-1);border-bottom:1px solid var(--outline-variant)}
+.crt:last-child{border-bottom:0}
+.crt-s{width:48px;height:32px;border-radius:6px;border:1px solid var(--outline-variant);display:grid;place-items:center;font-weight:600;font-size:15px}
+.crt-n{display:flex;flex-direction:column;gap:var(--sp-0);min-width:0}
+.crt-r{font-size:14px;font-variant-numeric:tabular-nums}
 .trow{display:grid;grid-template-columns:260px minmax(0,1fr);gap:var(--sp-4);align-items:center;padding:var(--sp-3) var(--sp-1);border-bottom:1px solid var(--outline-variant)}
 .tmeta{display:flex;flex-direction:column;gap:var(--sp-0)}
 .tsample{min-width:0;overflow-wrap:anywhere;color:var(--on-surface)}
@@ -490,6 +495,8 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .insp-anno-empty{padding:var(--sp-4);background:var(--surface-container);border-radius:8px}
 .insp-sec{display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4)}
 .refgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:var(--sp-4)}
+/* Photos on the Imagery page keep the Inspiration card's size instead of stretching to the pane. */
+.refgrid.uigrid{grid-template-columns:repeat(auto-fill,minmax(250px,310px))}
 .refcard{background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .15s,transform .15s}
 .refcard:hover{box-shadow:var(--e1);transform:translateY(-1px)}
 .refthumb{aspect-ratio:16/10;position:relative;overflow:hidden;background:var(--surface-container-highest)}.refthumb>img{width:100%;height:100%;object-fit:cover;display:block}
@@ -529,8 +536,10 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .insp-part+.insp-part{border-top:1px solid var(--outline-variant)}
 .insp-part-crop{position:relative;width:84px;flex:none;aspect-ratio:16/10;overflow:hidden;border-radius:6px;background:var(--surface-container-highest)}
 .insp-part-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--sp-2);align-items:flex-start}
-.insp-zoom{position:absolute}
-.insp-zoom>img{width:100%;height:100%;object-fit:cover;display:block}
+/* An image and its annotation boxes, kept in the image's own proportions (see fitLayer). */
+.fitlayer{position:absolute;inset:0}
+.fitlayer.zoom,.fitlayer.fitted{inset:auto}
+.fitlayer>img,.fitlayer .shotwrap>.shot{width:100%;height:100%;object-fit:cover;display:block}
 
 /* Real-site screenshot with the generated mock kept underneath as a fallback. */
 .shotwrap{position:absolute;inset:0}
@@ -651,9 +660,9 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .uiuse{width:100%;box-sizing:border-box;min-height:96px;resize:vertical;border:1px solid var(--outline);border-radius:8px;padding:var(--sp-3) var(--sp-3);background:var(--surface-container-lowest);color:var(--on-surface);font:inherit;font-size:14px;line-height:1.45}
 .uiuse:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:transparent}
 .uiacts{gap:var(--sp-2);align-items:center;margin-top:var(--sp-0)}
-.uidrop{display:flex;gap:var(--sp-3);align-items:center;justify-content:center;padding:var(--sp-4);border:1px dashed var(--outline);border-radius:12px;cursor:pointer;color:var(--on-surface-variant);text-align:left}
-.uidrop>.ms{font-size:28px;color:var(--primary)}
-.uidrop:hover,.uidrop.over{border-color:var(--primary);background:var(--surface-container-low)}
+.uiref .uiuse{min-height:88px;font-size:13px}
+.uiref .uiname{flex:1}
+.mtdrop.over,.uidrop.over{border-color:var(--primary);background:var(--surface-container-low)}
 @media (max-width:760px){.uicard{grid-template-columns:1fr}}
 
 /* Review: the generated page sits directly on the pane, full width, and scrolls
@@ -692,3 +701,36 @@ footer{font-size:11px;color:var(--on-surface-variant);padding-block:var(--sp-2);
 .insp-site>.ms{flex:none;color:var(--primary)}
 .insp-site>.badge{flex:none}
 .cedit .row{margin-top:var(--sp-3)}
+
+/* Motifs drawn by the AI: scaled to fit their tile. */
+.mtsvg svg{width:100%;height:100%;display:block}
+
+/* System side panel editors (token, text style, component style, scale step). */
+.sys-editor{display:flex;flex-direction:column;gap:var(--sp-4)}
+.sg-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3)}
+.sg-fields .field{min-width:0}
+.sg-fields .field label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fnote{font-size:11px;line-height:14px;color:var(--on-surface-variant);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fnote.own{color:var(--primary)}
+.sg-prevwrap{display:flex;flex-direction:column;gap:var(--sp-1)}
+.sg-prev{padding:var(--sp-4);border:1px solid var(--outline-variant);border-radius:12px;display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;overflow:hidden}
+.sys-whybox{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-3);border:1px solid var(--outline-variant);border-radius:12px;background:var(--surface-container-lowest)}
+.sys-based{display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-1)}
+.sys-src{border:0;background:none;padding:0;text-align:left;font:inherit;font-size:12px;line-height:16px;color:var(--primary);cursor:pointer}
+.sys-src:hover{text-decoration:underline}
+.linkish{background:none;border:0;padding:0;color:var(--primary);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.rel-set{display:flex;gap:var(--sp-1);flex-wrap:wrap;align-items:baseline}
+.sys-apply{position:sticky;bottom:calc(var(--sp-4) * -1);padding:var(--sp-3) 0;border-top:1px solid var(--outline-variant);background:var(--surface-container-low)}
+#sgErr:empty,#tsErr:empty,#scErr:empty{display:none}
+.sys-based .chip{max-width:100%;height:auto;min-height:24px;white-space:normal;text-align:left;line-height:16px;padding:var(--sp-1) var(--sp-2)}
+
+/* Review side panel, like Research's: the record scrolls, "Prompt this part" stays put at the bottom. */
+#rail-review .dzask{flex:none;padding:var(--sp-2) var(--sp-4) var(--sp-3);border-top:1px solid var(--outline-variant);background:var(--surface-container-low)}
+#rail-review .dzask>.card{margin-top:0 !important}
+@media (min-width:1081px){
+  #rail-review{overflow:hidden;display:flex;flex-direction:column}
+  #rail-review .dzrail{flex:1 1 auto;min-height:0;overflow-y:auto}
+}
+
+/* Review: the view toggles sit under the generate bar. */
+#v-review #revSum{flex:none;gap:var(--sp-2)}

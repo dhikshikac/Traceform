@@ -62,8 +62,9 @@ const TraceformAI = (() => {
     }
     run.json = async (prompt, opts = {}) => {
       const { text } = await run(prompt + "\n\nReply with JSON only, no prose and no code fences.", { ...opts, _json: true });
-      const m = text.match(/[\[{][\s\S]*[\]}]/);
-      try { return JSON.parse(m ? m[0] : text); } catch { throw aiError("bad_json", "The AI reply wasn't valid JSON."); }
+      const out = parseLooseJSON(text);
+      if (out === undefined) throw aiError("bad_json", "The AI reply wasn't valid JSON.");
+      return out;
     };
     run.limits = async () => ({ tools: true, images: !!info.images, provider: info.provider, model: info.model });
     return run;
@@ -80,3 +81,30 @@ const TraceformAI = (() => {
 
   return { connect };
 })();
+
+
+/* Models slip on the JSON wrapper more often than on the content: a list of
+   tokens followed by a stray "reasoning": {...} with the opening {"tokens":
+   missing, a trailing comma, a code fence. Throwing all of it away meant a whole
+   design system failed over one missing brace, so the usual slips are repaired. */
+function parseLooseJSON(text) {
+  const t = String(text || "").replace(/```(?:json)?/gi, "").trim();
+  const m = t.match(/[\[{][\s\S]*[\]}]/); const core = m ? m[0] : t;
+  const noTrail = s => s.replace(/,\s*([\]}])/g, "$1");
+  const cands = [core, noTrail(core)];
+  if (core.startsWith("[") && /\]\s*,\s*"\w+"\s*:/.test(core)) {
+    /* Wrap it, dropping stray closing brackets from the end until it parses. */
+    let body = noTrail(core).trimEnd();
+    for (let k = 0; k < 4; k++) { cands.push(`{"tokens":${body}}`); if (!/[\]}]$/.test(body)) break; body = body.slice(0, -1).trimEnd(); }
+  }
+  for (const c of cands) { try { return JSON.parse(c); } catch {} }
+  /* Last resort: the first complete value at the start. */
+  let depth = 0, inStr = false, esc = false;
+  for (let i = 0; i < core.length; i++) {
+    const ch = core[i];
+    if (inStr) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"') inStr = true; else if (ch === "{" || ch === "[") depth++;
+    else if (ch === "}" || ch === "]") { depth--; if (depth === 0) { try { return JSON.parse(noTrail(core.slice(0, i + 1))); } catch { break; } } }
+  }
+  return undefined;
+}

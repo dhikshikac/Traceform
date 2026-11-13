@@ -28,10 +28,10 @@ function siteVars(){return`--g:${tv("color.ground")};--a:${tv("color.accent")};-
    Every token is a design decision: what it is, why (research it cites), what it is NOT,
    who made it (AI / you / a base system), and how typical it is of AI output.
    Locked decisions are never changed by regenerating or switching the base system. */
-const DEC_NAME={"color.ground":"Background","color.accent":"Accent","color.heat":"Signal / heat","color.ink":"Text",
+const DEC_NAME={"color.ground":"Background","color.accent":"Accent","color.heat":"Signal colour","color.ink":"Text",
   "type.display":"Display font","type.body":"Body font","type.scale":"Type scale","type.accentLine":"Accent line",
   "space.scale":"Spacing scale","shape.radius":"Corner radius","imagery":"Photography","motif":"Motifs & icons",
-  "comp.dishCard":"Item card","comp.cta":"Primary action","comp.heat":"Heat indicator"};
+  "comp.dishCard":"Item card","comp.cta":"Primary action","comp.heat":"Status indicator"};
 const SEC_NAME={base:"Start from a base",color:"Color",type:"Text styles",space:"Spacing & shape",imagery:"Imagery & motif",components:"Components"};
 const SEC_ICON={imagery:"image",motif:"interests",components:"widgets"};
 const decName=t=>DEC_NAME[t.k]||t.k;
@@ -61,35 +61,37 @@ function wireCites(root){$$("[data-cite]",root).forEach(b=>b.onclick=e=>{e.preve
    so selecting one shows every other part that changes with the same decision.
    Ordered general → specific: when selectors overlap, the more specific part wins. */
 const SYS_PICK=[
-  {id:"page",name:"Page background",sel:"&",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"page",name:"Page background",sel:"&",ts:"body",tok:["color.ground","color.ink","type.body","space.scale"]},
   {id:"navbar",name:"Navigation bar",sel:".nav",tok:["color.ground","space.scale"]},
-  {id:"footer",name:"Footer",sel:".foot",tok:["color.ground","color.ink","type.body","space.scale"]},
+  {id:"footer",name:"Footer",sel:".foot",ts:"small",tok:["color.ground","color.ink","type.body","space.scale"]},
   {id:"heroBlock",name:"Hero section",sel:".hero",tok:["space.scale"]},
   {id:"cardGroup",name:"Item cards",sel:".cards",tok:["comp.dishCard","space.scale"]},
   {id:"bundleGroup",name:"Bundle cards",sel:".bund",tok:["comp.dishCard","space.scale"]},
   {id:"card",name:"Item card",sel:".card",tok:["color.ground","shape.radius","comp.dishCard"]},
-  {id:"brand",name:"Site name",sel:".brand",tok:["type.display","color.ink"]},
+  {id:"brand",name:"Site name",sel:".brand",ts:"h3",tok:["type.display","color.ink"]},
   {id:"brandMark",name:"Logo mark",sel:".brand i",tok:["color.accent","motif"]},
-  {id:"navLinks",name:"Navigation links",sel:".links>a:not(.btn)",tok:["type.body","color.ink"]},
-  {id:"action",name:"Primary action",sel:".btn",tok:["color.accent","shape.radius","comp.cta","type.body"]},
+  {id:"navLinks",name:"Navigation links",sel:".links>a:not(.btn)",ts:"small",tok:["type.body","color.ink"]},
+  {id:"action",name:"Primary action",sel:".btn",ts:"label",tok:["color.accent","shape.radius","comp.cta","type.body"]},
   {id:"heroPhoto",name:"Hero photo",sel:".hero .ph",tok:["imagery","shape.radius"]},
-  {id:"heroHeadline",name:"Hero headline",sel:".hero .ov h1",tok:["type.display","type.scale"]},
-  {id:"heroSub",name:"Hero description",sel:".hero .ov p",tok:["type.body","type.scale"]},
+  {id:"heroHeadline",name:"Hero headline",sel:".hero .ov h1",ts:"display",tok:["type.display","type.scale"]},
+  {id:"heroSub",name:"Hero description",sel:".hero .ov p",ts:"body",tok:["type.body","type.scale"]},
   {id:"sidePhoto",name:"Second photo",sel:".hero .side .im",tok:["imagery","shape.radius"]},
-  {id:"infoCard",name:"Hours card",sel:".hcard",tok:["color.ground","color.ink","type.body","shape.radius"]},
-  {id:"lead",name:"Intro text",sel:".lead p",tok:["type.body","type.scale","color.ink"]},
-  {id:"secHead",name:"Section heading",sel:"h2.sec",tok:["type.display","type.scale","color.ink"]},
-  {id:"secSub",name:"Section description",sel:"p.secsub",tok:["type.body","color.ink"]},
+  {id:"infoCard",name:"Info card",sel:".hcard",ts:"small",tok:["color.ground","color.ink","type.body","shape.radius"]},
+  {id:"lead",name:"Intro text",sel:".lead p",ts:"body",tok:["type.body","type.scale","color.ink"]},
+  {id:"secHead",name:"Section heading",sel:"h2.sec",ts:"h2",tok:["type.display","type.scale","color.ink"]},
+  {id:"secSub",name:"Section description",sel:"p.secsub",ts:"small",tok:["type.body","color.ink"]},
   {id:"cardPhoto",name:"Card photo",sel:".card .im",tok:["imagery"]},
-  {id:"cardTitle",name:"Card title",sel:".card h3",tok:["type.display","type.scale","color.ink"]},
-  {id:"cardText",name:"Card description",sel:".card .b>p",tok:["type.body","color.ink"]},
-  {id:"heat",name:"Heat indicator",sel:".heat",tok:["color.heat","comp.heat"]},
-  {id:"tag",name:"Dietary tag",sel:".tag",tok:["shape.radius","color.ink"]},
-  {id:"storyPhoto",name:"Story photo",sel:".story .im",tok:["imagery","shape.radius"]},
-  {id:"storyQuote",name:"Story quote",sel:".story .q",tok:["type.display","type.accentLine","color.ink"]},
-  {id:"storyBody",name:"Story text",sel:".story p:not(.q)",tok:["type.body","color.ink"]},
-  {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]}
-,
+  {id:"cardTitle",name:"Card title",sel:".card h3",ts:"h3",tok:["type.display","type.scale","color.ink"]},
+  {id:"cardText",name:"Card description",sel:".card .b>p",ts:"small",tok:["type.body","color.ink"]},
+  {id:"heat",name:"Signal indicator",sel:".heat",tok:["color.heat","comp.heat"]},
+  {id:"tag",name:"Chip",sel:".tag",tok:["shape.radius","color.ink"]},
+  {id:"storyPhoto",name:"Media image",sel:".story .im",tok:["imagery","shape.radius"]},
+  {id:"storyQuote",name:"Pull quote",sel:".story .q",ts:"h3",tok:["type.display","type.accentLine","color.ink"]},
+  {id:"storyBody",name:"Media text",sel:".story p:not(.q)",ts:"body",tok:["type.body","color.ink"]},
+  {id:"map",name:"Map",sel:".hours .map",tok:["shape.radius","motif"]},
+  /* parts that only the design-system specimen has */
+  {id:"secondary",name:"Secondary action",sel:".btn.sx-2nd",ts:"label",tok:["color.accent","shape.radius","type.body"]},
+  {id:"field",name:"Text field",sel:".sx-field",ts:"small",tok:["color.ink","color.accent","color.heat","shape.radius","type.body"]},
   /* The same parts on a designed page. Its markup is written per project, so these
      go by structure rather than the template's class names; later entries win. */
   {id:"dPage",name:"Page background",dsel:"&",tok:["color.ground","color.ink","type.body","space.scale"]},
@@ -101,12 +103,17 @@ const SYS_PICK=[
   {id:"dHeading",name:"Section heading",dsel:"h2, h3, h4",tok:["type.display","type.scale","color.ink"]},
   {id:"dHeadline",name:"Headline",dsel:"h1",tok:["type.display","type.scale","color.ink"]},
   {id:"dBrand",name:"Site name",dsel:".brand, [class*='logo']",tok:["type.display","color.ink"]},
-  {id:"dCard",name:"Card",dsel:"[class*='card']:not([class*='card-'])",tok:["color.ground","shape.radius","comp.dishCard"]},
-  {id:"dPhoto",name:"Photo",dsel:".ph",tok:["imagery","shape.radius"]},
+  {id:"dCard",name:"Card",dsel:"[class*='card']:not([class*='card-']), article, [class*='tile']:not([class*='tile-']), [class*='item']:not([class*='item-']):not(li):not(nav *)",tok:["color.ground","shape.radius","comp.dishCard"]},
+  {id:"dPhoto",name:"Photo",dsel:".ph, figure, picture, img, [data-photo], [style*='background-image']",tok:["imagery","shape.radius"]},
   {id:"dHeat",name:"Heat indicator",dsel:"[class*='heat'], [class*='pip']",tok:["color.heat","comp.heat"]},
   {id:"dAction",name:"Primary action",dsel:"button, a[class*='btn'], a[class*='cta'], a[class*='button']",tok:["color.accent","shape.radius","comp.cta","type.body"]}
 ];
 const pickById=id=>SYS_PICK.find(p=>p.id===id);
+/* On Spacing & shape, the spacing steps and corner radii each part uses, as [token, index].
+   Clicking a part opens that step's editor. */
+const SPACE_REFS={page:[["space.scale",2]],navbar:[["space.scale",0]],heroBlock:[["space.scale",1]],cardGroup:[["space.scale",1]],footer:[["space.scale",1]],
+  action:[["shape.radius",1],["space.scale",0]],secondary:[["shape.radius",1],["space.scale",0]],field:[["shape.radius",1]],tag:[["shape.radius",0]],
+  card:[["shape.radius",2],["space.scale",1]],infoCard:[["shape.radius",2],["space.scale",1]],heroPhoto:[["shape.radius",2]],sidePhoto:[["shape.radius",2]]};
 /* Plain-language explanations for the System inspector. The stored "why" stays terse (it feeds the AI and other pages);
    here it is shown as a readable sentence, and research codes become named sources. */
 const SYS_PLAIN={
@@ -141,26 +148,25 @@ function sysDirty(t){const d=sysDrafts[t.k];return!!d&&(d.v!==t.v||d.why!==(t.wh
 function sysSecToks(sec){return S.tokens.filter(t=>t.sec===sec)}
 function sysPickToks(p,sec){return p.tok.filter(k=>{const t=T(k);return t&&t.sec===sec})}
 function renderSystem(){
-  if(!S.tokens)S.tokens=seedTokens();
+  if(!S.tokens)S.tokens=defaultTokens();ensureTokenFonts();
   syncSysDrafts();
-  if(!SEC_NAME[S.sysSection]||S.sysSection==="base")S.sysSection="color";
+  if(!SEC_NAME[S.sysSection])S.sysSection="color";
   if(S.sel?.kind==="token"){const tk=T(S.sel.id);if(!tk)S.sel=null;else if(tk.sec!==S.sysSection)S.sysSection=tk.sec}
   const sec=S.sysSection,view=S.sysView==="tokens"?"tokens":"preview";
   $$("#secnav button").forEach(b=>b.classList.toggle("on",b.dataset.s===sec));
+  if(sec==="base"){renderBaseSystem();return}
   const c=$("#sysCenter"),toks=sysSecToks(sec),name=SEC_NAME[sec];
   c.innerHTML=`<div class="pane-hd"><div><span class="title-l">${name}</span><div class="body-s osv">Select an element to edit its style. Highlighted elements share the same setting.</div></div></div>
   <div class="row"><div class="seg" role="group" aria-label="System view"><button data-sysview="preview" class="${view==="preview"?"on":""}" aria-pressed="${view==="preview"}">Preview</button><button data-sysview="tokens" class="${view==="tokens"?"on":""}" aria-pressed="${view==="tokens"}">Tokens</button></div></div>
-  ${view==="preview"?sysPreviewHTML():sysTokenGrid(toks)}
-  <details class="card" id="sysWhy" style="padding:var(--sp-2) var(--sp-4)"><summary class="title-s" style="cursor:pointer">About these ${esc(name.toLowerCase())} settings</summary><div class="col" style="gap:var(--sp-3);margin-top:var(--sp-2)"><div class="reason"><span class="ms">auto_awesome</span><div class="body-m">${whyHTML(reason(sec))}</div></div><form id="sysNotes" class="col"><div class="field"><label for="sysNotesTA">Category notes</label><textarea id="sysNotesTA" rows="4">${esc(reason(sec))}</textarea></div><button class="btn outlined sm" type="submit" style="align-self:flex-start">Save notes</button></form></div></details>`;
+  ${view==="preview"?sysPreviewHTML():specSheet(sec)}`;
   $$("[data-sysview]",c).forEach(b=>b.onclick=()=>{S.sysView=b.dataset.sysview;save();renderSystem()});
   $$("[data-tok]",c).forEach(r=>r.onclick=()=>{select({kind:"token",id:r.dataset.tok});renderSystem()});
-  $("#sysNotes",c).onsubmit=e=>{e.preventDefault();S.reasons=S.reasons||{};S.reasons[sec]=$("#sysNotesTA").value.trim();snapshot(`${sec} notes`);save();renderSystem();$("#sysWhy",c)?.setAttribute("open","");toast(`${name} notes saved`)};
   wireCites(c);wireSysPreview(c,sec);photoFill();
+  if(view==="tokens"&&sec==="imagery"){wireUserImgs(c);if(typeof wireMotifs==="function")wireMotifs(c)}
+  if(view==="tokens"&&typeof wireStyleRows==="function")wireStyleRows(c);
+  if(view==="tokens"&&sec==="type"&&typeof wireTypeStyleRows==="function")wireTypeStyleRows(c);
   renderSystemRail();
 }
-/* Tokens view: every decision in the section as a selectable card. */
-function sysTokenGrid(toks){const selK=S.sel?.kind==="token"?S.sel.id:null;
-  return`<div class="card" style="padding:var(--sp-2) var(--sp-4)"><div class="toks"><div class="h">token</div><div class="h">value</div><div class="h">why (evidence)</div><div class="h">what it is NOT</div>${toks.map(t=>`<div class="tokrow ${selK===t.k?"sel":""}" data-tok="${t.k}" tabindex="0" role="button" aria-pressed="${selK===t.k}"><div class="k">${esc(t.k)}${t.edited?' <span class="osv">·edited</span>':""}</div><div>${t.type==="color"?`<span class="sw" style="background:${esc(t.v)}"></span>`:""}${esc(t.v)}${sysDirty(t)?' <span class="warn-t">· unapplied edits</span>':""}</div><div class="osv">${esc(plainWhy(t)||t.why||"")}</div><div class="osv">${esc(t.not||"")}</div></div>`).join("")}</div></div>`}
 /* Live website preview: the homepage rendered from the current tokens; click a part to inspect it. */
 function sysPreviewHTML(){
   if(S.design&&S.design.html)return`<section class="card outlined" style="padding:0;overflow:hidden" aria-label="${esc(SEC_NAME[S.sysSection])} preview"><div class="rsec" style="padding:var(--sp-3) var(--sp-4) var(--sp-2)"><span>${esc(SEC_NAME[S.sysSection])} preview</span><span>your designed home page</span></div>
@@ -187,7 +193,7 @@ function wireSysPreview(c,sec){
   const pick=id=>{const p=pickById(id),keys=sysPickToks(p,sec);const k=keys.includes(selK)?selK:keys[0];select({kind:"token",id:k,pick:id});renderSystem()};
   frame.onclick=e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(!el||!frame.contains(el))return;e.stopPropagation();pick(el.dataset.sp)};
   frame.onkeydown=e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}};
-  const st=$("#sysScopeText",c);if(st)st.textContent=selK?`Changes apply to ${n} element${n===1?"":"s"}.`:`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`;
+  const st=$("#sysScopeText",c);if(st)st.textContent=!frame.querySelector("[data-sp]")?"Nothing on this page uses these settings yet. Switch to Tokens to edit them.":selK?`Changes apply to ${n} element${n===1?"":"s"}.`:`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`;
 }
 /* A project with a designed page previews that page, not the old template. It
    is drawn in a frame (its CSS is its own), and inspected the same way. */
@@ -212,19 +218,31 @@ function wireSysDesignPreview(c,f,sec){
       if(canvas)window.__sysPrevScroll=canvas.scrollTop;select({kind:"token",id:k,pick:id});renderSystem()};
     d.addEventListener("click",e=>{e.preventDefault();const el=e.target.closest("[data-sp]");if(el)pick(el.dataset.sp)});
     d.addEventListener("keydown",e=>{const el=e.target.closest("[data-sp]");if(el&&e.target===el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(el.dataset.sp)}});
-    const st=$("#sysScopeText",c);if(st)st.textContent=selK?`Changes apply to ${n} element${n===1?"":"s"}.`:`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`};
+    const st=$("#sysScopeText",c);if(st)st.textContent=!d.querySelector("[data-sp]")?"Nothing on this page uses these settings yet. Switch to Tokens to edit them.":selK?`Changes apply to ${n} element${n===1?"":"s"}.`:`Click an element to see which others share its ${sec==="color"?"color":"setting"}.`};
   f.srcdoc=designFrameHTML();
 }
+/* One line on how common this value is in AI output; the full breakdown is under More details. */
+function aiCommonBlurb(t){const me=prevFor(t);if(me[1]==null||!Array.isArray(t.prev)||!t.prev.length)return"";
+  const top=[...t.prev].sort((a,b)=>b[1]-a[1])[0];const most=me[0]===top[0];
+  const cls=most?"e":me[1]>40?"w":"ok";const label=most?"Most common AI choice":me[1]>40?"Fairly common in AI output":"Distinct from AI output";
+  return`<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span class="badge ${cls}" style="flex:none">${me[1]}%</span><span class="body-s"><b>${label}.</b> ${most?`${me[1]}% of AI-made sites use this too.`:`AI tools usually pick ${esc(top[0])} (${top[1]}%).`}</span></div>`}
 /* Inspector: the selected element, its property, the value, and why. */
 function renderSystemRail(){
+  /* Buttons, cards, fields and chips have their own style editors (23-style-groups.js). */
+  if(S.sel?.kind==="cstyle"&&typeof sgDef==="function"&&sgDef(S.sel.id)&&typeof renderStyleItemRail==="function"){renderStyleItemRail();return}
+  if(S.sel?.kind==="tstyle"&&typeof tsDef==="function"&&tsDef(S.sel.id)&&typeof renderTypeStyleRail==="function"){renderTypeStyleRail();return}
+  if(S.sel?.kind==="scale"&&typeof SCALE_INFO!=="undefined"&&SCALE_INFO[S.sel.id]&&typeof renderScaleRail==="function"){renderScaleRail();return}
   const r=$("#rail-system"),sec=S.sysSection;
   const t=S.sel?.kind==="token"?T(S.sel.id):null;
   if(!t){
     const toks=sysSecToks(sec);
     r.innerHTML=`<div class="pane-hd"><span class="title-m">${esc(SEC_NAME[sec])}</span></div>
     ${toks.length>1?`<div class="field"><label for="tkProp">Property</label><select id="tkProp"><option value="" disabled selected>Choose a property</option>${toks.map(x=>`<option value="${x.k}">${esc(decName(x))}</option>`).join("")}</select></div>`:""}
-    <div class="reason"><span class="ms">ads_click</span><div><div class="title-s">Select an element</div><div class="body-s osv">Choose an element in Preview or a property in Tokens.</div></div></div>`;
+    <div class="reason"><span class="ms">ads_click</span><div><div class="title-s">Select an element</div><div class="body-s osv">Choose an element in Preview or a property in Tokens.</div></div></div>
+    <details id="sysWhy"><summary class="title-s" style="cursor:pointer">About these ${esc(SEC_NAME[sec].toLowerCase())} settings</summary><div class="col" style="gap:var(--sp-3);margin-top:var(--sp-2)"><div class="body-m osv">${whyHTML(reason(sec))}</div><form id="sysNotes" class="col"><div class="field"><label for="sysNotesTA">Category notes</label><textarea id="sysNotesTA" rows="4">${esc(reason(sec))}</textarea></div><button class="btn outlined sm" type="submit" style="align-self:flex-start">Save notes</button></form></div></details>`;
     const prop=$("#tkProp",r);if(prop)prop.onchange=()=>{select({kind:"token",id:prop.value});renderSystem()};
+    $("#sysNotes",r).onsubmit=e=>{e.preventDefault();S.reasons=S.reasons||{};S.reasons[sec]=$("#sysNotesTA",r).value.trim();snapshot(`${sec} notes`);save();renderSystem();$("#sysWhy")?.setAttribute("open","");toast(`${SEC_NAME[sec]} notes saved`)};
+    wireCites(r);
     return}
   const p=S.sel.pick?pickById(S.sel.pick):null,keys=p?sysPickToks(p,t.sec):sysSecToks(t.sec).map(x=>x.k);
   const d=sysDrafts[t.k]||{v:t.v,why:t.why||"",not:t.not||""};
@@ -234,6 +252,7 @@ function renderSystemRail(){
   ${keys.length>1?`<div class="field"><label for="tkProp">Property</label><select id="tkProp">${keys.map(k=>`<option value="${k}" ${k===t.k?"selected":""}>${esc(decName(T(k)))}</option>`).join("")}</select></div>`:""}
   <form class="col" style="gap:var(--sp-3)" id="tkForm" novalidate>
     <div class="field"><label for="${isC?"tkHex":t.type==="font"?"tkFont":"tkVal"}">${isC?"Color":esc(decName(t))}</label><div class="row" style="flex-wrap:nowrap">${isC?`<input type="color" id="tkColor" value="${esc(valOk(d.v)?d.v:t.v)}" aria-label="Color picker" style="width:48px;flex:none;padding:var(--sp-0)"><input type="text" id="tkHex" value="${esc(d.v)}" spellcheck="false" autocomplete="off">`:t.type==="font"?`<select id="tkFont">${(t.k==="type.display"?FONTS.display:FONTS.body).map(f=>`<option ${f===d.v?"selected":""}>${esc(f)}</option>`).join("")}</select>`:`<input type="text" id="tkVal" value="${esc(d.v)}">`}</div></div>
+    ${aiCommonBlurb(t)}
     <section class="card outlined col"><span class="title-s">Why this setting?</span><div class="body-m">${esc(plainWhy(t))||'<span class="osv">No explanation added.</span>'}</div>${cs.length?`<div class="col" style="align-items:flex-start;gap:var(--sp-1)"><span class="body-s osv">Based on</span>${basedOnHTML(cs)}</div>`:`<span class="body-s osv">${o[0]==="AI draft"?"Suggested by AI":esc(o[0])} · not linked to research yet</span>`}</section>
     <details id="tkMore"><summary class="title-s" style="cursor:pointer">More details</summary><div class="col" style="gap:var(--sp-3);padding-top:var(--sp-2)">
       <div class="col"><span class="title-s">Evidence</span>${cs.length?cs.map(code=>{const i=citeInfo(code);return`<button type="button" class="reason" style="width:100%;border:0;text-align:left;cursor:pointer;color:inherit" data-cite="${code}"><span class="ms">${i.icon}</span><span class="col" style="flex:1;min-width:0;gap:0"><span class="label-m osv">${esc(i.kind)} · ${code}</span><span class="body-s">${esc(i.text)}</span></span><span class="ms osv">open_in_new</span></button>`}).join(""):`<div class="body-s osv">No research cited.</div>`}</div>
@@ -262,6 +281,7 @@ $$("#secnav button").forEach(b=>b.onclick=()=>{S.sysSection=b.dataset.s;select(n
 function wireUserImgs(c){S.userImgs=S.userImgs||[];
   const add=files=>{[...files].forEach(f=>{if(!f.type.startsWith("image/"))return;const rd=new FileReader();rd.onload=async()=>{const pid=currentPid();const key="ui:"+(S.pid||"p")+":"+uid("");const stored=await rememberImage(key,rd.result);if(!stillOnProject(pid)){imgDel(key).catch(()=>{});return}S.userImgs.push({name:f.name.replace(/\.[^.]+$/,"").replace(/[-_]/g," "),src:stored,imgKey:key,use:""});snapshot("uploaded image");save();renderSystem();toast("Photo added · say how it should be used, or let the AI draft it")};rd.readAsDataURL(f)})};
   const fi=$("#uiFile",c);if(fi)fi.onchange=e=>add(e.target.files);
+  const addBtn=$('label[for="uiFile"]',c);if(addBtn&&fi)addBtn.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fi.click()}};
   const drop=$(".uidrop",c);if(drop){drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over")});drop.addEventListener("dragleave",()=>drop.classList.remove("over"));drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("over");add(e.dataTransfer.files)})}
   $$("[data-uiname]",c).forEach(i=>i.onchange=()=>{S.userImgs[+i.dataset.uiname].name=i.value;save()});
   $$("[data-uiuse]",c).forEach(i=>i.onchange=()=>{S.userImgs[+i.dataset.uiuse].use=i.value;save()});
@@ -362,7 +382,7 @@ function renderTrending(){if(S.type&&S.type!=="restaurant"){$("#trendBody").inne
   const f="all";
   const body=$("#trendBody");
   if(S.trend==="snippets"){body.innerHTML=`<div class="col">${SNIPPETS.map(s=>`<div class="snip ${S.sel?.kind==="trend"&&S.sel.id===s.id?"sel":""}" data-tr="${s.id}" tabindex="0"><div class="sp" style="${siteVars()};color:${tv("color.ink")};background:${tv("color.ground")}">${s.prev()}</div><div class="col"><div class="row"><span class="title-s">${esc(s.title)}</span><span class="badge ${s.pct>50?"e":"p"}">${s.pct}% of AI sites</span><span class="spacer"></span><button class="btn text sm" data-addref="${s.id}"><span class="ms">${onShelf(s.id)?"check":"bookmark_add"}</span>${onShelf(s.id)?"On shelf":"Add as reference"}</button><button class="btn tonal sm" data-usesnip="${s.id}">Use</button></div><div class="body-s osv">Where: ${esc(s.where)} · token: <span class="mono">${esc(s.tok)}</span></div><pre>${esc(s.code)}</pre></div></div>`).join("")}</div>`;
-    $$("[data-usesnip]").forEach(b=>b.onclick=e=>{e.stopPropagation();const s=SNIPPETS.find(x=>x.id===b.dataset.usesnip);const t=T(s.tok);if(t){setToken(s.tok,s.val,`snippet “${s.title}” from Trending`)}else{if(!S.tokens)S.tokens=seedTokens();S.tokens.push({sec:"components",k:s.tok,type:"text",v:s.val,why:`snippet “${s.title}” from Trending`,not:"",prev:[[s.title,s.pct]],mine:s.title,edited:true});snapshot(`added ${s.tok}`);save()}if(s.id==="sn5")setEl("hero",{variant:"board"});if(s.id==="sn3")setEl("bundles",{hidden:false,caption:"host suggests"});toast(`Added ${s.tok} to the design system`)});
+    $$("[data-usesnip]").forEach(b=>b.onclick=e=>{e.stopPropagation();const s=SNIPPETS.find(x=>x.id===b.dataset.usesnip);const t=T(s.tok);if(t){setToken(s.tok,s.val,`snippet “${s.title}” from Trending`)}else{if(!S.tokens)S.tokens=defaultTokens();S.tokens.push({sec:"components",k:s.tok,type:"text",v:s.val,why:`snippet “${s.title}” from Trending`,not:"",prev:[[s.title,s.pct]],mine:s.title,edited:true});snapshot(`added ${s.tok}`);save()}if(s.id==="sn5")setEl("hero",{variant:"board"});if(s.id==="sn3")setEl("bundles",{hidden:false,caption:"host suggests"});toast(`Added ${s.tok} to the design system`)});
     $$("[data-addref]",body).forEach(b=>b.onclick=e=>{e.stopPropagation();addTrendRef(b.dataset.addref)});
     $$("[data-tr]").forEach(el=>el.onclick=e=>{if(e.target.closest("[data-addref],[data-usesnip]"))return;const same=S.sel?.kind==="trend"&&S.sel.id===el.dataset.tr;select(same?null:{kind:"trend",id:el.dataset.tr});renderTrending()});renderTrendRail();return}
   if(S.trend==="baseline"){const x=TREND.baseline.find(y=>y.id===(S.sel?.kind==="trend"&&TREND.baseline.some(z=>z.id===S.sel.id)?S.sel.id:"b1"));
@@ -394,7 +414,7 @@ $$("#trendSeg button,#baselinePill").forEach(b=>b.onclick=()=>{S.trend=b.dataset
 let previewVer=null;
 function verLabel(w){const m=String(w).match(/^element (\w+) (\{.*\})$/);if(!m)return w;let o={};try{o=JSON.parse(m[2])}catch{}const n=EL[m[1]]?.name||m[1];const parts=Object.entries(o).map(([k,v])=>k==="hidden"?(v?"removed":"restored"):k==="variant"?`→ ${v}`:k==="caption"?`copy → “${String(v).slice(0,28)}”`:k==="img"?(v?"image swapped":"image reset"):`${k} → ${v}`);return`${n} ${parts.join(", ")}`}
 // each history entry stores the state BEFORE its change; the state "at that point" (after the change) is the next entry, or current.
-function stateAfter(i){const n=S.history[i+1];const d=n?("designAt" in n?dzDesignAt(n.designAt):undefined):(S.design||null);const st=n?{tokens:n.tokens,elements:n.elements,site:n.site||S.site,review:"review" in n?n.review:S.review}:{tokens:S.tokens||seedTokens(),elements:S.elements,site:S.site,review:S.review};if(d!==undefined)st.design=d;return st}
+function stateAfter(i){const n=S.history[i+1];const d=n?("designAt" in n?dzDesignAt(n.designAt):undefined):(S.design||null);const st=n?{tokens:n.tokens,elements:n.elements,site:n.site||S.site,review:"review" in n?n.review:S.review}:{tokens:S.tokens||defaultTokens(),elements:S.elements,site:S.site,review:S.review};if(d!==undefined)st.design=d;return st}
 function verList(){return S.history.length?[...S.history].reverse().slice(0,20).map((h,i)=>{const idx=S.history.length-1-i;const cur=idx===S.history.length-1;const on=previewVer===idx||(previewVer===null&&cur);return`<div class="ver ${on?"on":""}" data-ver="${idx}" tabindex="0" role="button" aria-pressed="${on}"><span class="d"></span><span style="flex:1;min-width:0">${esc(verLabel(h.what))}${cur?' <span class="badge p">current</span>':""}</span><span class="mono osv">${new Date(h.t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>${cur?"":`<button class="btn text sm" data-restore="${idx}">Restore</button>`}</div>`}).join(""):`<div class="note">No versions yet. Every change creates one.</div>`}
 function wireVer(r){$$("[data-ver]",r).forEach(v=>{const go=()=>{const i=+v.dataset.ver;previewVer=(i===S.history.length-1)?null:i;renderReview()};v.onclick=e=>{if(e.target.closest("[data-restore]"))return;go()};v.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}});
   $$("[data-restore]",r).forEach(b=>b.onclick=e=>{e.stopPropagation();const i=+b.dataset.restore;const st=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(st.tokens));S.elements=JSON.parse(JSON.stringify(st.elements));S.site=st.site?JSON.parse(JSON.stringify(st.site)):S.site;S.review=st.review;applyVersionDesign(st);previewVer=null;save();renderAll();toast("Restored that version")})}
@@ -428,19 +448,19 @@ function patterns(){const p=[];const ground=tv("color.ground");const onPage=Obje
 function notBuiltFor(where){return`<div class="card" style="max-width:560px;margin:var(--sp-7) auto;text-align:center;display:flex;flex-direction:column;gap:var(--sp-3);align-items:center"><span class="ms" style="font-size:40px;color:var(--primary)">${where==="review"?"web":"trending_up"}</span><span class="title-l">${where==="review"?"No pages generated yet":"Examples coming for this project type"}</span><span class="body-m osv">${where==="review"?`Pages are generated from the design system once research, references and tokens are in place. In this prototype, page generation is built for restaurant projects; open Mali's Table to see a finished review.`:`This prototype's trending library covers restaurant sites. For a ${(PTYPES[S.type]||PTYPES.other).name.toLowerCase()}, add references by uploading them on the Inspiration page.`}</span><div class="row" style="justify-content:center"><button class="btn tonal" data-goview="inspiration">Go to Inspiration</button><button class="btn text" data-openmali>Open Mali's Table</button></div></div>`}
 function wireNotBuilt(root){$$("[data-goview]",root).forEach(b=>b.onclick=()=>go(b.dataset.goview));$$("[data-openmali]",root).forEach(b=>b.onclick=()=>openProject("p-mali"))}
 function renderReview(){syncEL();
-  if(!S.tokens)S.tokens=seedTokens();
+  if(!S.tokens)S.tokens=defaultTokens();
   /* The page tabs duplicated the generated site's own navigation, so the site's
      nav drives the pages now and this row carries only the review controls. */
   const designed=!!(S.design&&S.design.html)&&previewVer===null;
   const W0=site();const fallbackName={home:"Home",menu:"Catalog",order:"Action",story:"About"}[S.page]||S.page;
   const rawName=String((W0.pages&&W0.pages[S.page])||"").trim();const pageName=rawName&&rawName.length<=24?rawName:fallbackName;
   const nSec=designed?(S.design.sections||[]).length:0;
-  $("#revSum").innerHTML=(designed
-    ?`<span class="body-s osv">Viewing <b>Home</b> · ${nSec} section${nSec===1?"":"s"}, each with a decision record</span>`
-    :`<span class="body-s osv">Viewing <b>${esc(pageName)}</b></span>`)+`<span class="spacer"></span>`+
+  /* Only the view toggles; the site's own nav moves between its pages. */
+  $("#revSum").innerHTML=
     `<button class="chip sm ${S.overlays.receipts?"on":""}" data-o="receipts"><span class="ms" style="font-size:16px">checklist</span>Decision markers</button>`+
     `<button class="chip sm ${S.device==="phone"?"on":""}" id="devToggle"><span class="ms" style="font-size:16px">${S.device==="phone"?"smartphone":"desktop_windows"}</span>${S.device==="phone"?"Phone":"Desktop"}</button>`;
   $$("#revSum [data-o]").forEach(b=>b.onclick=()=>{S.overlays[b.dataset.o]=!S.overlays[b.dataset.o];save();renderReview()});
+  $$("#revSum [data-dzpage]").forEach(b=>b.onclick=()=>dzShowPage(b.dataset.dzpage));
   $("#devToggle")&&($("#devToggle").onclick=()=>{S.device=S.device==="phone"?"desk":"phone";save();renderReview()});
   const st=$("#stage");
   const foot=$("#revFoot");if(foot)foot.textContent=designed
@@ -527,7 +547,6 @@ function renderDesignRail(r){
       ${evidence?`<div class="uses" style="margin-top:0">${evidence}</div>`:`<div class="body-s osv">Nothing from your research, inspiration or design system is cited. The AI decided this alone.</div>`}
       ${typ.length?`<div class="rsec"><span>How common this choice is in AI output</span><span>${mine==null?"?":mine+"%"}</span></div>${typ.map(x=>`<div class="pr ${x[0]===sel.mine?"me":""}"><span>${esc(x[0])}${x[0]===sel.mine?" (this page)":""}</span><div class="bar ${x[0]===sel.mine&&x[1]>50?"red":""}"><i style="width:${Math.min(100,x[1])}%"></i></div><span class="mono">${x[1]}%</span></div>`).join("")}<div class="note">Estimates from the AI, not measurements.</div>`:""}
       ${(sel.gaps||[]).length?`<div class="rsec"><span>Gaps · research missing or not used</span><span>${sel.gaps.length}</span></div>${sel.gaps.map(g=>`<div class="gap"><span class="mono">${esc(g.match(/^\[[^\]]+\]/)?.[0]||"")}</span><span>${esc(g.replace(/^\[[^\]]+\]\s*/,""))}</span></div>`).join("")}`:""}
-      ${sectionPromptBox(sel)}
     </div>`}
   else if(tab==="panel"){
     /* ---- overview ---- */
@@ -554,7 +573,7 @@ function renderDesignRail(r){
     const line=(s,i)=>{const u=sectionUses(s);const grounded=u.cards.length||u.refs.length;
       return`<button class="secline" data-sec="${esc(s.id)}"><span class="pinnum">${i+1}</span><span class="seclinetext"><span class="title-s">${esc(s.name)}</span><span class="body-s osv">${esc(clip(receiptText(s)||"No record came back for this section.",96))}</span></span>${s.edited?`<span class="badge p">Edited</span>`:""}${grounded?"":`<span class="badge e">AI alone</span>`}<span class="ms osv">chevron_right</span></button>`};
     body=`${staleNote}${built}
-    ${d.reasoning?`<div class="note body-s">${esc(dzNameCards(d.reasoning))}</div>`:""}
+    ${d.reasoning?`<details class="srcmore"><summary>Why the page looks like this</summary><div class="body-s osv">${esc(dzNameCards(d.reasoning))}</div></details>`:""}
     <div class="rsec"><span>Sections · select one for its record</span><span>${secs.length}</span></div>
     ${secs.length?`<div class="seclist">${secs.map(line).join("")}</div>`:`<div class="note body-s">This page came back without section records.</div>`}
     <div class="rsec"><span>Page summary</span></div>
@@ -564,7 +583,7 @@ function renderDesignRail(r){
   else body=`<div class="row"><span class="title-s">Version history</span><span class="spacer"></span><span class="badge">${S.history.length}</span></div>${verList()}<div class="note">Every token edit, section edit and regenerated page creates a version. Restore brings back the tokens and the page design from that point; the last eight designs are kept.</div>`;
   // Keep the reader's place when the same view redraws (a reply arriving in the prompt box).
   const mode=tab+":"+(sel?sel.id:"");const was=r.querySelector(".dzrail");const keep=was&&r._mode===mode?was.scrollTop:0;r._mode=mode;
-  r.innerHTML=`<div class="tabs"><button class="${tab==="panel"?"on":""}" data-rt="panel">Decisions</button><button class="${tab==="audit"?"on":""}" data-rt="audit">Audit${fails?` <span class="badge e">${fails}</span>`:""}</button><button class="${tab==="history"?"on":""}" data-rt="history">History</button></div><div class="pane dzrail" style="padding:var(--sp-3) var(--sp-4);flex:1">${body}</div>`;
+  r.innerHTML=`<div class="tabs"><button class="${tab==="panel"?"on":""}" data-rt="panel">Decisions</button><button class="${tab==="audit"?"on":""}" data-rt="audit">Audit${fails?` <span class="badge e">${fails}</span>`:""}</button><button class="${tab==="history"?"on":""}" data-rt="history">History</button></div><div class="pane dzrail" style="padding:var(--sp-3) var(--sp-4);flex:1">${body}</div>${tab==="panel"&&sel?`<div class="dzask">${sectionPromptBox(sel)}</div>`:""}`;
   $$("[data-rt]",r).forEach(b=>b.onclick=()=>{S.reviewTab=b.dataset.rt;save();renderReviewRail()});
   $$("[data-sec]",r).forEach(el=>el.onclick=()=>show(el.dataset.sec));
   $$("[data-show]",r).forEach(b=>b.onclick=e=>{e.stopPropagation();show(b.dataset.show)});
@@ -646,10 +665,10 @@ function offlineEdit(text,scope){const t=text.toLowerCase();const cw={green:"#4F
 function dialog(html,btns){const d=document.createElement("div");d.className="dialog";d.innerHTML=`<div class="box">${html}<div class="row" style="justify-content:flex-end">${btns.map((b,i)=>`<button class="btn ${b[1]}" data-db="${i}">${esc(b[0])}</button>`).join("")}</div></div>`;document.body.appendChild(d);$$("[data-db]",d).forEach(b=>b.onclick=()=>{btns[+b.dataset.db][2]();d.remove()});d.onclick=e=>{if(e.target===d)d.remove()}}
 $("#exportBtn").onclick=e=>{e.stopPropagation();$("#exportMenu").hidden=!$("#exportMenu").hidden};document.addEventListener("click",()=>{$("#exportMenu").hidden=true});
 $$("#exportMenu button").forEach(b=>b.onclick=()=>exportX(b.dataset.x));
-function exportX(kind){let text="",label="";const toks=S.tokens||seedTokens();
+function exportX(kind){let text="",label="";if(typeof syncEL==="function")syncEL();const toks=S.tokens||defaultTokens();
   if(kind==="tokens-json"){text=JSON.stringify(Object.fromEntries(toks.map(t=>[t.k,{value:t.v,why:t.why,not:t.not}])),null,2);label="tokens.json"}
   if(kind==="tokens-css"){text=":root {\n"+toks.map(t=>`  --${t.k.replace(/\./g,"-")}: ${/^#/.test(t.v)?t.v:JSON.stringify(t.v)}; /* ${t.why} — not: ${t.not} */`).join("\n")+"\n}";label="tokens.css"}
-  if(kind==="figma"){text=JSON.stringify({collections:[{name:"Traceform",modes:["default"],variables:toks.map(t=>({name:t.k.replace(/\./g,"/"),type:t.type==="color"?"COLOR":"STRING",value:t.v,description:`${t.why} | NOT: ${t.not}`}))}],frames:["Home","Menu","Order","Story"].map(p=>({name:`${S.project} / ${p}`,receipts:Object.entries(EL).filter(([i,e])=>e.page==="*"||e.page===p.toLowerCase()).map(([i,e])=>({layer:e.name,receipt:e.receipt||"AI decided",typicality:e.prev.find(x=>x[0]===e.mine)?.[1]||null}))}))},null,2);label="figma-push.json (variables + frames with receipts on layers)"}
+  if(kind==="figma"){text=JSON.stringify({collections:[{name:"Traceform",modes:["default"],variables:toks.map(t=>({name:t.k.replace(/\./g,"/"),type:t.type==="color"?"COLOR":"STRING",value:t.v,description:`${t.why} | NOT: ${t.not}`}))}],frames:(typeof dzPages==="function"&&dzPages().length?dzPages().map(p=>p.label):Object.values((site()||{}).pages||{}).filter(Boolean).slice(0,5)).filter(Boolean).map(p=>({name:`${S.project} / ${p}`,receipts:Object.entries(EL).filter(([i,e])=>e.page==="*"||e.page===p.toLowerCase()).map(([i,e])=>({layer:e.name,receipt:e.receipt||"AI decided",typicality:e.prev.find(x=>x[0]===e.mine)?.[1]||null}))}))},null,2);label="figma-push.json (variables + frames with receipts on layers)"}
   if(kind==="gaps"){const gaps=Object.entries(EL).flatMap(([id,e])=>(e.gaps||[]).map(g=>`- ${g}  (${e.name})`));text=`# Follow-up interview guide · ${S.project}\n\nOpen gaps:\n${gaps.join("\n")}\n\nRejected AI assumptions:\n${S.assume.filter(a=>a.rej).map(a=>"- "+a.label).join("\n")}\n\nDivergent themes to resolve:\n${S.themes.filter(t=>t.mode==="divergent").map(t=>"- "+t.name+": "+t.cards.map(c=>c.text).join("; ")).join("\n")}`;label="interview-guide.md"}
   if(kind==="receipts"){text=`# Receipts · ${S.project}\n\n`+Object.entries(EL).map(([id,e])=>`## ${e.pin}. ${e.name}${elState(id).hidden?" (removed)":""}\n${e.receipt||"_AI decided — no research_"}\nTypicality: ${e.prev.map(p=>`${p[0]} ${p[1]}%`).join(", ")} · yours: ${e.mine}`).join("\n\n")+`\n\n## Versions\n`+S.history.map(l=>`- ${new Date(l.t).toLocaleTimeString()} ${l.what}`).join("\n");label="receipts.md"}
   /* A designed page has its own sections; exporting the old fixed element list
@@ -658,7 +677,7 @@ function exportX(kind){let text="",label="";const toks=S.tokens||seedTokens();
   if(dz&&kind==="receipts"){text=`# Receipts · ${S.project}\n\n`+(dz.sections||[]).map((s,i)=>{const u=sectionUses(s);return`## ${i+1}. ${s.name}\n${s.receipt?receiptText(s):"_AI decided — no research_"}`+(u.cards.length?`\nResearch: ${u.cards.map(c=>c.text).join(" | ")}`:"")+(u.refs.length?`\nInspiration: ${u.refs.map(t=>t.title).join(" | ")}`:"")+(u.tokens.length?`\nDesign system: ${u.tokens.map(t=>`${t.k} = ${t.v}`).join(" | ")}`:"")}).join("\n\n")}
   if(dz&&kind==="gaps"){const gaps=(dz.sections||[]).flatMap(s=>(s.gaps||[]).map(g=>`- ${g}  (${s.name})`));text=`# Follow-up interview guide · ${S.project}\n\nOpen gaps:\n${gaps.join("\n")||"- none recorded"}\n\nRejected AI assumptions:\n${S.assume.filter(a=>a.rej).map(a=>"- "+a.label).join("\n")}`}
   if(kind==="credits"){const c=typeof photoCredits==="function"?photoCredits():[];text=`# Photo credits \u00b7 ${S.project}\n\n`+(c.length?c.map(p=>`- **${p.alt||p.q}** \u2014 ${p.creator}, ${p.license}\n  ${p.source}`).join("\n"):"_No stock photographs in this site yet._");label="photo-credits.md"}
-  if(kind==="reset"){localStorage.removeItem("of-m3-v2");S=SEED();renderAll();toast("Reset");return}
+  if(kind==="reset"){if(S.pid!=="p-mali"){toast("Reset only applies to the Mali's Table demo");return}localStorage.removeItem("of-m3-v2");S={...SEED(),pid:"p-mali",type:"restaurant"};save();renderAll();toast("Reset");return}
   dialog(`<span class="headline-s">${esc(label)}</span><div class="field"><textarea rows="14" readonly style="font-family:var(--mono);font-size:12px">${esc(text)}</textarea></div><div class="note">Downloads are blocked inside the viewer; copy and paste into a file, Figma's variable import, or your repo. “Push to Figma” would send this payload through the plugin.</div>`,[["Close","text",()=>{}],["Copy","filled",async()=>{try{await navigator.clipboard.writeText(text);toast("Copied")}catch{toast("Select the text and copy")}}]])}
 $("#themeBtn").onclick=()=>{const cur=document.documentElement.getAttribute("data-theme");const dark=cur?cur==="dark":matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.setAttribute("data-theme",dark?"light":"dark");$("#themeBtn .ms").textContent=dark?"dark_mode":"light_mode"};
 function select(s){S.sel=s;save()}
@@ -668,7 +687,7 @@ document.addEventListener("click",e=>{if(!e.target.closest("main")||e.target.clo
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.querySelector(".dialog"))clearSel()});
 function go(v){S.view=v;$$(".view").forEach(x=>x.classList.toggle("on",x.id==="v-"+v));$$(".navrail .dest").forEach(b=>b.classList.toggle("on",b.dataset.v===v));save();renderAll();try{if(location.hash.replace("#","")!==v)history.replaceState(null,"","#"+v)}catch{}}
 $$(".navrail .dest").forEach(b=>b.onclick=()=>go(b.dataset.v));
-function renderAll(){if(typeof setProjChip==="function")setProjChip();else $("#projChip").innerHTML=`<span class="ms" style="font-size:16px">restaurant</span>${esc(S.project)}`;if(["trending","reference"].includes(S.view))S.view="inspiration";renderResearch();renderInspiration();if(S.view==="system")renderSystem();if(S.view==="review")renderReview()}
+function renderAll(){ensureTokenFonts();if(typeof setProjChip==="function")setProjChip();else $("#projChip").innerHTML=`<span class="ms" style="font-size:16px">restaurant</span>${esc(S.project)}`;if(["trending","reference"].includes(S.view))S.view="inspiration";renderResearch();renderInspiration();if(S.view==="system")renderSystem();if(S.view==="review")renderReview()}
 window.addEventListener("hashchange",()=>{const h=location.hash.replace("#","");if(["research","inspiration","system","review"].includes(h)&&h!==S.view)go(h)});
 document.querySelector("main").addEventListener("scroll",e=>$("#appbar").classList.toggle("scrolled",e.target.scrollTop>4),true);
 (function icons(){try{document.fonts.load('20px "Material Symbols Outlined"').then(fs=>{if(fs.length)document.documentElement.classList.add("icons")}).catch(()=>{})}catch{}})();

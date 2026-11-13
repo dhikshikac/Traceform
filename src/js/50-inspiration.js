@@ -47,9 +47,30 @@ function refMissing(t){return!(t.url||t.img||t.imgk||t.mock||t.colors||t.from)}
 function zoomThumb(t,a){const s=a&&a.selection;
   // Nothing to crop when the image itself is gone: zooming the "not saved" note just garbles it.
   if(refMissing(t))return`<div class="nopreview" title="Image not saved"><span class="ms">broken_image</span></div>`;
-  if(!s)return refThumb(t);
-  const w=Math.max(s.w,.04),h=Math.max(s.h,.04);const W=100/w,H=100/h;
-  return`<div class="insp-zoom" style="width:${W}%;height:${H}%;left:${-s.x*W}%;top:${-s.y*H}%">${refThumb(t)}</div>`}
+  if(!s)return fitLayer(refThumb(t));
+  return fitLayer(refThumb(t),s)}
+/* Boxes are drawn in the annotate view over the whole image, so they are
+   fractions of the full image. A thumbnail frame crops the image (cover), so the
+   image and its boxes go in one layer with the image's own proportions, and
+   that layer is sized and placed the way "cover" would place the image. With a
+   selection, the layer is instead scaled so that region fills the frame. */
+function fitLayer(inner,sel){if(!sel)return`<div class="fitlayer">${inner}</div>`;
+  const w=Math.max(sel.w,.04),h=Math.max(sel.h,.04),W=100/w,H=100/h;
+  // Until an image loads (or for a mock, which fills the frame anyway) zoom as if the content were the frame's shape.
+  return`<div class="fitlayer zoom" data-sel="${[sel.x,sel.y,w,h].join(",")}" style="width:${W}%;height:${H}%;left:${-sel.x*W}%;top:${-sel.y*H}%">${inner}</div>`}
+function placeFitLayer(layer,img){const nw=img.naturalWidth,nh=img.naturalHeight,box=layer.parentElement;
+  if(!nw||!nh||!box)return;const cw=box.clientWidth,ch=box.clientHeight;if(!cw||!ch)return;
+  const ar=nw/nh,cr=cw/ch;let W,H,L,T;
+  if(layer.dataset.sel){const[x,y,w,h]=layer.dataset.sel.split(",").map(Number);
+    // the region's own proportions, in pixels of the image
+    if(ar*w/h>cr){H=100/h;W=H*ar/cr}else{W=100/w;H=W*cr/ar}
+    L=-x*W+(100-w*W)/2;T=-y*H+(100-h*H)/2}
+  else{const topAligned=img.classList.contains("shot");
+    if(ar>cr){H=100;W=100*ar/cr;L=(100-W)/2;T=0}else{W=100;H=100*cr/ar;L=0;T=topAligned?0:(100-H)/2}}
+  Object.assign(layer.style,{width:W+"%",height:H+"%",left:L+"%",top:T+"%"});layer.classList.add("fitted")}
+/* Images already in memory may be complete before the load hook sees them. */
+function fitLayers(root){$$(".fitlayer",root).forEach(l=>{const img=$("img",l);if(img&&img.complete&&img.naturalWidth)placeFitLayer(l,img)})}
+document.addEventListener("load",e=>{const img=e.target;if(img.tagName!=="IMG")return;const l=img.closest(".fitlayer");if(l)placeFitLayer(l,img)},true);
 function annoRect(a,i){return`<span class="arect" style="left:${a.selection.x*100}%;top:${a.selection.y*100}%;width:${a.selection.w*100}%;height:${a.selection.h*100}%"><b>${i+1}</b></span>`}
 function annoRects(r){return(r.annotations||[]).map(annoRect).join("")}
 function syncBorrow(t){const notes=(t.annotations||[]).map(a=>a.note);t.borrow=t.whole?"the entire reference"+(notes.length?"; especially: "+notes.join("; "):""):notes.length?notes.join("; "):"(not yet chosen)"}
@@ -57,7 +78,7 @@ function savedFromExplore(id){return S.tiles.find(t=>t.from===id)}
 function renderInspiration(){const root=$("#inspBody"),rail=$("#rail-inspiration");if(!root||!rail)return;const saved=S.tiles;
   const annotated=saved.flatMap(t=>(t.annotations||[]).map((a,i)=>({t,a,i})));
   const annoGroups=saved.map(t=>({t,list:(t.annotations||[]).map((a,i)=>({a,i}))})).filter(g=>g.list.length);
-  const savedCard=t=>`<div class="refcard" data-ref="${t.id}"><div class="refthumb">${refThumb(t)}${refMissing(t)?"":annoRects(t)}</div><div class="refinfo"><div class="row" style="flex-wrap:nowrap"><span class="title-s" style="flex:1;min-width:0">${esc(t.title)}</span><span class="badge ok">Saved</span><button class="icon-btn rmref" data-rmref="${t.id}" aria-label="Remove ${esc(t.title)}" title="Remove"><span class="ms">delete</span></button></div>
+  const savedCard=t=>`<div class="refcard" data-ref="${t.id}"><div class="refthumb">${fitLayer(refThumb(t)+(refMissing(t)?"":annoRects(t)))}</div><div class="refinfo"><div class="row" style="flex-wrap:nowrap"><span class="title-s" style="flex:1;min-width:0">${esc(t.title)}</span><span class="badge ok">Saved</span><button class="icon-btn rmref" data-rmref="${t.id}" aria-label="Remove ${esc(t.title)}" title="Remove"><span class="ms">delete</span></button></div>
     ${t.whole?`<span class="badge ok" style="align-self:flex-start"><span class="ms" style="font-size:14px;margin-right:var(--sp-1)">done_all</span>Borrowing entire reference</span>`:""}
     ${(t.annotations||[]).map((a,i)=>`<div class="annonote"><b>${i+1}</b><span style="flex:1">${esc(a.note)}</span><button class="x" data-rmanno="${t.id}:${i}" aria-label="Remove annotation ${i+1}"><span class="ms" style="font-size:16px">close</span></button></div>`).join("")}
     ${!t.whole&&!(t.annotations||[]).length?`<div class="body-s osv">Nothing chosen yet. Select a part or borrow everything.</div>`:""}
@@ -80,7 +101,8 @@ function renderInspiration(){const root=$("#inspBody"),rail=$("#rail-inspiration
   [root,rail].forEach(container=>$$("[data-rmanno]",container).forEach(b=>b.onclick=()=>{const[id,i]=b.dataset.rmanno.split(":");const t=S.tiles.find(x=>x.id===id);t.annotations.splice(+i,1);syncBorrow(t);snapshot("removed annotation");save();renderInspiration()}));
   $$("[data-whole]",root).forEach(b=>b.onclick=()=>{const[o,id]=b.dataset.whole.split(":");borrowAll(o,id)});
   $$("[data-part]",root).forEach(b=>b.onclick=()=>{const[o,id]=b.dataset.part.split(":");selectPartModal(o,id)});
-  $("#toSystem").onclick=()=>{if(!S.tokens)S.tokens=seedTokens();S.sysBuilt=true;snapshot("design system drafted");save();go("system");toast(`Design system drafted from research + ${S.tiles.length} inspiration${S.tiles.length===1?"":"s"}`)};
+  $("#toSystem").onclick=()=>{if(!S.tokens)S.tokens=defaultTokens();S.sysBuilt=true;snapshot("design system drafted");save();go("system");toast(`Design system drafted from research + ${S.tiles.length} inspiration${S.tiles.length===1?"":"s"}`)};
+  fitLayers(root);fitLayers(rail);
 }
 /* Snapshot the reference onto the tile. Saved inspiration must survive a later
    regeneration of Explore, so it never looks its source up again at render time. */

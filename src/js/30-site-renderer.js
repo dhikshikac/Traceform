@@ -72,6 +72,7 @@ function siteCSS(){
 .s .bios{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 28px 22px}.s .bio{display:flex;gap:12px;align-items:flex-start;font-size:14px}.s .bio i{width:56px;height:56px;border-radius:50%;background:var(--a);flex:none;display:grid;place-items:center;color:#fff;font-family:var(--fd);font-size:22px;font-style:normal}
 .s.phone .hero,.s.phone .cards,.s.phone .menu,.s.phone .order,.s.phone .bund,.s.phone .story,.s.phone .hours,.s.phone .pgrid,.s.phone .bios{grid-template-columns:1fr}.s.phone .links a{display:none}.s.phone .foot{grid-template-columns:1fr 1fr}.s.phone .hero .ov h1{font-size:26px}
 @media (max-width:700px){.s .hero,.s .cards,.s .menu,.s .order,.s .bund,.s .story,.s .hours,.s .pgrid,.s .bios{grid-template-columns:1fr}.s .links a{display:none}.s .foot{grid-template-columns:1fr 1fr}.s .hero .ov h1{font-size:26px}}
+${siteStyleEdits()}
 `}
 /* ---- Site content model ----
    S.site holds every word and image slot on the generated pages. The AI writes it from the research
@@ -182,3 +183,7 @@ function baselineHTML(which){
 /* ---- trending thumbnails ---- */
 function mock(o,big){const d=o.dishes||[["Khao soi","16","khaosoi"],["Som tam","11","somtam"],["Larb","15","larb"]];
   return`<div class="mock ${big?"big":""}" style="background:${o.bg};color:${o.fg};font-family:${o.body||"system-ui"}"><div class="mnav"><b style="font-family:${o.font};font-size:${big?22:11}px">${esc(o.name)}</b><span>${(o.nav||"Menu · Order · Story").split("·").map(x=>`<a>${esc(x.trim())}</a>`).join("")}<span class="pill" style="background:${o.cta};color:${o.ctaInk||"#fff"}">${esc(o.ctaText||"Order")}</span></span></div><div class="mhero">${o.img&&IMG[o.img]?`<img src="${IMG[o.img]}" alt="">`:`<div style="position:absolute;inset:0;background:linear-gradient(135deg,${o.cta},color-mix(in srgb,${o.cta} 30%,${o.bg}))"></div>`}<div class="txt" style="background:color-mix(in srgb,${o.bg} 78%,transparent)"><h1 style="font-family:${o.font}">${esc(o.headline||"")}</h1><p>${esc(o.sub||"")}</p></div></div><div class="mrow">${d.map(x=>`<div class="mcard" style="background:${o.card}"><i>${IMG[x[2]]?`<img src="${IMG[x[2]]}" alt="">`:`<span style="position:absolute;inset:0;background:color-mix(in srgb,${o.cta} 35%,${o.bg})"></span>`}</i><div><b>${esc(x[0])}</b><span>${x[1]?(/^[\d.]+$/.test(x[1])?"$":"")+esc(x[1]):""}</span></div></div>`).join("")}</div><div class="mfoot"><span>${esc(o.foot||"Open Tue–Sun · 11–9")}</span><span>${esc(o.name)}</span></div></div>`}
+
+/* Text and component style edits (22-type-styles.js, 23-style-groups.js) on the
+   template site. They were built but never added, so an edit changed nothing. */
+function siteStyleEdits(){try{return(typeof tsSiteCSS==="function"?tsSiteCSS(".s"):"")+"\n"+(typeof sgCSS==="function"?sgCSS(".s",false):"")}catch{return""}}

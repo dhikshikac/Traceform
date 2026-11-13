@@ -64,7 +64,7 @@ const $=(q,r=document)=>r.querySelector(q),$$=(q,r=document)=>[...r.querySelecto
 const uid=p=>p+Math.random().toString(36).slice(2,7);
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("on"),2400)}
-function snapshot(what){S.history.push({t:Date.now(),what,tokens:JSON.parse(JSON.stringify(S.tokens||seedTokens())),elements:JSON.parse(JSON.stringify(S.elements)),principles:JSON.parse(JSON.stringify(S.principles)),site:S.site?JSON.parse(JSON.stringify(S.site)):null,review:S.review?JSON.parse(JSON.stringify(S.review)):null,designAt:S.design&&S.design.at?S.design.at:null});if(S.history.length>40)S.history.shift();S.log.push({t:Date.now(),what})}
+function snapshot(what){S.history.push({t:Date.now(),what,tokens:JSON.parse(JSON.stringify(S.tokens||defaultTokens())),elements:JSON.parse(JSON.stringify(S.elements)),principles:JSON.parse(JSON.stringify(S.principles)),site:S.site?JSON.parse(JSON.stringify(S.site)):null,review:S.review?JSON.parse(JSON.stringify(S.review)):null,designAt:S.design&&S.design.at?S.design.at:null});if(S.history.length>40)S.history.shift();S.log.push({t:Date.now(),what})}
 function restore(i){const h=S.history[i];if(!h)return;S.tokens=JSON.parse(JSON.stringify(h.tokens));S.elements=JSON.parse(JSON.stringify(h.elements));if(h.site)S.site=JSON.parse(JSON.stringify(h.site));if("review" in h)S.review=h.review;if("designAt" in h&&typeof applyVersionDesign==="function")applyVersionDesign({design:dzDesignAt(h.designAt)});S.history=S.history.slice(0,i+1);save();renderAll();toast("Restored: "+h.what)}
 function avoidList(){const a=S.assume.filter(x=>x.rej).map(x=>x.label.replace(/^[^:]+:\s*/,"").replace(/[“”]/g,""));S.principles.filter(p=>p.hard).forEach(p=>a.push(p.text.replace(/^Never\s*/i,"").replace(/\.$/,"")));return a}
 const AVOID_WORDS=["elephant","gold","temple","lotus","gingham","pad thai","mama"];
@@ -76,7 +76,21 @@ const r1=x=>Math.round(x*10)/10;
 function shade(hex,amt){const[r,g,b]=hexToRgb(hex).map(c=>Math.max(0,Math.min(255,c+amt)));return"#"+[r,g,b].map(c=>c.toString(16).padStart(2,"0")).join("")}
 
 /* ============================ TOKENS ============================ */
-const FONTS={display:["Fraunces","Georgia","Roboto","Nunito Sans"],body:["Nunito Sans","Roboto","Georgia"]};
+/* The fonts a design system can use. Four used to be the whole list, two of them
+   Mali's, so every generated system read like hers. Each Google font carries the
+   axis string it is loaded with (single-weight families take none: asking for a
+   weight they lack makes Google refuse the whole stylesheet). */
+const FONT_AXES={"Fraunces":"opsz,wght@9..144,400;9..144,600;9..144,800","Playfair Display":"wght@400;600;800","DM Serif Display":"","Instrument Serif":"","Archivo Black":"","Anton":"","Bebas Neue":"","Space Grotesk":"wght@400;600;700","Syne":"wght@400;600;800","Unbounded":"wght@400;600;800","Bricolage Grotesque":"wght@400;600;800","Lilita One":"","Shrikhand":"",
+  "Roboto":"wght@400;500;700","Nunito Sans":"wght@400;600;700","Inter":"wght@400;600;700","DM Sans":"wght@400;600;700","Work Sans":"wght@400;600;700","Manrope":"wght@400;600;700","Karla":"wght@400;600;700","Source Serif 4":"wght@400;600;700","IBM Plex Sans":"wght@400;600;700"};
+const FONTS={display:["Fraunces","Playfair Display","DM Serif Display","Instrument Serif","Archivo Black","Anton","Bebas Neue","Space Grotesk","Syne","Unbounded","Bricolage Grotesque","Lilita One","Shrikhand","Georgia","Roboto","Nunito Sans"],
+  body:["Nunito Sans","Roboto","Inter","DM Sans","Work Sans","Manrope","Karla","Source Serif 4","IBM Plex Sans","Georgia"]};
+/* Google Fonts stylesheet for the given families (Georgia is a system font). */
+function fontsHref(names){const fams=[...new Set(["Roboto",...names.filter(Boolean)])].filter(n=>n in FONT_AXES);
+  return"https://fonts.googleapis.com/css2?"+fams.map(n=>"family="+n.replace(/ /g,"+")+(FONT_AXES[n]?":"+FONT_AXES[n]:"")).join("&")+"&display=swap"}
+function tokenFontsHref(){const S_=typeof S!=="undefined"?S:null;const tk=k=>(S_&&S_.tokens||[]).find(t=>t.k===k)?.v;return fontsHref([tk("type.display"),tk("type.body"),"Fraunces","Nunito Sans"])}
+/* Keep the app's own document able to draw whatever fonts the tokens name (spec
+   sheets and the fixed-layout preview render here, not in a frame). */
+function ensureTokenFonts(){try{const href=tokenFontsHref();let l=document.getElementById("tf-token-fonts");if(!l){l=document.createElement("link");l.rel="stylesheet";l.id="tf-token-fonts";document.head.appendChild(l)}if(l.getAttribute("href")!==href)l.setAttribute("href",href)}catch{}}
 const BASES={
   custom:{name:"Custom (from research)",desc:"Drafted from your research and inspiration",sws:["#F2EFE9","#4F6F8F","#B5533C"],note:"Every token carries a why and a NOT."},
   m3:{name:"Material 3",desc:"Google · tonal palettes, type scale, shape",sws:["#6750A4","#EADDFF","#FEF7FF"],note:"Use for app-like surfaces; warm it with the research palette."},
@@ -110,9 +124,12 @@ const SECTION_REASON={
   imagery:"Overhead, several plates, hands in frame: that is the only composition that shows “eating together” (c3). Motifs come from memory objects (c7); the avoid list rules out the lotus/elephant that 52% of AI sites reach for.",
   components:"Dish cards lead with the photo and a one-line story (c1, 47% want the story in small doses). The primary action is “See the menu”, not “Order Now”, because principle 1 says the menu leads."
 };
-function T(k){return(S.tokens||seedTokens()).find(t=>t.k===k)}
+/* The tokens a project falls back to before its design system exists: Mali's only
+   for Mali's Table, a neutral template for every other project. */
+function defaultTokens(){return S&&S.pid!=="p-mali"&&typeof genericTokens==="function"?genericTokens():seedTokens()}
+function T(k){return(S.tokens||defaultTokens()).find(t=>t.k===k)}
 function tv(k){return T(k)?.v}
-function setToken(k,v,why,not){if(!S.tokens)S.tokens=seedTokens();const t=S.tokens.find(x=>x.k===k);if(!t)return;snapshot(`token ${k} → ${v}`);t.v=v;if(why)t.why=why;if(not)t.not=not;t.edited=true;t.user=true;if(typeof mineLabel==="function")t.mine=mineLabel(t);save();renderSystem();if(S.view==="review")renderReview()}
+function setToken(k,v,why,not){if(!S.tokens)S.tokens=defaultTokens();const t=S.tokens.find(x=>x.k===k);if(!t)return;snapshot(`token ${k} → ${v}`);t.v=v;if(why)t.why=why;if(not)t.not=not;t.edited=true;t.user=true;if(typeof mineLabel==="function")t.mine=mineLabel(t);save();renderSystem();if(S.view==="review")renderReview()}
 
 /* ============================ AI ============================ */
 let sample=null;
@@ -121,7 +138,7 @@ let sample=null;
   // A Review page that was waiting on the AI to design an older project can start now.
   if(sample&&S&&S.view==="review"&&typeof needsDesignUpgrade==="function"&&needsDesignUpgrade())renderReview()})();
 const RULES=`You are the design assistant inside Traceform, a research-first design tool. Help the designer keep an AI-generated website grounded in research and distinct from generic AI output. Answer in 2-5 short sentences, plain language, no headings. Cite research (card id, quote, survey number, shelf tile) when justifying a choice. Never propose anything on the avoid list. When asked to change the selected thing, use the tools then say what changed in one sentence; when asked a question, answer without changing anything. Typicality percentages are estimates; say so if asked.`;
-function ctxSummary(){const toks=(S.tokens||seedTokens()).map(t=>`${t.k}=${t.v} | why: ${t.why} | not: ${t.not}`).join("\n");const cards=S.themes.map(t=>`[${t.name}] `+t.cards.map(c=>`${c.id}: ${c.text} (${c.quote})`).join(" ; ")).join("\n");const princ=S.principles.map((p,i)=>`${i+1}. ${p.text}${p.hard?" (hard)":""}`).join("\n");const shelf=S.tiles.map(t=>`${t.id} [${t.type}/${t.kind}${t.flag?", flagged":""}] ${t.title} — borrow: ${t.borrow}`).join("\n");return`${typeof projectHeader==="function"?projectHeader():"PROJECT: "+S.project}\nPRINCIPLES:\n${princ}\nAVOID: ${avoidList().join("; ")}\nCARDS:\n${cards}\nSHELF:\n${shelf}\nTOKENS:\n${toks}\nELEMENT OVERRIDES: ${JSON.stringify(S.elements)}`}
+function ctxSummary(){const toks=(S.tokens||defaultTokens()).map(t=>`${t.k}=${t.v} | why: ${t.why} | not: ${t.not}`).join("\n");const cards=S.themes.map(t=>`[${t.name}] `+t.cards.map(c=>`${c.id}: ${c.text} (${c.quote})`).join(" ; ")).join("\n");const princ=S.principles.map((p,i)=>`${i+1}. ${p.text}${p.hard?" (hard)":""}`).join("\n");const shelf=S.tiles.map(t=>`${t.id} [${t.type}/${t.kind}${t.flag?", flagged":""}] ${t.title} — borrow: ${t.borrow}`).join("\n");return`${typeof projectHeader==="function"?projectHeader():"PROJECT: "+S.project}\nPRINCIPLES:\n${princ}\nAVOID: ${avoidList().join("; ")}\nCARDS:\n${cards}\nSHELF:\n${shelf}\nTOKENS:\n${toks}\nELEMENT OVERRIDES: ${JSON.stringify(S.elements)}`}
 
 /* ============================ RESEARCH ============================ */
 /* Research page: artifacts on the left, insight cards grouped by theme in the middle,
@@ -359,4 +376,4 @@ function undoToast(msg,fn){const t=$("#toast");t.innerHTML=`${esc(msg)} <button 
 function addRefFiles(files){[...files].forEach(f=>{if(!f.type.startsWith("image/"))return;const rd=new FileReader();rd.onload=async()=>{const pid=currentPid();const id=uid("r");const key="tile:"+id;const stored=await rememberImage(key,rd.result);if(!stillOnProject(pid)){imgDel(key).catch(()=>{});return}S.tiles.push({id,type:"site",kind:"yours",title:f.name.replace(/\.[^.]+$/,""),borrow:"(say what to borrow)",why:"uploaded",img:stored,imgKey:key});save();renderReference();toast("Reference added")};rd.readAsDataURL(f)})}
 $("#palForm").onsubmit=e=>{e.preventDefault();const cs=($("#palInput").value.match(/#[0-9a-f]{3,6}/gi)||[]);if(!cs.length){toast("Enter hex colors like #4F6F8F");return}S.tiles.push({id:uid("r"),type:"palette",kind:"yours",title:"Palette "+cs.join(" "),borrow:"colors",why:"uploaded scheme",colors:cs});$("#palInput").value="";save();renderReference()};
 $("#quoteForm").onsubmit=e=>{e.preventDefault();const v=$("#quoteInput").value.trim();if(!v)return;S.tiles.push({id:uid("r"),type:"vibe",kind:"yours",title:v,borrow:"tone of voice",why:"vibe note",ph:"text"});$("#quoteInput").value="";save();renderReference()};
-$("#buildSysBtn").onclick=()=>{if(!S.tokens)S.tokens=seedTokens();S.sysBuilt=true;snapshot("design system drafted");save();go("system");toast("Design system drafted from research + shelf")};
+$("#buildSysBtn").onclick=()=>{if(!S.tokens)S.tokens=defaultTokens();S.sysBuilt=true;snapshot("design system drafted");save();go("system");toast("Design system drafted from research + shelf")};

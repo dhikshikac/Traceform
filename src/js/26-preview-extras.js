@@ -16,7 +16,7 @@ function sysHasDrafts() {
 function withDrafts(fn) {
   const keep = { tokens: S.tokens, ts: S.typeStyles, cs: S.compStyles };
   try {
-    S.tokens = JSON.parse(JSON.stringify(S.tokens || seedTokens()));
+    S.tokens = JSON.parse(JSON.stringify(S.tokens || defaultTokens()));
     Object.entries(sysDrafts || {}).forEach(([k, d]) => {
       const t = S.tokens.find(x => x.k === k); if (!t || !d || !String(d.v || "").trim()) return;
       if (t.type === "color" && !/^#[0-9a-f]{6}$/i.test(d.v)) return;

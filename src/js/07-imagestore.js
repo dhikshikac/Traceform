@@ -80,7 +80,7 @@ async function hydrateImages() {
     if (!stillOnProject(pid)) return n;
     if (t.imgKey && !t.img) { try { const v = await imgGet(t.imgKey); if (v && stillOnProject(pid)) { t.img = v; n++; } } catch {} }
   }
-  for (const u of S.userImgs || []) {
+  for (const u of [...(S.userImgs || []), ...(S.userMotifs || [])] || []) {
     if (!stillOnProject(pid)) return n;
     if (u.imgKey && !u.src) { try { const v = await imgGet(u.imgKey); if (v && stillOnProject(pid)) { u.src = v; n++; } } catch {} }
   }
