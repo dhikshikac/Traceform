@@ -216,7 +216,7 @@ function renderScaleRail() {
     e.preventDefault(); const v = $("#scVal").value;
     if (v === "" || !Number.isFinite(+v) || +v < 0 || +v > info.max) { $("#scErr").textContent = `Enter a number from 0 to ${info.max}.`; return; }
     snapshot(`${info.name(i).toLowerCase()} → ${+v}px`);
-    t.v = scaleWith(k, i, +v); t.edited = true; t.mine = typeof mineLabel === "function" ? mineLabel(t) : t.mine;
+    t.v = scaleWith(k, i, +v); t.edited = true; t.user = true; t.mine = typeof mineLabel === "function" ? mineLabel(t) : t.mine;
     scDraft = null; save(); renderSystem(); if (S.view === "review") renderReview(); toast(`${info.name(i)} updated across the website`);
   };
   $("#scCancel").onclick = () => { scDraft = null; renderScaleRail(); };

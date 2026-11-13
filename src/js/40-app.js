@@ -32,7 +32,7 @@ const DEC_NAME={"color.ground":"Background","color.accent":"Accent","color.heat"
   "type.display":"Display font","type.body":"Body font","type.scale":"Type scale","type.accentLine":"Accent line",
   "space.scale":"Spacing scale","shape.radius":"Corner radius","imagery":"Photography","motif":"Motifs & icons",
   "comp.dishCard":"Item card","comp.cta":"Primary action","comp.heat":"Heat indicator"};
-const SEC_NAME={base:"Start from a base",color:"Color",type:"Text styles",space:"Spacing & shape",imagery:"Imagery & motif",components:"Components"};
+const SEC_NAME={base:"Base system",color:"Color",type:"Text styles",space:"Spacing & shape",imagery:"Imagery & motif",components:"Components"};
 const SEC_ICON={imagery:"image",motif:"interests",components:"widgets"};
 const decName=t=>DEC_NAME[t.k]||t.k;
 /* research a decision cites: c# insight cards, s# sources, r# references, p# principles */
@@ -46,6 +46,7 @@ function citeInfo(code){
 function cites(text){const seen=new Set();return String(text||"").match(/\b[a-z]{1,3}\d{1,3}\b/g)?.filter(c=>{if(seen.has(c))return false;seen.add(c);return!!citeInfo(c)})||[]}
 function whyHTML(text){return esc(text).replace(/\b[a-z]{1,3}\d{1,3}\b/g,m=>{const i=citeInfo(m);return i?`<button class="cite" data-cite="${m}" title="${esc(i.kind)}: ${esc(i.text)}">${m}</button>`:m})}
 function origin(t){
+  if(t.user)return["Edited by you","p"];
   if(t.edited&&t.why==="imported")return["Imported","t"];
   if(t.edited&&/ default$/.test(t.why||""))return["From "+t.why.replace(/ default$/,""),"t"];
   if(t.edited)return["Edited by you","p"];
@@ -135,13 +136,14 @@ function sysPickToks(p,sec){return p.tok.filter(k=>{const t=T(k);return t&&t.sec
 function renderSystem(){
   if(!S.tokens)S.tokens=seedTokens();
   syncSysDrafts();
-  if(!SEC_NAME[S.sysSection]||S.sysSection==="base")S.sysSection="color";
+  if(!SEC_NAME[S.sysSection])S.sysSection="color";
   if(S.sel?.kind==="token"){const tk=T(S.sel.id);if(!tk)S.sel=null;else if(tk.sec!==S.sysSection)S.sysSection=tk.sec}
   if(S.sel?.kind==="tstyle"){if(!tsDef(S.sel.id))S.sel=null;else S.sysSection="type"}
   if(S.sel?.kind==="cstyle"){if(!sgDef(S.sel.id))S.sel=null;else S.sysSection=sgGroupOf(S.sel.id)}
   if(S.sel?.kind==="scale"){if(!SCALE_INFO[S.sel.id])S.sel=null;else S.sysSection="space"}
   const sec=S.sysSection,view=S.sysView==="tokens"?"tokens":"preview";
   $$("#secnav button").forEach(b=>b.classList.toggle("on",b.dataset.s===sec));
+  if(sec==="base"){renderBaseSystem();return}
   const c=$("#sysCenter"),toks=sysSecToks(sec),name=SEC_NAME[sec];
   c.innerHTML=`<div class="pane-hd sys-hd"><div><span class="title-l">${name}</span><div class="body-s osv">Select an element to edit its style. Highlighted elements share the same setting.</div></div></div>
   <div class="sys-toolbar"><div class="seg" role="group" aria-label="System view"><button data-sysview="preview" class="${view==="preview"?"on":""}" aria-pressed="${view==="preview"}">Preview</button><button data-sysview="tokens" class="${view==="tokens"?"on":""}" aria-pressed="${view==="tokens"}">Tokens</button></div></div>
@@ -226,7 +228,7 @@ function renderSystemRail(){
   if(isC){$("#tkColor").oninput=()=>{$("#tkHex").value=$("#tkColor").value.toUpperCase();draft()};$("#tkHex").oninput=()=>{const v=$("#tkHex").value.trim();if(valOk(v))$("#tkColor").value=v;draft()}}
   const f=$("#tkForm");f.addEventListener("input",draft);f.addEventListener("change",draft);
   f.onsubmit=e=>{e.preventDefault();const v=val();if(!valOk(v)){$("#tkErr").textContent="Use a six-digit hex color, such as #4F6F8F.";return}if(!v.trim()){$("#tkErr").textContent="Enter a value.";return}
-    snapshot(`token ${t.k} → ${v}`);t.v=isC?v.toUpperCase():v;t.not=$("#tkNot").value.trim();t.edited=true;t.mine=mineLabel(t);delete sysDrafts[t.k];save();renderSystem();if(S.view==="review")renderReview();toast(`${decName(t)} updated across the website`)};
+    snapshot(`token ${t.k} → ${v}`);t.v=isC?v.toUpperCase():v;t.not=$("#tkNot").value.trim();t.edited=true;t.user=true;t.mine=mineLabel(t);delete sysDrafts[t.k];save();renderSystem();if(S.view==="review")renderReview();toast(`${decName(t)} updated across the website`)};
   $("#tkCancel").onclick=()=>{delete sysDrafts[t.k];renderSystemRail()};
   const prop=$("#tkProp");if(prop)prop.onchange=()=>{select({kind:"token",id:prop.value,pick:S.sel.pick});renderSystem()};
   wirePrompt(r,{kind:"token",id:t.k},`token ${t.k} = ${t.v} (why: ${t.why}; not: ${t.not})`);
@@ -371,10 +373,10 @@ $$("#trendSeg button,#baselinePill").forEach(b=>b.onclick=()=>{S.trend=b.dataset
 let previewVer=null;
 function verLabel(w){const m=String(w).match(/^element (\w+) (\{.*\})$/);if(!m)return w;let o={};try{o=JSON.parse(m[2])}catch{}const n=EL[m[1]]?.name||m[1];const parts=Object.entries(o).map(([k,v])=>k==="hidden"?(v?"removed":"restored"):k==="variant"?`→ ${v}`:k==="caption"?`copy → “${String(v).slice(0,28)}”`:k==="img"?(v?"image swapped":"image reset"):`${k} → ${v}`);return`${n} ${parts.join(", ")}`}
 // each history entry stores the state BEFORE its change; the state "at that point" (after the change) is the next entry, or current.
-function stateAfter(i){const n=S.history[i+1];const d=n?("designAt" in n?dzDesignAt(n.designAt):undefined):(S.design||null);const st=n?{tokens:n.tokens,elements:n.elements,site:n.site||S.site,review:"review" in n?n.review:S.review,typeStyles:"typeStyles" in n?n.typeStyles:S.typeStyles,compStyles:"compStyles" in n?n.compStyles:S.compStyles}:{tokens:S.tokens||seedTokens(),elements:S.elements,site:S.site,review:S.review,typeStyles:S.typeStyles,compStyles:S.compStyles};if(d!==undefined)st.design=d;return st}
+function stateAfter(i){const n=S.history[i+1];const d=n?("designAt" in n?dzDesignAt(n.designAt):undefined):(S.design||null);const st=n?{tokens:n.tokens,elements:n.elements,site:n.site||S.site,review:"review" in n?n.review:S.review,typeStyles:"typeStyles" in n?n.typeStyles:S.typeStyles,compStyles:"compStyles" in n?n.compStyles:S.compStyles,baseSystem:n.baseSystem||S.baseSystem}:{tokens:S.tokens||seedTokens(),elements:S.elements,site:S.site,review:S.review,typeStyles:S.typeStyles,compStyles:S.compStyles,baseSystem:S.baseSystem};if(d!==undefined)st.design=d;return st}
 function verList(){return S.history.length?[...S.history].reverse().slice(0,20).map((h,i)=>{const idx=S.history.length-1-i;const cur=idx===S.history.length-1;const on=previewVer===idx||(previewVer===null&&cur);return`<div class="ver ${on?"on":""}" data-ver="${idx}" tabindex="0" role="button" aria-pressed="${on}"><span class="d"></span><span style="flex:1;min-width:0">${esc(verLabel(h.what))}${cur?' <span class="badge p">current</span>':""}</span><span class="mono osv">${new Date(h.t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>${cur?"":`<button class="btn text sm" data-restore="${idx}">Restore</button>`}</div>`}).join(""):`<div class="note">No versions yet. Every change creates one.</div>`}
 function wireVer(r){$$("[data-ver]",r).forEach(v=>{const go=()=>{const i=+v.dataset.ver;previewVer=(i===S.history.length-1)?null:i;renderReview()};v.onclick=e=>{if(e.target.closest("[data-restore]"))return;go()};v.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}});
-  $$("[data-restore]",r).forEach(b=>b.onclick=e=>{e.stopPropagation();const i=+b.dataset.restore;const st=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(st.tokens));S.typeStyles=JSON.parse(JSON.stringify(st.typeStyles||{}));S.compStyles=JSON.parse(JSON.stringify(st.compStyles||{}));S.elements=JSON.parse(JSON.stringify(st.elements));S.site=st.site?JSON.parse(JSON.stringify(st.site)):S.site;S.review=st.review;applyVersionDesign(st);previewVer=null;save();renderAll();toast("Restored that version")})}
+  $$("[data-restore]",r).forEach(b=>b.onclick=e=>{e.stopPropagation();const i=+b.dataset.restore;const st=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(st.tokens));S.typeStyles=JSON.parse(JSON.stringify(st.typeStyles||{}));S.compStyles=JSON.parse(JSON.stringify(st.compStyles||{}));if(st.baseSystem)S.baseSystem=st.baseSystem;S.elements=JSON.parse(JSON.stringify(st.elements));S.site=st.site?JSON.parse(JSON.stringify(st.site)):S.site;S.review=st.review;applyVersionDesign(st);previewVer=null;save();renderAll();toast("Restored that version")})}
 
 /* ============================ REVIEW ============================ */
 const EL={
@@ -424,10 +426,10 @@ function renderReview(){syncEL();
     ?"Click a section to see the research, inspiration and design-system choices behind it. Token edits on the System page restyle this page straight away."
     :"Use the site's own navigation to move between pages. Click any part to see the decision behind it.";
   if(!designed&&typeof dzFrameKey!=="undefined")dzFrameKey=null;
-  if(previewVer!==null&&S.history[previewVer]){const keep={tokens:S.tokens,elements:S.elements,sel:S.sel,site:S.site,review:S.review,design:S.design,typeStyles:S.typeStyles,compStyles:S.compStyles};const at=stateAfter(previewVer);S.typeStyles=at.typeStyles||{};S.compStyles=at.compStyles||{};if("design" in at)S.design=at.design;S.tokens=at.tokens;S.elements=at.elements;S.site=at.site;S.review=at.review;S.sel=null;syncEL();
+  if(previewVer!==null&&S.history[previewVer]){const keep={tokens:S.tokens,elements:S.elements,sel:S.sel,site:S.site,review:S.review,design:S.design,typeStyles:S.typeStyles,compStyles:S.compStyles,baseSystem:S.baseSystem};const at=stateAfter(previewVer);S.typeStyles=at.typeStyles||{};S.compStyles=at.compStyles||{};if("design" in at)S.design=at.design;S.tokens=at.tokens;S.elements=at.elements;S.site=at.site;S.review=at.review;S.sel=null;syncEL();
     const h=S.history[previewVer];const pvDoc=S.design&&S.design.html?designFrameHTML():null;const pvBody=pvDoc?`<div class="designwrap"><iframe id="designPreview" class="designframe ${S.device==="phone"?"phone":""}" sandbox="allow-same-origin" title="Version preview"></iframe></div>`:`<div class="morph">${pageHTML()}</div>`;st.innerHTML=`<div class="verbar"><span class="ms">history</span><span style="flex:1;min-width:0"><b>Previewing</b> · ${esc(verLabel(h.what))} · ${new Date(h.t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span><button class="btn text sm" id="vbBack">Back to current</button><button class="btn filled sm" id="vbRestore">Restore this version</button></div>${pvBody}`;Object.assign(S,keep);
     if(pvDoc){const pf=$("#designPreview",st);pf.onload=()=>{const dd=pf.contentDocument;if(!dd||!dd.body)return;fillDesignPhotos(dd);const fit=()=>{pf.style.height=Math.max(320,dd.body.scrollHeight)+"px"};fit();try{new ResizeObserver(fit).observe(dd.body)}catch{}};pf.srcdoc=pvDoc}
-    $("#vbBack",st).onclick=()=>{previewVer=null;renderReview()};$("#vbRestore",st).onclick=()=>$(`[data-restore="${previewVer}"]`)?.click()||(()=>{const i=previewVer;const a=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(a.tokens));S.typeStyles=JSON.parse(JSON.stringify(a.typeStyles||{}));S.compStyles=JSON.parse(JSON.stringify(a.compStyles||{}));S.elements=JSON.parse(JSON.stringify(a.elements));S.site=a.site?JSON.parse(JSON.stringify(a.site)):S.site;S.review=a.review;applyVersionDesign(a);previewVer=null;save();renderAll();toast("Restored that version")})();
+    $("#vbBack",st).onclick=()=>{previewVer=null;renderReview()};$("#vbRestore",st).onclick=()=>$(`[data-restore="${previewVer}"]`)?.click()||(()=>{const i=previewVer;const a=stateAfter(i);snapshot("restored “"+S.history[i].what+"”");S.tokens=JSON.parse(JSON.stringify(a.tokens));S.typeStyles=JSON.parse(JSON.stringify(a.typeStyles||{}));S.compStyles=JSON.parse(JSON.stringify(a.compStyles||{}));if(a.baseSystem)S.baseSystem=a.baseSystem;S.elements=JSON.parse(JSON.stringify(a.elements));S.site=a.site?JSON.parse(JSON.stringify(a.site)):S.site;S.review=a.review;applyVersionDesign(a);previewVer=null;save();renderAll();toast("Restored that version")})();
     $$(".el",st).forEach(e=>{e.style.cursor="default"});renderReviewRail();return}
   /* Showing the empty scaffold as though it were a design is what made the Review
      page look unrelated to the project: stock nav labels and "[ITEM 1]" are the
